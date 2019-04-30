@@ -64,13 +64,14 @@ namespace PersikSharp
 
         private void onText(object sender, MessageArgs message_args)
         {
-            var match = Regex.Match(message_args.Message.Text, $"^\\/(\\w*)((?=@{botusername}))?", RegexOptions.IgnoreCase);
+            var message = message_args.Message;
+            var match = Regex.Match(message.Text, $"^\\/(\\w*)((?=@{botusername}))?", RegexOptions.IgnoreCase);
             try
             {
                 if (match.Success)
                 {
-                    commandsCallbacks[match.Groups[0].Value].Invoke(this, new MessageArgs(message_args.Message));
-                    Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message_args.Message.From.FirstName}:{message_args.Message.From.Id}) called \"{match.Groups[0].Value}\" command.");
+                    commandsCallbacks[match.Groups[0].Value].Invoke(this, new MessageArgs(message));
+                    Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
                 }
             }catch(KeyNotFoundException e)
             {
