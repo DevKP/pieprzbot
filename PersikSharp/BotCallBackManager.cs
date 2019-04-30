@@ -1,0 +1,81 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Telegram.Bot.Args;
+using Telegram.Bot;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types;
+using System.Text.RegularExpressions;
+
+namespace PersikSharp
+{
+    public class MessageArgs : EventArgs
+    {
+        public MessageArgs(Message m) { Message = m; }
+        public Message Message { get; }
+    }
+
+    class BotCallBackManager
+    {
+        public event EventHandler<MessageArgs> onTextMessage;
+        public event EventHandler<MessageArgs> onStickerMessage;
+        public event EventHandler<MessageArgs> onPhotoMessage;
+        public event EventHandler<MessageArgs> onChatMembersAddedMessage;
+
+        public Dictionary<string, EventHandler<MessageArgs>> commandsCallbacks = new Dictionary<string, EventHandler<MessageArgs>>();
+
+        private string botusername;
+
+        public BotCallBackManager() { }
+        public BotCallBackManager(TelegramBotClient bot)
+        {
+            bot.OnMessage += Bot_OnMessage;
+            onTextMessage += onText;
+            botusername = bot.GetMeAsync().Result.Username;
+        }
+
+        public void RegisterCommandCallback(string command, EventHandler<MessageArgs> c)
+        {
+            commandsCallbacks.Add(command, c);
+        }
+
+        private void Bot_OnMessage(object sender, MessageEventArgs e)
+        {
+            switch (e.Message.Type)
+            {
+                case MessageType.Text:
+                    onTextMessage?.Invoke(this, new MessageArgs(e.Message));
+                    break;
+                case MessageType.Sticker:
+                    onStickerMessage?.Invoke(this, new MessageArgs(e.Message));
+                    break;
+                case MessageType.Photo:
+                    onPhotoMessage?.Invoke(this, new MessageArgs(e.Message));
+                    break;
+                case MessageType.ChatMembersAdded:
+                    onChatMembersAddedMessage?.Invoke(this, new MessageArgs(e.Message));
+                    break;
+                case MessageType.Unknown:
+                    break;
+            }
+        }
+
+        private void onText(object sender, MessageArgs message_args)
+        {
+            var match = Regex.Match(message_args.Message.Text, $"^\\/(\\w*)((?=@{botusername}))?", RegexOptions.IgnoreCase);
+            try
+            {
+                if (match.Success)
+                {
+                    commandsCallbacks[match.Groups[0].Value].Invoke(this, new MessageArgs(message_args.Message));
+                    Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message_args.Message.From.FirstName}:{message_args.Message.From.Id}) called \"{match.Groups[0].Value}\" command.");
+                }
+            }catch(KeyNotFoundException e)
+            {
+                Logger.Log(LogType.Error, $"<{this.GetType().Name}> Command \"{match.Groups[0].Value}\" not found!!");
+            }
+        }
+    }
+}
