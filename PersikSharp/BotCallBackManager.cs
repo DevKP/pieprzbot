@@ -24,6 +24,8 @@ namespace PersikSharp
         public event EventHandler<MessageArgs> onPhotoMessage;
         public event EventHandler<MessageArgs> onChatMembersAddedMessage;
 
+        public event EventHandler<MessageArgs> onTextEdited;
+
         public Dictionary<string, EventHandler<MessageArgs>> commandsCallbacks = new Dictionary<string, EventHandler<MessageArgs>>();
 
         private string botusername;
@@ -32,13 +34,25 @@ namespace PersikSharp
         public BotCallBackManager(TelegramBotClient bot)
         {
             bot.OnMessage += Bot_OnMessage;
+            bot.OnMessageEdited += Bot_OnMessageEdited;
             onTextMessage += onText;
             botusername = bot.GetMeAsync().Result.Username;
         }
 
-        public void RegisterCommandCallback(string command, EventHandler<MessageArgs> c)
+        public void RegisterCommand(string command, EventHandler<MessageArgs> c)
         {
             commandsCallbacks.Add(command, c);
+        }
+
+
+        private void Bot_OnMessageEdited(object sender, MessageEventArgs e)
+        {
+            switch (e.Message.Type)
+            {
+                case MessageType.Text:
+                    onTextEdited?.Invoke(this, new MessageArgs(e.Message));
+                    break;
+            }
         }
 
         private void Bot_OnMessage(object sender, MessageEventArgs e)

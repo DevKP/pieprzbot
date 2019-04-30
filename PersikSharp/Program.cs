@@ -17,6 +17,7 @@ using Clarifai.API.Requests.Models;
 using Clarifai.DTOs.Predictions;
 using Newtonsoft.Json;
 using System.Net;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace PersikSharp
 {
@@ -40,10 +41,13 @@ namespace PersikSharp
             botcallbacks.onStickerMessage += onStickerMessage;
             botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
 
-            botcallbacks.RegisterCommandCallback("/start", onStartCommand);
-            botcallbacks.RegisterCommandCallback("/info", onInfoCommand);
-            botcallbacks.RegisterCommandCallback("/rate", onRateCommand);
+            botcallbacks.onTextEdited += onTextEdited;
 
+            botcallbacks.RegisterCommand("/start", onStartCommand);
+            botcallbacks.RegisterCommand("/info", onInfoCommand);
+            botcallbacks.RegisterCommand("/rate", onRateCommand);
+
+            
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.FirstName;
@@ -141,6 +145,14 @@ namespace PersikSharp
                 return;
             }
 
+
+            if (Regex.IsMatch(message.Text,
+                @"мозг|живой|красав|молодец|хорош|умный|умница", RegexOptions.IgnoreCase))
+            {
+                onBotPraise(message);
+                return;
+            }
+
             if (message.ReplyToMessage?.Type == MessageType.Photo)
             {
                 Logger.Log(LogType.Info,
@@ -160,6 +172,11 @@ namespace PersikSharp
 
             _ = Bot.SendTextMessageAsync(message.Chat.Id, 
                 strManager.GetRandom("HELLO"), ParseMode.Markdown, replyToMessageId: message.MessageId);
+        }
+
+        private static void onBotPraise(Message message)
+        {
+            Bot.SendStickerAsync(message.Chat.Id, "CAADAgADQQMAApFfCAABzoVI0eydHSgC");
         }
 
         private static async void onBotInsulting(Message message)
@@ -232,6 +249,7 @@ namespace PersikSharp
 
         private static async void NSFWDetect(Message message)
         {
+            
             try
             {
                 var file = await Bot.GetFileAsync(message.Photo[message.Photo.Length - 1].FileId);
@@ -385,10 +403,17 @@ namespace PersikSharp
             }
         }
 
-        private static void onPhotoMessage(object sender, MessageArgs message_args)
+        private static void onTextEdited(object sender, MessageArgs message_args)
         {
             Message message = message_args.Message;
 
+            Logger.Log(LogType.Info, $"[EDITED MESSAGE] ({message.From.FirstName}:{message.From.Id})");
+            onTextMessage(sender, message_args);
+        }
+
+        private static void onPhotoMessage(object sender, MessageArgs message_args)
+        {
+            Message message = message_args.Message;
 
             Logger.Log(LogType.Info,
                     $"({message.From.FirstName}:{message.From.Id}) IID: {message.Photo[0].FileId}");
@@ -481,7 +506,16 @@ namespace PersikSharp
                 formated_str += String.Format(template_str, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
             }
 
-            _ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str);
+
+            var inlineKeyboard = new InlineKeyboardMarkup(new[]
+                    {
+                        new []
+                        {
+                            InlineKeyboardButton.WithCallbackData("UPDATE")
+                        }
+                    });
+
+            _ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str, replyMarkup: inlineKeyboard);
         }
 
         private static void onStartCommand(object sender, MessageArgs message_args)
