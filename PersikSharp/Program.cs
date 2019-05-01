@@ -26,7 +26,7 @@ namespace PersikSharp
         private static readonly TelegramBotClient Bot = new TelegramBotClient("877724240:AAGFquK0QBs6wR746M0vyEhvt7MO87J_hf8");
         private static readonly ClarifaiClient clarifai = new ClarifaiClient("c3e552013fa64ff2a3beea5fefbb597e");
         private static readonly StringManager strManager = new StringManager();
-        private static BotCallBackManager botcallbacks;
+        private static BotCallBacks botcallbacks;
 
         static void Main(string[] args)
         {
@@ -36,7 +36,7 @@ namespace PersikSharp
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
 
-            botcallbacks = new BotCallBackManager(Bot);
+            botcallbacks = new BotCallBacks(Bot);
             botcallbacks.onTextMessage += onTextMessage;
             botcallbacks.onTextMessage += onTextMessageFilter;
             botcallbacks.onPhotoMessage += onPhotoMessage;
@@ -49,7 +49,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("/info", onInfoCommand);
             botcallbacks.RegisterCommand("/rate", onRateCommand);
 
-            
+            botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.FirstName;
@@ -68,7 +68,7 @@ namespace PersikSharp
         {
             if (e.Message.Chat.Type == ChatType.Supergroup)
             {
-                if (e.Message.Text.Contains("https://t.me/joinchat/Ac28l1hHKm7uIabsvlUaSQ"))
+                if (e.Message.Text.Contains("https://t.me/joinchat/LE9Xo1hHKm6CkkJpGg3Qrg"))
                 {
                     _ = Bot.DeleteMessageAsync(e.Message.Chat.Id, e.Message.MessageId);
                     Logger.Log(LogType.Info, $"<TextFilter> Message deleted.");
@@ -247,7 +247,7 @@ namespace PersikSharp
                     result = match.Groups[2].Value;
                 }
 
-                Bot.SendTextMessageAsync(message.Chat.Id, String.Format(strManager.GetSingle("CHOICE"), result),
+                Bot.SendTextMessageAsync(message.Chat.Id, String.Format(strManager.GetRandom("CHOICE"), result),
                     ParseMode.Markdown, replyToMessageId: message.MessageId);
             }
         }
@@ -491,7 +491,18 @@ namespace PersikSharp
 
         private static void onRateCommand(object sender, MessageArgs message_args)
         {
-            Message message = message_args.Message;
+            var msg = Bot.SendTextMessageAsync(message_args.Message.Chat.Id, "*Обновление...*",parseMode: ParseMode.Markdown).Result;
+            var cq = new CallbackQuery();
+            cq.Message = msg;
+            cq.InlineMessageId = msg.MessageId.ToString();
+            cq.From = msg.From;
+
+            onRateUpdate(sender, new CallbackQueryArgs(cq));
+        }
+
+        private static void onRateUpdate(object sender, CallbackQueryArgs e)
+        {
+            //Message message = message_args.Message;
 
             string url = "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,ETC,ZEC,LTC,BCH&tsyms=USD";
 
@@ -502,9 +513,9 @@ namespace PersikSharp
             StreamReader reader = new StreamReader(resStream);
             string respone_str = reader.ReadToEnd();
 
-            var json_object = new Dictionary<string, Dictionary<string, Dictionary<string,dynamic>>>();
+            var json_object = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
             json_object = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>(respone_str);
-            
+
 
             string template_str = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
             string formated_str = "";
@@ -522,17 +533,17 @@ namespace PersikSharp
 
                 formated_str += String.Format(template_str, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
             }
+            formated_str += $"\nОбновлено {DateTime.Now.ToShortTimeString()}";
 
 
-            var inlineKeyboard = new InlineKeyboardMarkup(new[]
-                    {
-                        new []
-                        {
-                            InlineKeyboardButton.WithCallbackData("UPDATE")
-                        }
-                    });
+            var button = new InlineKeyboardButton();
+            button.CallbackData = "update_rate";
+            button.Text = strManager.GetSingle("RATE_UPDATE_BTN");
+            var inlineKeyboard = new InlineKeyboardMarkup(new[]{new [] {button}});
 
-            _ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str, replyMarkup: inlineKeyboard);
+
+            //_ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str, replyMarkup: inlineKeyboard);
+            _ = Bot.EditMessageTextAsync(e.Callback.Message.Chat.Id ,e.Callback.Message.MessageId, formated_str, replyMarkup: inlineKeyboard);
         }
 
         private static void onStartCommand(object sender, MessageArgs message_args)

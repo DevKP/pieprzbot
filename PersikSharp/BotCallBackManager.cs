@@ -16,8 +16,13 @@ namespace PersikSharp
         public MessageArgs(Message m) { Message = m; }
         public Message Message { get; }
     }
+    public class CallbackQueryArgs : EventArgs
+    {
+        public CallbackQueryArgs(CallbackQuery m) { Callback = m; }
+        public CallbackQuery Callback { get; }
+    }
 
-    class BotCallBackManager
+    class BotCallBacks
     {
         public event EventHandler<MessageArgs> onTextMessage;
         public event EventHandler<MessageArgs> onStickerMessage;
@@ -28,16 +33,21 @@ namespace PersikSharp
 
         public Dictionary<string, EventHandler<MessageArgs>> commandsCallbacks =
             new Dictionary<string, EventHandler<MessageArgs>>();
+        public Dictionary<string, EventHandler<CallbackQueryArgs>> queryCallbacks =
+            new Dictionary<string, EventHandler<CallbackQueryArgs>>();
 
-        private string botusername;
+        private string bot_username;
 
-        public BotCallBackManager() { }
-        public BotCallBackManager(TelegramBotClient bot)
+        public BotCallBacks() { }
+        public BotCallBacks(TelegramBotClient bot)
         {
             bot.OnMessage += Bot_OnMessage;
             bot.OnMessageEdited += Bot_OnMessageEdited;
+            bot.OnCallbackQuery += Bot_OnCallbackQuery;
+
             onTextMessage += onTextCommandsParsing;
-            botusername = bot.GetMeAsync().Result.Username;
+
+            bot_username = bot.GetMeAsync().Result.Username;
         }
 
         public void RegisterCommand(string command, EventHandler<MessageArgs> c)
@@ -45,6 +55,22 @@ namespace PersikSharp
             commandsCallbacks.Add(command, c);
         }
 
+        public void RegisterCallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
+        {
+            queryCallbacks.Add(data, c);
+        }
+
+        private void Bot_OnCallbackQuery(object sender, CallbackQueryEventArgs a)
+        {
+            try { 
+                queryCallbacks[a.CallbackQuery.Data].Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
+                Logger.Log(LogType.Info, $"<{this.GetType().Name}> InlineCallback \"{a.CallbackQuery.Data}\" from user ({a.CallbackQuery.From.FirstName}:{a.CallbackQuery.From.Id}).");
+            }
+            catch (KeyNotFoundException e)
+            {
+                Logger.Log(LogType.Error, $"<{this.GetType().Name}> CallbackQuery with Data: \"{a.CallbackQuery.Data}\" isn't registered!!");
+            }
+        }
 
         private void Bot_OnMessageEdited(object sender, MessageEventArgs e)
         {
@@ -90,7 +116,7 @@ namespace PersikSharp
         private void onTextCommandsParsing(object sender, MessageArgs message_args)
         {
             var message = message_args.Message;
-            var match = Regex.Match(message.Text, $"^\\/(\\w*)((?=@{botusername}))?", RegexOptions.IgnoreCase);
+            var match = Regex.Match(message.Text, $"^\\/(\\w*)((?=@{bot_username}))?", RegexOptions.IgnoreCase);
             try
             {
                 if (match.Success)
