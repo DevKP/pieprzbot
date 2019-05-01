@@ -396,7 +396,7 @@ namespace PersikSharp
                 }
             }
 
-            if (Regex.IsMatch(m.Text, @".*!п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к).*", RegexOptions.IgnoreCase))
+            if (Regex.IsMatch(m.Text, @".*п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к).*", RegexOptions.IgnoreCase))
             {
                 if (m.Chat.Type != ChatType.Private)
                     onPersikCommand(m);
