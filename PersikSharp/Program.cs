@@ -223,9 +223,15 @@ namespace PersikSharp
 
         private static void onRandomChoice(Message message)
         {
-            string only_choice_str = message.Text.Remove(0, message.Text.Split(' ').First().Length + 1);
-            only_choice_str = only_choice_str.Replace('?', '!');
+            string only_choice_str = "";
+            var temp_match = Regex.Match(message.Text, @".*п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к).*", RegexOptions.IgnoreCase);
+            if (temp_match.Groups[1].Index + temp_match.Groups[1].Length < message.Text.Length)
+                only_choice_str = message.Text.Substring(temp_match.Groups[1].Index + temp_match.Groups[1].Length);
+            else
+                only_choice_str = message.Text.Replace(temp_match.Groups[1].Value, "");
 
+
+            only_choice_str = only_choice_str.Replace('?', '!');
             var match = Regex.Match(only_choice_str, @"(.*)\Wили\W(.*)", RegexOptions.IgnoreCase);
             if (match.Success)
             {
