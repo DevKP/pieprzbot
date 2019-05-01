@@ -32,6 +32,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>PersikSharp.Program</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Clarifai, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Clarifai.1.3.0\lib\netstandard1.3\Clarifai.dll</HintPath>

@@ -26,7 +26,8 @@ namespace PersikSharp
 
         public event EventHandler<MessageArgs> onTextEdited;
 
-        public Dictionary<string, EventHandler<MessageArgs>> commandsCallbacks = new Dictionary<string, EventHandler<MessageArgs>>();
+        public Dictionary<string, EventHandler<MessageArgs>> commandsCallbacks =
+            new Dictionary<string, EventHandler<MessageArgs>>();
 
         private string botusername;
 
@@ -35,7 +36,7 @@ namespace PersikSharp
         {
             bot.OnMessage += Bot_OnMessage;
             bot.OnMessageEdited += Bot_OnMessageEdited;
-            onTextMessage += onText;
+            onTextMessage += onTextCommandsParsing;
             botusername = bot.GetMeAsync().Result.Username;
         }
 
@@ -57,26 +58,36 @@ namespace PersikSharp
 
         private void Bot_OnMessage(object sender, MessageEventArgs e)
         {
+            var message = e.Message;
+            string message_type_str = $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
+            string message_str = "";
+
             switch (e.Message.Type)
             {
                 case MessageType.Text:
+                    message_str = message.Text;
                     onTextMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Sticker:
+                    message_str = message.Sticker?.FileId;
                     onStickerMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Photo:
+                    message_str = message.Photo[0].FileId;
                     onPhotoMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.ChatMembersAdded:
+                    message_str = message.NewChatMembers[0].Id.ToString();
                     onChatMembersAddedMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Unknown:
                     break;
             }
+
+            Logger.Log(LogType.Info, $"{message_type_str}: {message_str}");
         }
 
-        private void onText(object sender, MessageArgs message_args)
+        private void onTextCommandsParsing(object sender, MessageArgs message_args)
         {
             var message = message_args.Message;
             var match = Regex.Match(message.Text, $"^\\/(\\w*)((?=@{botusername}))?", RegexOptions.IgnoreCase);

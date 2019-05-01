@@ -30,6 +30,7 @@ namespace PersikSharp
 
         static void Main(string[] args)
         {
+            Console.OutputEncoding = Encoding.UTF8;
             InitDictionary();
 
             CommandLine.Inst().onSubmitAction += PrintString;
@@ -37,6 +38,7 @@ namespace PersikSharp
 
             botcallbacks = new BotCallBackManager(Bot);
             botcallbacks.onTextMessage += onTextMessage;
+            botcallbacks.onTextMessage += onTextMessageFilter;
             botcallbacks.onPhotoMessage += onPhotoMessage;
             botcallbacks.onStickerMessage += onStickerMessage;
             botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
@@ -60,6 +62,18 @@ namespace PersikSharp
                 Thread.Sleep(9999999);
 
             Bot.StopReceiving();
+        }
+
+        private static void onTextMessageFilter(object sender, MessageArgs e)
+        {
+            if (e.Message.Chat.Type == ChatType.Supergroup)
+            {
+                if (e.Message.Text.Contains("https://t.me/joinchat/Ac28l1hHKm7uIabsvlUaSQ"))
+                {
+                    _ = Bot.DeleteMessageAsync(e.Message.Chat.Id, e.Message.MessageId);
+                    Logger.Log(LogType.Info, $"<TextFilter> Message deleted.");
+                }
+            }
         }
 
         private static void InitDictionary()
@@ -128,11 +142,13 @@ namespace PersikSharp
         {
             if(Regex.IsMatch(message.Text, @"\b(за)?бань?\b", RegexOptions.IgnoreCase))
             {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {@"\b(за)?бань?\b"}");
                 onPersikBanCommand(message);
                 return;
             }
             if(Regex.IsMatch(message.Text, @"(.*)\Wили\W(.*)", RegexOptions.IgnoreCase))
             {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {@"(.*)\Wили\W(.*)"}");
                 onRandomChoice(message);
                 return;
             }
@@ -141,6 +157,7 @@ namespace PersikSharp
             if(Regex.IsMatch(message.Text,
                 @"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻", RegexOptions.IgnoreCase))
             {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {@"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻"}");
                 onBotInsulting(message);
                 return;
             }
@@ -149,6 +166,7 @@ namespace PersikSharp
             if (Regex.IsMatch(message.Text,
                 @"мозг|живой|красав|молодец|хорош|умный|умница", RegexOptions.IgnoreCase))
             {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {@"мозг|живой|красав|молодец|хорош|умный|умница"}");
                 onBotPraise(message);
                 return;
             }
@@ -169,7 +187,7 @@ namespace PersikSharp
                 return;
             }
 
-
+            Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {"NONE"}");
             _ = Bot.SendTextMessageAsync(message.Chat.Id, 
                 strManager.GetRandom("HELLO"), ParseMode.Markdown, replyToMessageId: message.MessageId);
         }
@@ -382,8 +400,6 @@ namespace PersikSharp
         {
             Message m = message_args.Message;
 
-            Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id}) {m.Text}");
-
             //Message to superchat from privat Example: !Hello World
             if (m.Chat.Type == ChatType.Private && m.Text[0] == '!')
             {
@@ -407,16 +423,13 @@ namespace PersikSharp
         {
             Message message = message_args.Message;
 
-            Logger.Log(LogType.Info, $"[EDITED MESSAGE] ({message.From.FirstName}:{message.From.Id})");
+            Logger.Log(LogType.Info, $"[EDITED MESSAGE] ({message.From.FirstName}:{message.From.Id}): {message.Text}");
             onTextMessage(sender, message_args);
         }
 
         private static void onPhotoMessage(object sender, MessageArgs message_args)
         {
             Message message = message_args.Message;
-
-            Logger.Log(LogType.Info,
-                    $"({message.From.FirstName}:{message.From.Id}) IID: {message.Photo[0].FileId}");
 
             NSFWDetect(message);
         }
@@ -425,8 +438,6 @@ namespace PersikSharp
         {
             Message message = message_args.Message;
 
-            Logger.Log(LogType.Info,
-                   $"({message.From.FirstName}:{message.From.Id}) SID: {message.Sticker.FileId}");
         }
 
         private static void onChatMembersAddedMessage(object sender, MessageArgs message_args)
@@ -521,7 +532,7 @@ namespace PersikSharp
         private static void onStartCommand(object sender, MessageArgs message_args)
         {
             if (message_args.Message.Chat.Type == ChatType.Private)
-                Bot.SendTextMessageAsync(message_args.Message.Chat.Id, String.Format(strManager.GetSingle("STRT"), message_args.Message.From.FirstName));
+                Bot.SendTextMessageAsync(message_args.Message.Chat.Id, String.Format(strManager.GetSingle("START"), message_args.Message.From.FirstName));
         }
 
         private static void onInfoCommand(object sender, MessageArgs message_args)
