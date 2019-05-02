@@ -140,41 +140,46 @@ namespace PersikSharp
 
         private static async void onPersikCommand(Message message)
         {
-            if(Regex.IsMatch(message.Text, @"\b(за)?бань?\b", RegexOptions.IgnoreCase))
+            //=======Regular expressions==========
+
+            string ban_regex = @"\b(за)?бань?\b";
+            if (Regex.IsMatch(message.Text, ban_regex, RegexOptions.IgnoreCase))
             {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {@"\b(за)?бань?\b"}");
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {ban_regex}");
                 onPersikBanCommand(message);
                 return;
             }
-            if(Regex.IsMatch(message.Text, @"(.*)\Wили\W(.*)", RegexOptions.IgnoreCase))
+
+            string choice_regex = @"(.*)\Wили\W(.*)";
+            if (Regex.IsMatch(message.Text, choice_regex, RegexOptions.IgnoreCase))
             {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {@"(.*)\Wили\W(.*)"}");
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {choice_regex}");
                 onRandomChoice(message);
                 return;
             }
-            
 
-            if(Regex.IsMatch(message.Text,
-                @"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻", RegexOptions.IgnoreCase))
+            string insult_regex = @"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻";
+            if (Regex.IsMatch(message.Text, insult_regex, RegexOptions.IgnoreCase))
             {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {@"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻"}");
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {insult_regex}");
                 onBotInsulting(message);
                 return;
             }
 
-
-            if (Regex.IsMatch(message.Text,
-                @"мозг|живой|красав|молодец|хорош|умный|умница", RegexOptions.IgnoreCase))
+            string praise_regex = @"мозг|живой|красав|молодец|хорош|умный|умница";
+            if (Regex.IsMatch(message.Text, praise_regex, RegexOptions.IgnoreCase))
             {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {@"мозг|живой|красав|молодец|хорош|умный|умница"}");
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {praise_regex}");
                 onBotPraise(message);
                 return;
             }
 
+            //==========================
+
             if (message.ReplyToMessage?.Type == MessageType.Photo)
             {
                 Logger.Log(LogType.Info,
-                    $"({message.From.FirstName}:{message.From.Id}) Predict IID: {message.ReplyToMessage.Photo[0].FileId}");
+                    $"[{message.Chat.Type.ToString()}:{message.Type.ToString()}]({message.From.FirstName}:{message.From.Id}) Predict IID: {message.ReplyToMessage.Photo[0].FileId}");
 
                 var names = await PredictImage(message.ReplyToMessage.Photo[message.ReplyToMessage.Photo.Length - 1]);
 
@@ -385,15 +390,25 @@ namespace PersikSharp
                         return;
 
                     await Bot.RestrictChatMemberAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, false, false, false, false);
-                    
-                    _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                        String.Format(strManager.GetSingle("BANNED"), message.ReplyToMessage.From.FirstName, number, word), ParseMode.Markdown);
+                    if (seconds >= 40)
+                    {
+                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                            String.Format(strManager.GetSingle("BANNED"), message.ReplyToMessage.From.FirstName, number, word), ParseMode.Markdown);
+                    }
+                    else
+                    {
+                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                            String.Format(strManager.GetSingle("SELF_PERMANENT"), message.ReplyToMessage.From.FirstName, number, word), ParseMode.Markdown);
+                    }
                 }
                 else
                 {
-                    await Bot.RestrictChatMemberAsync(message.Chat.Id, message.From.Id, until, false, false, false, false);
-                    _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                        String.Format(strManager.GetSingle("SELF_BANNED"), message.From.FirstName, number, word), ParseMode.Markdown);
+                    if (seconds >= 40)
+                    {
+                        await Bot.RestrictChatMemberAsync(message.Chat.Id, message.From.Id, until, false, false, false, false);
+                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                            String.Format(strManager.GetSingle("SELF_BANNED"), message.From.FirstName, number, word), ParseMode.Markdown);
+                    }
                 }
             }
             catch(Exception exp)
