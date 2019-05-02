@@ -14,6 +14,7 @@
   "BANNED": [ "*{0} забанен на {1} {2}*" ],
   "SELF_BANNED": [ "*{0} самозабанился на {1} {2}*" ],
   "SELF_PERMANENT": [ "*{0} получает перманентный бан!*" ],
+  "BYWORD_BAN": ["*{0} ушел искать белоруссию на 5 минут!*"],
   "START": [ "ПРИВЕТ (НЕ)ЛОХ!!!" ],
   "BOT_DETECTED": [ "Возможно [{0}] - это бот!\n@FreyjaAnastasievna\n@via_tcp\n@lopotyana\n@MrDimitree" ],
   "CHOICE": [

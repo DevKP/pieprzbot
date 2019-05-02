@@ -64,18 +64,7 @@ namespace PersikSharp
             Bot.StopReceiving();
         }
 
-        private static void onTextMessageFilter(object sender, MessageArgs e)
-        {
-            if (e.Message.Chat.Type == ChatType.Supergroup)
-            {
-                if (e.Message.Text.Contains("https://t.me/joinchat/LE9Xo1hHKm6CkkJpGg3Qrg"))
-                {
-                    _ = Bot.DeleteMessageAsync(e.Message.Chat.Id, e.Message.MessageId);
-                    Logger.Log(LogType.Info, $"<TextFilter> Message deleted.");
-                }
-            }
-        }
-
+        //=====Utils========
         private static void InitDictionary()
         {
             try
@@ -138,6 +127,7 @@ namespace PersikSharp
             return false;
         }
 
+        //=====Persik Commands======
         private static async void onPersikCommand(Message message)
         {
             //=======Regular expressions==========
@@ -174,6 +164,14 @@ namespace PersikSharp
                 return;
             }
 
+            string by_regex = @".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?";
+            if (Regex.IsMatch(message.Text, by_regex, RegexOptions.IgnoreCase))
+            {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {by_regex}");
+                onByWord(message);
+                return;
+            }
+
             //==========================
 
             if (message.ReplyToMessage?.Type == MessageType.Photo)
@@ -195,6 +193,105 @@ namespace PersikSharp
             Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {"NONE"}");
             _ = Bot.SendTextMessageAsync(message.Chat.Id, 
                 strManager.GetRandom("HELLO"), ParseMode.Markdown, replyToMessageId: message.MessageId);
+        }
+
+        private static async void onPersikBanCommand(Message message)
+        {
+            if (message.Chat.Type == ChatType.Private)
+                return;
+
+
+            const int default_second = 40;
+            int seconds = default_second;
+            int number = default_second;
+            string word = "сек.";
+
+            var match = Regex.Match(message.Text, @"(\d{1,9})\W?([смчд])?", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                number = int.Parse(match.Groups[1].Value);
+                seconds = number;
+
+                if (match.Groups[2].Length > 0)
+                {
+                    switch (match.Groups[2].Value[0])
+                    {
+                        case 'с':
+                            seconds = number;
+                            word = "сек.";
+                            break;
+                        case 'м':
+                            seconds *= 60;
+                            word = "мин.";
+                            break;
+                        case 'ч':
+                            word = "ч.";
+                            seconds *= 3600;
+                            break;
+                        case 'д':
+                            word = "д.";
+                            seconds *= 86400;
+                            break;
+                    }
+                }
+            }
+
+            try
+            {
+                var until = DateTime.Now.AddSeconds(seconds);
+                if (message.ReplyToMessage != null)
+                {
+                    if (!await isUserAdmin(message.Chat.Id, message.From.Id))
+                        return;
+
+                    if (message.ReplyToMessage.From.Id == Bot.BotId)
+                        return;
+
+                    await Bot.RestrictChatMemberAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, false, false, false, false);
+                    if (seconds >= 40)
+                    {
+                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                            String.Format(strManager.GetSingle("BANNED"), message.ReplyToMessage.From.FirstName, number, word), ParseMode.Markdown);
+                    }
+                    else
+                    {
+                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                            String.Format(strManager.GetSingle("SELF_PERMANENT"), message.ReplyToMessage.From.FirstName, number, word), ParseMode.Markdown);
+                    }
+                }
+                else
+                {
+                    if (seconds >= 40)
+                    {
+                        await Bot.RestrictChatMemberAsync(message.Chat.Id, message.From.Id, until, false, false, false, false);
+                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                            String.Format(strManager.GetSingle("SELF_BANNED"), message.From.FirstName, number, word), ParseMode.Markdown);
+                    }
+                }
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+            }
+        }
+
+        private static void onByWord(Message message)
+        {
+            Bot.SendStickerAsync(message.Chat.Id, "CAADAgADGwAD0JwyGF7MX7q4n6d_Ag");
+            if(message.Chat.Type != ChatType.Private)
+            {
+                try
+                {
+                    _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                        string.Format(strManager.GetSingle("BYWORD_BAN"), message.From.FirstName), ParseMode.Markdown);
+                    var until = DateTime.Now.AddSeconds(60 * 5);
+                    _ = Bot.RestrictChatMemberAsync(message.Chat.Id, message.From.Id, until, false, false, false, false);
+                }
+                catch (Exception e)
+                {
+                    Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                }
+            }
         }
 
         private static void onBotPraise(Message message)
@@ -337,86 +434,7 @@ namespace PersikSharp
             }
         }
 
-        private static async void onPersikBanCommand(Message message)
-        {
-            if (message.Chat.Type == ChatType.Private)
-                return;
-
-
-            const int default_second = 40;
-            int seconds = default_second;
-            int number = default_second;
-            string word = "сек.";
-
-            var match = Regex.Match(message.Text, @"(\d{1,9})\W?([смчд])?", RegexOptions.IgnoreCase);
-            if (match.Success)
-            {
-                number = int.Parse(match.Groups[1].Value);
-                seconds = number;
-                
-                if (match.Groups[2].Length > 0)
-                {
-                    switch (match.Groups[2].Value[0])
-                    {
-                        case 'с':
-                            seconds = number;
-                            word = "сек.";
-                            break;
-                        case 'м':
-                            seconds *= 60;
-                            word = "мин.";
-                            break;
-                        case 'ч':
-                            word = "ч.";
-                            seconds *= 3600;
-                            break;
-                        case 'д':
-                            word = "д.";
-                            seconds *= 86400;
-                            break;
-                    }
-                }
-            }
-
-            try
-            {
-                var until = DateTime.Now.AddSeconds(seconds);
-                if (message.ReplyToMessage != null)
-                {
-                    if (!await isUserAdmin(message.Chat.Id, message.From.Id))
-                        return;
-
-                    if (message.ReplyToMessage.From.Id == Bot.BotId)
-                        return;
-
-                    await Bot.RestrictChatMemberAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, false, false, false, false);
-                    if (seconds >= 40)
-                    {
-                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                            String.Format(strManager.GetSingle("BANNED"), message.ReplyToMessage.From.FirstName, number, word), ParseMode.Markdown);
-                    }
-                    else
-                    {
-                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                            String.Format(strManager.GetSingle("SELF_PERMANENT"), message.ReplyToMessage.From.FirstName, number, word), ParseMode.Markdown);
-                    }
-                }
-                else
-                {
-                    if (seconds >= 40)
-                    {
-                        await Bot.RestrictChatMemberAsync(message.Chat.Id, message.From.Id, until, false, false, false, false);
-                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                            String.Format(strManager.GetSingle("SELF_BANNED"), message.From.FirstName, number, word), ParseMode.Markdown);
-                    }
-                }
-            }
-            catch(Exception exp)
-            {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
-            }
-        }
-
+        //======Bot Updates=========
         private static async void onTextMessage(object sender, MessageArgs message_args)
         {
             Message m = message_args.Message;
@@ -446,6 +464,18 @@ namespace PersikSharp
 
             Logger.Log(LogType.Info, $"[EDITED MESSAGE] ({message.From.FirstName}:{message.From.Id}): {message.Text}");
             onTextMessage(sender, message_args);
+        }
+
+        private static void onTextMessageFilter(object sender, MessageArgs e)
+        {
+            if (e.Message.Chat.Type == ChatType.Supergroup)
+            {
+                if (e.Message.Text.Contains("https://t.me/joinchat/LE9Xo1hHKm6CkkJpGg3Qrg"))
+                {
+                    _ = Bot.DeleteMessageAsync(e.Message.Chat.Id, e.Message.MessageId);
+                    Logger.Log(LogType.Info, $"<TextFilter> Message deleted.");
+                }
+            }
         }
 
         private static void onPhotoMessage(object sender, MessageArgs message_args)
@@ -504,6 +534,7 @@ namespace PersikSharp
             _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
         }
 
+        //=======Bot commands========
         private static void onRateCommand(object sender, MessageArgs message_args)
         {
             var msg = Bot.SendTextMessageAsync(message_args.Message.Chat.Id, "*Обновление...*",parseMode: ParseMode.Markdown).Result;
@@ -573,5 +604,6 @@ namespace PersikSharp
 
             Bot.SendTextMessageAsync(message.Chat.Id, strManager.GetSingle("INFO"), ParseMode.Markdown);
         }
+        //==========================
     }
 }
