@@ -36,7 +36,17 @@ namespace PersikSharp
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
 
-            botcallbacks = new BotCallBacks(Bot);
+            try
+            {
+                botcallbacks = new BotCallBacks(Bot);
+            }catch(WebException exc)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exc.Message}");
+                Console.ReadKey();
+                return;
+            }
+
+
             botcallbacks.onTextMessage += onTextMessage;
             botcallbacks.onTextMessage += onTextMessageFilter;
             botcallbacks.onPhotoMessage += onPhotoMessage;
@@ -48,14 +58,29 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("/start", onStartCommand);
             botcallbacks.RegisterCommand("/info", onInfoCommand);
             botcallbacks.RegisterCommand("/rate", onRateCommand);
+            //botcallbacks.RegisterCommand("/x", (x,y) => {
+            //    JokeLol(x, new CallbackQueryArgs( y.Message ));
+            //});
+            botcallbacks.RegisterCommand("/y", (x, y) => {
+                _ = Bot.SendTextMessageAsync(y.Message.Chat.Id, "*ХУЙ*", ParseMode.Markdown);
+            });
 
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
+            //botcallbacks.RegisterCallbackQuery("hoba", JokeLol);
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.FirstName;
 
-            Bot.StartReceiving(Array.Empty<UpdateType>());
-            Logger.Log(LogType.Info, $"Start listening for @{me.Username}");
+            try
+            {
+                Bot.StartReceiving(Array.Empty<UpdateType>());
+                Logger.Log(LogType.Info, $"Start listening for @{me.Username}");
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Fatal, $"Exeption: {e.Message}");
+                Console.ReadKey();
+            }
 
 
             while (true)
@@ -64,6 +89,18 @@ namespace PersikSharp
             Bot.StopReceiving();
         }
 
+        //========JOKE DELETE PLEEESE===========
+        private static void JokeLol(object s, CallbackQueryArgs e)
+        {
+            var button = new InlineKeyboardButton();
+            button.CallbackData = "hoba";
+            button.Text = e.Callback.From?.FirstName;
+            var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
+
+
+            //_ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str, replyMarkup: inlineKeyboard);
+            _ = Bot.SendTextMessageAsync(e.Callback.Message.Chat.Id, "У меня есть кнопка!", replyMarkup: inlineKeyboard);
+        }
         //=====Utils========
         private static void InitDictionary()
         {
@@ -133,42 +170,56 @@ namespace PersikSharp
             //=======Regular expressions==========
 
             string ban_regex = @"\b(за)?бань?\b";
+            var ban_match = Regex.Match(message.Text, ban_regex, RegexOptions.IgnoreCase);
             if (Regex.IsMatch(message.Text, ban_regex, RegexOptions.IgnoreCase))
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {ban_regex}");
-                onPersikBanCommand(message);
+                onPersikBanCommand(message, ban_match);
                 return;
             }
 
-            string choice_regex = @"(.*)\Wили\W(.*)";
+            string choice_regex = @"([\w\s]+)\sили\s([\w\s]+)";
+            var choice_match = Regex.Match(message.Text, choice_regex, RegexOptions.IgnoreCase);
             if (Regex.IsMatch(message.Text, choice_regex, RegexOptions.IgnoreCase))
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {choice_regex}");
-                onRandomChoice(message);
+                onRandomChoice(message, choice_match);
                 return;
             }
 
             string insult_regex = @"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻";
+            var insult_match = Regex.Match(message.Text, insult_regex, RegexOptions.IgnoreCase);
             if (Regex.IsMatch(message.Text, insult_regex, RegexOptions.IgnoreCase))
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {insult_regex}");
-                onBotInsulting(message);
+                onBotInsulting(message, insult_match);
                 return;
             }
 
             string praise_regex = @"мозг|живой|красав|молодец|хорош|умный|умница";
+            var praise_match = Regex.Match(message.Text, praise_regex, RegexOptions.IgnoreCase);
             if (Regex.IsMatch(message.Text, praise_regex, RegexOptions.IgnoreCase))
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {praise_regex}");
-                onBotPraise(message);
+                onBotPraise(message, praise_match);
                 return;
             }
 
             string by_regex = @".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?";
+            var by_match = Regex.Match(message.Text, by_regex, RegexOptions.IgnoreCase);
             if (Regex.IsMatch(message.Text, by_regex, RegexOptions.IgnoreCase))
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {by_regex}");
-                onByWord(message);
+                onByWord(message, by_match);
+                return;
+            }
+
+            string weather_regex = @"погода\s([\w\s]+)";
+            var weather_match = Regex.Match(message.Text, weather_regex, RegexOptions.IgnoreCase);
+            if (Regex.IsMatch(message.Text, weather_regex, RegexOptions.IgnoreCase))
+            {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {weather_regex}");
+                onWeather(message, weather_match);
                 return;
             }
 
@@ -195,7 +246,73 @@ namespace PersikSharp
                 strManager.GetRandom("HELLO"), ParseMode.Markdown, replyToMessageId: message.MessageId);
         }
 
-        private static async void onPersikBanCommand(Message message)
+        private static void onWeather(Message message, Match weather_match)
+        {
+            string search_url = System.Uri.EscapeUriString($"http://dataservice.accuweather.com/locations/v1/cities/search?apikey=iRa2zXz2X4c1EF7KmgAaGGjAEGqIpxEw&q={weather_match.Groups[1].Value}&language=ru");
+            int location_code = 0;
+            dynamic location_json;
+            dynamic weather_json;
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(search_url);
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                Stream resStream = response.GetResponseStream();
+
+                StreamReader reader = new StreamReader(resStream);
+                string respone_str = reader.ReadToEnd();
+
+                if(respone_str.Contains("The allowed number of requests has been exceeded."))
+                {
+                    _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                    $"*Количество запросов превышено, лол!*", ParseMode.Markdown, replyToMessageId: message.MessageId);
+                    return;
+                }
+
+                location_json = JsonConvert.DeserializeObject(respone_str);
+
+                location_code = location_json[0].Key;
+
+                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey=iRa2zXz2X4c1EF7KmgAaGGjAEGqIpxEw&language=ru";
+
+                request = (HttpWebRequest)WebRequest.Create(current_url);
+                response = (HttpWebResponse)request.GetResponse();
+                resStream = response.GetResponseStream();
+
+                reader = new StreamReader(resStream);
+                respone_str = reader.ReadToEnd();
+
+                weather_json = JsonConvert.DeserializeObject(respone_str);
+
+                _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                    $"*{location_json[0].LocalizedName}, {location_json[0].Country.LocalizedName}\n\n{weather_json[0].WeatherText}\nТемпература: {weather_json[0].Temperature.Metric.Value}°C*", ParseMode.Markdown, replyToMessageId: message.MessageId);
+
+            }catch(ArgumentOutOfRangeException exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+
+                _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                    $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*", ParseMode.Markdown, replyToMessageId: message.MessageId);
+            }catch(WebException w)
+            {
+                Stream resStream = w.Response.GetResponseStream();
+                StreamReader reader = new StreamReader(resStream);
+                if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
+                {
+                    _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                    $"*Количество запросов превышено, лол!*", ParseMode.Markdown, replyToMessageId: message.MessageId);
+                    return;
+                }
+
+                Logger.Log(LogType.Error, $"Exception: {w.Message}");
+                _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                    w.Message, ParseMode.Markdown, replyToMessageId: message.MessageId);
+            }catch(Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+            }
+        }
+
+        private static async void onPersikBanCommand(Message message, Match ban_match)
         {
             if (message.Chat.Type == ChatType.Private)
                 return;
@@ -214,7 +331,7 @@ namespace PersikSharp
 
                 if (match.Groups[2].Length > 0)
                 {
-                    switch (match.Groups[2].Value[0])
+                    switch (match.Groups[2].Value.First())
                     {
                         case 'с':
                             seconds = number;
@@ -275,7 +392,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onByWord(Message message)
+        private static void onByWord(Message message, Match by_match)
         {
             Bot.SendStickerAsync(message.Chat.Id, "CAADAgADGwAD0JwyGF7MX7q4n6d_Ag");
             if(message.Chat.Type != ChatType.Private)
@@ -294,12 +411,12 @@ namespace PersikSharp
             }
         }
 
-        private static void onBotPraise(Message message)
+        private static void onBotPraise(Message message, Match praise_match)
         {
             Bot.SendStickerAsync(message.Chat.Id, "CAADAgADQQMAApFfCAABzoVI0eydHSgC");
         }
 
-        private static async void onBotInsulting(Message message)
+        private static async void onBotInsulting(Message message, Match insult_match)
         {
 
             try
@@ -323,18 +440,16 @@ namespace PersikSharp
 
         }
 
-        private static void onRandomChoice(Message message)
+        private static void onRandomChoice(Message message, Match choice_match)
         {
             string only_choice_str = "";
-            var temp_match = Regex.Match(message.Text, @".*п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к).*", RegexOptions.IgnoreCase);
+            var temp_match = Regex.Match(message.Text, @"(п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к))", RegexOptions.IgnoreCase);
             if (temp_match.Groups[1].Index + temp_match.Groups[1].Length < message.Text.Length)
                 only_choice_str = message.Text.Substring(temp_match.Groups[1].Index + temp_match.Groups[1].Length);
             else
                 only_choice_str = message.Text.Replace(temp_match.Groups[1].Value, "");
 
-
-            only_choice_str = only_choice_str.Replace('?', '!');
-            var match = Regex.Match(only_choice_str, @"(.*)\Wили\W(.*)", RegexOptions.IgnoreCase);
+            var match = Regex.Match(only_choice_str, @"([\w\s]+)\sили\s([\w\s]+)", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 Random rand = new Random();
@@ -367,8 +482,10 @@ namespace PersikSharp
 
             List<string> predictions = new List<string>();
 
-            for (int i = 0; i < 3; i++)
-                predictions.Add(result.Get().Data[i].Name);
+            for (int i = 0; predictions.Count < 3; i++)
+            {   if(result.Get().Data[i].Name != "нет человек")
+                    predictions.Add(result.Get().Data[i].Name);
+            }
 
             return predictions;
         }
@@ -453,8 +570,7 @@ namespace PersikSharp
 
             if (Regex.IsMatch(m.Text, @".*п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к).*", RegexOptions.IgnoreCase))
             {
-                if (m.Chat.Type != ChatType.Private)
-                    onPersikCommand(m);
+                onPersikCommand(m);
             }
         }
 
@@ -470,7 +586,7 @@ namespace PersikSharp
         {
             if (e.Message.Chat.Type == ChatType.Supergroup)
             {
-                if (e.Message.Text.Contains("https://t.me/joinchat/LE9Xo1hHKm6CkkJpGg3Qrg"))
+                if (e.Message.Text.Contains("LE9Xo1hHKm6CkkJpGg3Qrg"))
                 {
                     _ = Bot.DeleteMessageAsync(e.Message.Chat.Id, e.Message.MessageId);
                     Logger.Log(LogType.Info, $"<TextFilter> Message deleted.");
@@ -549,47 +665,53 @@ namespace PersikSharp
         private static void onRateUpdate(object sender, CallbackQueryArgs e)
         {
             //Message message = message_args.Message;
-
-            string url = "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,ETC,ZEC,LTC,BCH&tsyms=USD";
-
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-            Stream resStream = response.GetResponseStream();
-
-            StreamReader reader = new StreamReader(resStream);
-            string respone_str = reader.ReadToEnd();
-
-            var json_object = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
-            json_object = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>(respone_str);
-
-
-            string template_str = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
-            string formated_str = "";
-
-            foreach (var curr in json_object["RAW"])
+            try
             {
-                string CURRENCY_SYMBOL = curr.Key;
-                float CHANGEPCT24HOUR = json_object["RAW"][curr.Key]["USD"]["CHANGEPCT24HOUR"];
-                float PRICE = json_object["RAW"][curr.Key]["USD"]["PRICE"];
+                string url = "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,ETC,ZEC,LTC,BCH&tsyms=USD";
+
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                Stream resStream = response.GetResponseStream();
+
+                StreamReader reader = new StreamReader(resStream);
+                string respone_str = reader.ReadToEnd();
+
+                var json_object = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
+                json_object = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>(respone_str);
 
 
-                string symbol = "💹";
-                if (CHANGEPCT24HOUR < 0)
-                    symbol = "🔻";
+                string template_str = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
+                string formated_str = "";
 
-                formated_str += String.Format(template_str, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
+                foreach (var curr in json_object["RAW"])
+                {
+                    string CURRENCY_SYMBOL = curr.Key;
+                    float CHANGEPCT24HOUR = json_object["RAW"][curr.Key]["USD"]["CHANGEPCT24HOUR"];
+                    float PRICE = json_object["RAW"][curr.Key]["USD"]["PRICE"];
+
+
+                    string symbol = "💹";
+                    if (CHANGEPCT24HOUR < 0)
+                        symbol = "🔻";
+
+                    formated_str += String.Format(template_str, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
+                }
+                formated_str += $"\nОбновлено {DateTime.Now.ToShortTimeString()}";
+
+
+                var button = new InlineKeyboardButton();
+                button.CallbackData = "update_rate";
+                button.Text = strManager.GetSingle("RATE_UPDATE_BTN");
+                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
+
+
+                //_ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str, replyMarkup: inlineKeyboard);
+                _ = Bot.EditMessageTextAsync(e.Callback.Message.Chat.Id, e.Callback.Message.MessageId, formated_str, replyMarkup: inlineKeyboard);
             }
-            formated_str += $"\nОбновлено {DateTime.Now.ToShortTimeString()}";
-
-
-            var button = new InlineKeyboardButton();
-            button.CallbackData = "update_rate";
-            button.Text = strManager.GetSingle("RATE_UPDATE_BTN");
-            var inlineKeyboard = new InlineKeyboardMarkup(new[]{new [] {button}});
-
-
-            //_ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str, replyMarkup: inlineKeyboard);
-            _ = Bot.EditMessageTextAsync(e.Callback.Message.Chat.Id ,e.Callback.Message.MessageId, formated_str, replyMarkup: inlineKeyboard);
+            catch (WebException exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+            }
         }
 
         private static void onStartCommand(object sender, MessageArgs message_args)

@@ -8,6 +8,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
+using System.Net;
 
 namespace PersikSharp
 {
@@ -19,6 +20,10 @@ namespace PersikSharp
     public class CallbackQueryArgs : EventArgs
     {
         public CallbackQueryArgs(CallbackQuery m) { Callback = m; }
+        public CallbackQueryArgs(Message m) {
+            Callback = new CallbackQuery();
+            Callback.Message = m;
+        }
         public CallbackQuery Callback { get; }
     }
 
@@ -28,6 +33,8 @@ namespace PersikSharp
         public event EventHandler<MessageArgs> onStickerMessage;
         public event EventHandler<MessageArgs> onPhotoMessage;
         public event EventHandler<MessageArgs> onChatMembersAddedMessage;
+        public event EventHandler<MessageArgs> onVideoMessage;
+        public event EventHandler<MessageArgs> onDocumentMessage;
 
         public event EventHandler<MessageArgs> onTextEdited;
 
@@ -47,7 +54,16 @@ namespace PersikSharp
 
             onTextMessage += onTextCommandsParsing;
 
-            bot_username = bot.GetMeAsync().Result.Username;
+            try
+            {
+                bot_username = bot.GetMeAsync().Result.Username;
+            }
+            catch (Exception exc)
+            {
+                Logger.Log(LogType.Fatal, $"Check your internet connection! Exception: {exc.Message}");
+                Console.ReadKey();
+                Environment.Exit(1);
+            }
         }
 
         public void RegisterCommand(string command, EventHandler<MessageArgs> c)
