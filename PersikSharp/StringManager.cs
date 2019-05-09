@@ -17,7 +17,7 @@ namespace PersikSharp
             try
             {
                 return dict[key];
-            }catch(KeyNotFoundException knfe)
+            }catch(KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> String \"{key}\" not found!!");
                 var errorString = new List<string>();
@@ -87,7 +87,10 @@ namespace PersikSharp
                 throw new NullReferenceException();
 
             List<string> strings = this.get_value(key);
-            return strings[rand.Next(0, strings.Count - 1)];
+            if (strings.Count > 1)
+                return strings[rand.Next(0, strings.Count - 1)];
+            else
+                return strings.First();
         }
 
         public string GetSingle(string key)

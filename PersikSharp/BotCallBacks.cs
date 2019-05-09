@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Telegram.Bot.Args;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
-using System.Net;
 
 namespace PersikSharp
 {
@@ -33,7 +29,7 @@ namespace PersikSharp
         public event EventHandler<MessageArgs> onStickerMessage;
         public event EventHandler<MessageArgs> onPhotoMessage;
         public event EventHandler<MessageArgs> onChatMembersAddedMessage;
-        public event EventHandler<MessageArgs> onVideoMessage;
+        public event EventHandler<MessageArgs> onVideoMessage;  //Not Implemented
         public event EventHandler<MessageArgs> onDocumentMessage;
 
         public event EventHandler<MessageArgs> onTextEdited;
@@ -82,7 +78,7 @@ namespace PersikSharp
                 queryCallbacks[a.CallbackQuery.Data].Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
                 Logger.Log(LogType.Info, $"<{this.GetType().Name}> InlineCallback \"{a.CallbackQuery.Data}\" from user ({a.CallbackQuery.From.FirstName}:{a.CallbackQuery.From.Id}).");
             }
-            catch (KeyNotFoundException e)
+            catch (KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> CallbackQuery with Data: \"{a.CallbackQuery.Data}\" isn't registered!!");
             }
@@ -122,6 +118,10 @@ namespace PersikSharp
                     message_str = message.NewChatMembers[0].Id.ToString();
                     onChatMembersAddedMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
+                case MessageType.Document:
+                    message_str = message.Document.FileId;
+                    onDocumentMessage?.Invoke(this, new MessageArgs(e.Message));
+                    break;
                 case MessageType.Unknown:
                     break;
             }
@@ -137,10 +137,10 @@ namespace PersikSharp
             {
                 if (match.Success)
                 {
-                    commandsCallbacks[match.Groups[0].Value].Invoke(this, new MessageArgs(message));
+                    commandsCallbacks[match.Groups[0].Value]?.Invoke(this, new MessageArgs(message));
                     Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
                 }
-            }catch(KeyNotFoundException e)
+            }catch(KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> Command \"{match.Groups[0].Value}\" not found!!");
             }

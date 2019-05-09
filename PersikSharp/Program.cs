@@ -18,30 +18,51 @@ using Clarifai.DTOs.Predictions;
 using Newtonsoft.Json;
 using System.Net;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Speech.Synthesis;
+using Telegram.Bot.Types.InputFiles;
 
 namespace PersikSharp
 {
     class Program
     {
-        private static readonly TelegramBotClient Bot = new TelegramBotClient("877724240:AAGFquK0QBs6wR746M0vyEhvt7MO87J_hf8");
-        private static readonly ClarifaiClient clarifai = new ClarifaiClient("c3e552013fa64ff2a3beea5fefbb597e");
+        private static TelegramBotClient Bot;
+        private static ClarifaiClient clarifai;
         private static readonly StringManager strManager = new StringManager();
         private static BotCallBacks botcallbacks;
-
+        private static bool exit = false;
         static void Main(string[] args)
         {
-            Console.OutputEncoding = Encoding.UTF8;
-            InitDictionary();
 
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
 
+            Console.OutputEncoding = Encoding.UTF8;
+            LoadDictionary();
+
             try
             {
+                Dictionary<string, string> tokens;
+                using (StreamReader streamReader = new StreamReader(strManager.GetSingle("TOKENS_PATH"), Encoding.UTF8))
+                {
+                    tokens = JsonConvert.DeserializeObject<Dictionary<string, string>>(streamReader.ReadToEnd());
+                }
+
+                Bot = new TelegramBotClient(tokens["TELEGRAM"]);
+                clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
+                if (clarifai.HttpClient.ApiKey == "")
+                    throw new ArgumentException("CLARIFAI token isnt valid!");
+
                 botcallbacks = new BotCallBacks(Bot);
-            }catch(WebException exc)
+            }
+            catch(FileNotFoundException e)
             {
-                Logger.Log(LogType.Error, $"Exception: {exc.Message}");
+                Logger.Log(LogType.Fatal, $"No tokens file found! Exception: {e.Message}");
+                Console.ReadKey();
+                return;
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
                 Console.ReadKey();
                 return;
             }
@@ -83,13 +104,14 @@ namespace PersikSharp
             }
 
 
-            while (true)
-                Thread.Sleep(9999999);
+            while (!exit)
+                Thread.Sleep(1000);
 
             Bot.StopReceiving();
+            CommandLine.Inst().StopUpdating();
         }
 
-        //========JOKE DELETE PLEEESE===========
+        //========JOKE DELETE ПЛЕЕЕЗЕ===========
         private static void JokeLol(object s, CallbackQueryArgs e)
         {
             var button = new InlineKeyboardButton();
@@ -97,12 +119,10 @@ namespace PersikSharp
             button.Text = e.Callback.From?.FirstName;
             var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
 
-
-            //_ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str, replyMarkup: inlineKeyboard);
             _ = Bot.SendTextMessageAsync(e.Callback.Message.Chat.Id, "У меня есть кнопка!", replyMarkup: inlineKeyboard);
         }
         //=====Utils========
-        private static void InitDictionary()
+        private static void LoadDictionary()
         {
             try
             {
@@ -117,6 +137,12 @@ namespace PersikSharp
             catch (JsonReaderException jre)
             {
                 Logger.Log(LogType.Fatal, $"Error parsing dictionary file! Exception: {jre.Message}");
+                Console.ReadKey();
+                Environment.Exit(1);
+            }
+            catch(Exception e)
+            {
+                Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
                 Console.ReadKey();
                 Environment.Exit(1);
             }
@@ -146,7 +172,10 @@ namespace PersikSharp
             if (str[0] == '!') { 
                  await Bot.SendTextMessageAsync("-1001125742098", str.Substring(1, str.Length - 1), ParseMode.Markdown);
                 Logger.Log(LogType.Info, $"(ME) {str}");
+                return;
             }
+            if (str.Contains("exit"))
+                exit = true;
             else
                 Logger.Log(LogType.Info, $"{str}  <- Syntax Error!");
         }
@@ -171,7 +200,7 @@ namespace PersikSharp
 
             string ban_regex = @"\b(за)?бань?\b";
             var ban_match = Regex.Match(message.Text, ban_regex, RegexOptions.IgnoreCase);
-            if (Regex.IsMatch(message.Text, ban_regex, RegexOptions.IgnoreCase))
+            if (ban_match.Success)
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {ban_regex}");
                 onPersikBanCommand(message, ban_match);
@@ -180,34 +209,16 @@ namespace PersikSharp
 
             string choice_regex = @"([\w\s]+)\sили\s([\w\s]+)";
             var choice_match = Regex.Match(message.Text, choice_regex, RegexOptions.IgnoreCase);
-            if (Regex.IsMatch(message.Text, choice_regex, RegexOptions.IgnoreCase))
+            if (choice_match.Success)
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {choice_regex}");
                 onRandomChoice(message, choice_match);
                 return;
             }
 
-            string insult_regex = @"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻";
-            var insult_match = Regex.Match(message.Text, insult_regex, RegexOptions.IgnoreCase);
-            if (Regex.IsMatch(message.Text, insult_regex, RegexOptions.IgnoreCase))
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {insult_regex}");
-                onBotInsulting(message, insult_match);
-                return;
-            }
-
-            string praise_regex = @"мозг|живой|красав|молодец|хорош|умный|умница";
-            var praise_match = Regex.Match(message.Text, praise_regex, RegexOptions.IgnoreCase);
-            if (Regex.IsMatch(message.Text, praise_regex, RegexOptions.IgnoreCase))
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {praise_regex}");
-                onBotPraise(message, praise_match);
-                return;
-            }
-
             string by_regex = @".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?";
             var by_match = Regex.Match(message.Text, by_regex, RegexOptions.IgnoreCase);
-            if (Regex.IsMatch(message.Text, by_regex, RegexOptions.IgnoreCase))
+            if (by_match.Success)
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {by_regex}");
                 onByWord(message, by_match);
@@ -216,10 +227,37 @@ namespace PersikSharp
 
             string weather_regex = @"погода\s([\w\s]+)";
             var weather_match = Regex.Match(message.Text, weather_regex, RegexOptions.IgnoreCase);
-            if (Regex.IsMatch(message.Text, weather_regex, RegexOptions.IgnoreCase))
+            if (weather_match.Success)
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {weather_regex}");
                 onWeather(message, weather_match);
+                return;
+            }
+
+            string tts_regex = @"скажи([\w\s!?,\-.:]+)";
+            var tts_match = Regex.Match(message.Text, weather_regex, RegexOptions.IgnoreCase);
+            if (tts_match.Success)
+            {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {tts_regex}");
+                onTTS(message, tts_match);
+                return;
+            }
+
+            string insult_regex = @"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻";
+            var insult_match = Regex.Match(message.Text, insult_regex, RegexOptions.IgnoreCase);
+            if (insult_match.Success)
+            {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {insult_regex}");
+                onBotInsulting(message, insult_match);
+                return;
+            }
+
+            string praise_regex = @"мозг|живой|красав|молодец|хорош|умный|умница";
+            var praise_match = Regex.Match(message.Text, praise_regex, RegexOptions.IgnoreCase);
+            if (praise_match.Success)
+            {
+                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {praise_regex}");
+                onBotPraise(message, praise_match);
                 return;
             }
 
@@ -246,9 +284,15 @@ namespace PersikSharp
                 strManager.GetRandom("HELLO"), ParseMode.Markdown, replyToMessageId: message.MessageId);
         }
 
+        private static void onTTS(Message message, Match tts_match)
+        {
+            throw new NotImplementedException();
+        }
+
         private static void onWeather(Message message, Match weather_match)
         {
-            string search_url = System.Uri.EscapeUriString($"http://dataservice.accuweather.com/locations/v1/cities/search?apikey=iRa2zXz2X4c1EF7KmgAaGGjAEGqIpxEw&q={weather_match.Groups[1].Value}&language=ru");
+            string search_url = System.Uri.EscapeUriString(
+                $"http://dataservice.accuweather.com/locations/v1/cities/search?apikey=iRa2zXz2X4c1EF7KmgAaGGjAEGqIpxEw&q={weather_match.Groups[1].Value}&language=ru");
             int location_code = 0;
             dynamic location_json;
             dynamic weather_json;
