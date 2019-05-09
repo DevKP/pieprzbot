@@ -188,7 +188,7 @@ namespace PersikSharp
         }
 
         //=====Persik Commands======
-        private static async void onPersikCommand(Message message)
+        private static async void onPersikCommand(Message message)//Вынести в отдельный класс
         {
             //=======Regular expressions==========
 
@@ -283,7 +283,7 @@ namespace PersikSharp
             throw new NotImplementedException();
         }
 
-        private static void onWeather(Message message, Match weather_match)
+        private static void onWeather(Message message, Match weather_match)//Переделать под другой АПИ
         {
             string search_url = System.Uri.EscapeUriString(
                 $"http://dataservice.accuweather.com/locations/v1/cities/search?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru");
@@ -528,7 +528,7 @@ namespace PersikSharp
             return predictions;
         }
 
-        private static async void NSFWDetect(Message message)
+        private static async void NSFWDetect(Message message)//Упростить
         {
             
             try
