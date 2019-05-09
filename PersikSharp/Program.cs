@@ -27,8 +27,10 @@ namespace PersikSharp
     {
         private static TelegramBotClient Bot;
         private static ClarifaiClient clarifai;
-        private static readonly StringManager strManager = new StringManager();
         private static BotCallBacks botcallbacks;
+        private static StringManager strManager = new StringManager();
+
+        private static Dictionary<string, string> tokens;
         private static bool exit = false;
         static void Main(string[] args)
         {
@@ -41,7 +43,6 @@ namespace PersikSharp
 
             try
             {
-                Dictionary<string, string> tokens;
                 using (StreamReader streamReader = new StreamReader(strManager.GetSingle("TOKENS_PATH"), Encoding.UTF8))
                 {
                     tokens = JsonConvert.DeserializeObject<Dictionary<string, string>>(streamReader.ReadToEnd());
@@ -79,15 +80,11 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("/start", onStartCommand);
             botcallbacks.RegisterCommand("/info", onInfoCommand);
             botcallbacks.RegisterCommand("/rate", onRateCommand);
-            //botcallbacks.RegisterCommand("/x", (x,y) => {
-            //    JokeLol(x, new CallbackQueryArgs( y.Message ));
-            //});
             botcallbacks.RegisterCommand("/y", (x, y) => {
                 _ = Bot.SendTextMessageAsync(y.Message.Chat.Id, "*ХУЙ*", ParseMode.Markdown);
             });
 
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
-            //botcallbacks.RegisterCallbackQuery("hoba", JokeLol);
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.FirstName;
@@ -184,13 +181,10 @@ namespace PersikSharp
         {
 
             ChatMember[] chat_members = await Bot.GetChatAdministratorsAsync(chatId);
-            foreach(var member in chat_members)
-            {
-                if (userId == member.User.Id)
-                    return true;
-            }
-
-            return false;
+            if (Array.Find(chat_members, e => e.User.Id == 1) != null)
+                return true;
+            else
+                return false;
         }
 
         //=====Persik Commands======
@@ -292,7 +286,7 @@ namespace PersikSharp
         private static void onWeather(Message message, Match weather_match)
         {
             string search_url = System.Uri.EscapeUriString(
-                $"http://dataservice.accuweather.com/locations/v1/cities/search?apikey=iRa2zXz2X4c1EF7KmgAaGGjAEGqIpxEw&q={weather_match.Groups[1].Value}&language=ru");
+                $"http://dataservice.accuweather.com/locations/v1/cities/search?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru");
             int location_code = 0;
             dynamic location_json;
             dynamic weather_json;
@@ -316,7 +310,7 @@ namespace PersikSharp
 
                 location_code = location_json[0].Key;
 
-                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey=iRa2zXz2X4c1EF7KmgAaGGjAEGqIpxEw&language=ru";
+                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru";
 
                 request = (HttpWebRequest)WebRequest.Create(current_url);
                 response = (HttpWebResponse)request.GetResponse();
