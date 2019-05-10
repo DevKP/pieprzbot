@@ -26,6 +26,7 @@ namespace PersikSharp
     class Program
     {
         public static TelegramBotClient Bot;
+        private static Persik persik;
         private static ClarifaiClient clarifai;
         private static BotCallBacks botcallbacks;
         private static StringManager strManager = new StringManager();
@@ -48,6 +49,7 @@ namespace PersikSharp
                     tokens = JsonConvert.DeserializeObject<Dictionary<string, string>>(streamReader.ReadToEnd());
                 }
 
+                persik = new Persik();
                 Bot = new TelegramBotClient(tokens["TELEGRAM"]);
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
                 if (clarifai.HttpClient.ApiKey == "")
@@ -83,9 +85,20 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("y", (x, y) => {
                 _ = Bot.SendTextMessageAsync(y.Message.Chat.Id, "*ХУЙ*", ParseMode.Markdown);
             });
-
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
+
+            persik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);
+            persik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);
+            persik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
+            persik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);
+            persik.AddCommandRegEx(@"скажи([\w\s!?,\-.:]+)", onTTS);
+            persik.onNoneMatched += (s, e) =>
+            {
+                Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
+                _ = Bot.SendTextMessageAsync(e.Message.Chat.Id,
+                    strManager.GetRandom("HELLO"), ParseMode.Markdown, replyToMessageId: e.Message.MessageId);
+            };
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.FirstName;
@@ -191,74 +204,9 @@ namespace PersikSharp
         }
 
         //=====Persik Commands======
-        private static async void onPersikCommand(Message message)//Вынести в отдельный класс
+        private static async void onPersikCommand(Message message)
         {
-            //=======Regular expressions==========
-
-            string ban_regex = @"\b(за)?бань?\b";
-            var ban_match = Regex.Match(message.Text, ban_regex, RegexOptions.IgnoreCase);
-            if (ban_match.Success)
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {ban_regex}");
-                onPersikBanCommand(message, ban_match);
-                return;
-            }
-
-            string choice_regex = @"([\w\s]+)\sили\s([\w\s]+)";
-            var choice_match = Regex.Match(message.Text, choice_regex, RegexOptions.IgnoreCase);
-            if (choice_match.Success)
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {choice_regex}");
-                onRandomChoice(message, choice_match);
-                return;
-            }
-
-            string by_regex = @".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?";
-            var by_match = Regex.Match(message.Text, by_regex, RegexOptions.IgnoreCase);
-            if (by_match.Success)
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {by_regex}");
-                onByWord(message, by_match);
-                return;
-            }
-
-            string weather_regex = @"погода\s([\w\s]+)";
-            var weather_match = Regex.Match(message.Text, weather_regex, RegexOptions.IgnoreCase);
-            if (weather_match.Success)
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {weather_regex}");
-                onWeather(message, weather_match);
-                return;
-            }
-
-            string tts_regex = @"скажи([\w\s!?,\-.:]+)";
-            var tts_match = Regex.Match(message.Text, weather_regex, RegexOptions.IgnoreCase);
-            if (tts_match.Success)
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {tts_regex}");
-                onTTS(message, tts_match);
-                return;
-            }
-
-            string insult_regex = @"дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина|🖕🏻";
-            var insult_match = Regex.Match(message.Text, insult_regex, RegexOptions.IgnoreCase);
-            if (insult_match.Success)
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {insult_regex}");
-                onBotInsulting(message, insult_match);
-                return;
-            }
-
-            string praise_regex = @"мозг|живой|красав|молодец|хорош|умный|умница";
-            var praise_match = Regex.Match(message.Text, praise_regex, RegexOptions.IgnoreCase);
-            if (praise_match.Success)
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {praise_regex}");
-                onBotPraise(message, praise_match);
-                return;
-            }
-
-            //==========================
+            persik.ParseMessage(message);
 
             if (message.ReplyToMessage?.Type == MessageType.Photo)
             {
@@ -275,19 +223,18 @@ namespace PersikSharp
 
                 return;
             }
-
-            Logger.Log(LogType.Info, $"[PERSIK]({message.From.FirstName}:{message.From.Id}) -> {"NONE"}");
-            _ = Bot.SendTextMessageAsync(message.Chat.Id, 
-                strManager.GetRandom("HELLO"), ParseMode.Markdown, replyToMessageId: message.MessageId);
         }
 
-        private static void onTTS(Message message, Match tts_match)
+        private static void onTTS(object sender, PersikEventArgs e)
         {
             throw new NotImplementedException();
         }
 
-        private static void onWeather(Message message, Match weather_match)//Переделать под другой АПИ
+        private static void onWeather(object sender, PersikEventArgs a)//Переделать под другой АПИ
         {
+            Message message = a.Message;
+            Match weather_match = a.Match;
+
             string search_url = System.Uri.EscapeUriString(
                 $"http://dataservice.accuweather.com/locations/v1/cities/search?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru");
             int location_code = 0;
@@ -353,11 +300,12 @@ namespace PersikSharp
             }
         }
 
-        private static async void onPersikBanCommand(Message message, Match ban_match)
+        private static async void onPersikBanCommand(object sender, PersikEventArgs e)
         {
+            Message message = e.Message;
+
             if (message.Chat.Type == ChatType.Private)
                 return;
-
 
             const int default_second = 40;
             int seconds = default_second;
@@ -433,8 +381,10 @@ namespace PersikSharp
             }
         }
 
-        private static void onByWord(Message message, Match by_match)
+        private static void onByWord(object sender, PersikEventArgs e)
         {
+            Message message = e.Message;
+
             Bot.SendStickerAsync(message.Chat.Id, "CAADAgADGwAD0JwyGF7MX7q4n6d_Ag");
             if(message.Chat.Type != ChatType.Private)
             {
@@ -445,21 +395,22 @@ namespace PersikSharp
                     var until = DateTime.Now.AddSeconds(60 * 5);
                     _ = Bot.RestrictChatMemberAsync(message.Chat.Id, message.From.Id, until, false, false, false, false);
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                    Logger.Log(LogType.Error, $"Exception: {ex.Message}");
                 }
             }
         }
 
-        private static void onBotPraise(Message message, Match praise_match)
+        private static void onBotPraise(object sender, PersikEventArgs e)
         {
+            Message message = e.Message;
             Bot.SendStickerAsync(message.Chat.Id, "CAADAgADQQMAApFfCAABzoVI0eydHSgC");
         }
 
-        private static async void onBotInsulting(Message message, Match insult_match)
+        private static async void onBotInsulting(object sender, PersikEventArgs e)
         {
-
+            Message message = e.Message;
             try
             {
                 await Bot.SendStickerAsync(message.Chat.Id, "CAADAgADJwMAApFfCAABfVrdPYRn8x4C");
@@ -474,15 +425,17 @@ namespace PersikSharp
                         String.Format(strManager.GetSingle("BANNED"), message.From.FirstName, 2, "мин."), ParseMode.Markdown);
                     _ = Bot.SendStickerAsync(message.Chat.Id, "CAADAgADPQMAApFfCAABt8Meib23A_QC");
                 }
-            }catch(Exception e)
+            }catch(Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
 
         }
 
-        private static void onRandomChoice(Message message, Match choice_match)
+        private static void onRandomChoice(object sender, PersikEventArgs e)
         {
+            Message message = e.Message;
+
             string only_choice_str = "";
             var temp_match = Regex.Match(message.Text, @"(п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к))", RegexOptions.IgnoreCase);
             if (temp_match.Groups[1].Index + temp_match.Groups[1].Length < message.Text.Length)
