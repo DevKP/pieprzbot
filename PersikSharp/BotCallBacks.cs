@@ -13,6 +13,14 @@ namespace PersikSharp
         public MessageArgs(Message m) { Message = m; }
         public Message Message { get; }
     }
+    public class CommandEventArgs : EventArgs
+    {
+        public CommandEventArgs(Message m, string command, string text)
+        { Message = m; Command = command; Text = text; }
+        public Message Message { get; }
+        public string Command { get; }
+        public string Text { get; }
+    }
     public class CallbackQueryArgs : EventArgs
     {
         public CallbackQueryArgs(CallbackQuery m) { Callback = m; }
@@ -34,8 +42,8 @@ namespace PersikSharp
 
         public event EventHandler<MessageArgs> onTextEdited;
 
-        public Dictionary<string, EventHandler<MessageArgs>> commandsCallbacks =
-            new Dictionary<string, EventHandler<MessageArgs>>();
+        public Dictionary<string, EventHandler<CommandEventArgs>> commandsCallbacks =
+            new Dictionary<string, EventHandler<CommandEventArgs>>();
         public Dictionary<string, EventHandler<CallbackQueryArgs>> queryCallbacks =
             new Dictionary<string, EventHandler<CallbackQueryArgs>>();
 
@@ -62,7 +70,7 @@ namespace PersikSharp
             }
         }
 
-        public void RegisterCommand(string command, EventHandler<MessageArgs> c)
+        public void RegisterCommand(string command, EventHandler<CommandEventArgs> c)
         {
             commandsCallbacks.Add(command, c);
         }
@@ -137,7 +145,16 @@ namespace PersikSharp
             {
                 if (match.Success)
                 {
-                    commandsCallbacks[match.Groups[1].Value]?.Invoke(this, new MessageArgs(message));
+                    string command = message.Text;
+                    string text = "";
+                    if(message.Text.IndexOf(' ') != -1)
+                    {
+                        command = message.Text.Substring(0, message.Text.IndexOf(' '));
+                        text = message.Text.Substring(message.Text.IndexOf(' ') + 1);
+                    }
+
+                    CommandEventArgs cmdargs = new CommandEventArgs(message, command, text);
+                    commandsCallbacks[match.Groups[1].Value]?.Invoke(this, cmdargs);
                     Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
                 }
             }catch(KeyNotFoundException)

@@ -82,6 +82,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("start", onStartCommand);
             botcallbacks.RegisterCommand("info", onInfoCommand);
             botcallbacks.RegisterCommand("rate", onRateCommand);
+            botcallbacks.RegisterCommand("me", onMeCommand);
             botcallbacks.RegisterCommand("y", (x, y) => {
                 _ = Bot.SendTextMessageAsync(y.Message.Chat.Id, "*ХУЙ*", ParseMode.Markdown);
             });
@@ -647,7 +648,7 @@ namespace PersikSharp
         }
 
         //=======Bot commands========
-        private static void onRateCommand(object sender, MessageArgs message_args)
+        private static void onRateCommand(object sender, CommandEventArgs message_args)
         {
             var msg = Bot.SendTextMessageAsync(message_args.Message.Chat.Id, "*Обновление...*",parseMode: ParseMode.Markdown).Result;
             var cq = new CallbackQuery();
@@ -710,18 +711,40 @@ namespace PersikSharp
             }
         }
 
-        private static void onStartCommand(object sender, MessageArgs message_args)
+        private static void onStartCommand(object sender, CommandEventArgs message_args)
         {
             if (message_args.Message.Chat.Type == ChatType.Private)
                 Bot.SendTextMessageAsync(message_args.Message.Chat.Id, String.Format(strManager.GetSingle("START"), message_args.Message.From.FirstName));
         }
 
-        private static void onInfoCommand(object sender, MessageArgs message_args)
+        private static void onInfoCommand(object sender, CommandEventArgs message_args)
         {
             Message message = message_args.Message;
 
             Bot.SendTextMessageAsync(message.Chat.Id, strManager.GetSingle("INFO"), ParseMode.Markdown);
         }
+        private static void onMeCommand(object sender, CommandEventArgs message_args)
+        {
+            if (message_args.Text == "")
+                return;
+
+            Message message = message_args.Message;
+            string msg_text = $"[{message.From.FirstName}](tg://user?id={message.From.Id}) *{message_args.Text}*";
+
+            _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+            if (message.ReplyToMessage != null)
+            {
+                Bot.SendTextMessageAsync(message.Chat.Id, msg_text,
+                     ParseMode.Markdown, replyToMessageId: message.ReplyToMessage.MessageId);
+            }
+            else
+            {
+                Bot.SendTextMessageAsync(message.Chat.Id, msg_text,
+                    ParseMode.Markdown);
+            }
+            //Bot.SendTextMessageAsync(message.Chat.Id, message_args.Text, ParseMode.Markdown);
+        }
+
         //==========================
     }
 }
