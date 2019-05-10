@@ -196,11 +196,11 @@ namespace PersikSharp
                 Logger.Log(LogType.Info, $"{str}  <- Syntax Error!");
         }
 
-        private static async Task<bool> isUserAdmin(long chatId, int userId)
+        private static bool isUserAdmin(long chatId, int userId)
         {
 
-            ChatMember[] chat_members = await Bot.GetChatAdministratorsAsync(chatId);
-            if (Array.Find(chat_members, e => e.User.Id == 1) != null)
+            ChatMember[] chat_members = Bot.GetChatAdministratorsAsync(chatId).Result;
+            if (Array.Find(chat_members, e => e.User.Id == userId) != null)
                 return true;
             else
                 return false;
@@ -303,7 +303,7 @@ namespace PersikSharp
             }
         }
 
-        private static async void onPersikBanCommand(object sender, PersikEventArgs e)
+        private static async void onPersikBanCommand(object sender, PersikEventArgs e)//Переделать
         {
             Message message = e.Message;
 
@@ -350,7 +350,7 @@ namespace PersikSharp
                 var until = DateTime.Now.AddSeconds(seconds);
                 if (message.ReplyToMessage != null)
                 {
-                    if (!await isUserAdmin(message.Chat.Id, message.From.Id))
+                    if (!isUserAdmin(message.Chat.Id, message.From.Id))
                         return;
 
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
@@ -375,6 +375,13 @@ namespace PersikSharp
                         await Bot.RestrictChatMemberAsync(message.Chat.Id, message.From.Id, until, false, false, false, false);
                         _ = Bot.SendTextMessageAsync(message.Chat.Id,
                             String.Format(strManager.GetSingle("SELF_BANNED"), message.From.FirstName, number, word), ParseMode.Markdown);
+                    }
+                    else
+                    {
+                        until = DateTime.Now.AddSeconds(40);
+                        await Bot.RestrictChatMemberAsync(message.Chat.Id, message.From.Id, until, false, false, false, false);
+                        _ = Bot.SendTextMessageAsync(message.Chat.Id,
+                            String.Format(strManager.GetSingle("SELF_BANNED"), message.From.FirstName, 40, word), ParseMode.Markdown);
                     }
                 }
             }
@@ -556,7 +563,7 @@ namespace PersikSharp
             //Message to superchat from privat Example: !Hello World
             if (m.Chat.Type == ChatType.Private && m.Text[0] == '!')
             {
-                if (await isUserAdmin(-1001125742098, m.From.Id))
+                if (isUserAdmin(-1001125742098, m.From.Id))
                 {
                     string msg = m.Text.Substring(1, m.Text.Length - 1);
                     _ = Bot.SendTextMessageAsync("-1001125742098", $"*{msg}*", ParseMode.Markdown);
@@ -731,16 +738,23 @@ namespace PersikSharp
             Message message = message_args.Message;
             string msg_text = $"[{message.From.FirstName}](tg://user?id={message.From.Id}) *{message_args.Text}*";
 
-            _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
-            if (message.ReplyToMessage != null)
+            try
             {
-                Bot.SendTextMessageAsync(message.Chat.Id, msg_text,
-                     ParseMode.Markdown, replyToMessageId: message.ReplyToMessage.MessageId);
+                Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                if (message.ReplyToMessage != null)
+                {
+                   _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_text,
+                         ParseMode.Markdown, replyToMessageId: message.ReplyToMessage.MessageId);
+                }
+                else
+                {
+                    _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_text,
+                        ParseMode.Markdown);
+                }
             }
-            else
+            catch(Exception e)
             {
-                Bot.SendTextMessageAsync(message.Chat.Id, msg_text,
-                    ParseMode.Markdown);
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
             //Bot.SendTextMessageAsync(message.Chat.Id, message_args.Text, ParseMode.Markdown);
         }
