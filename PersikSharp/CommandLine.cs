@@ -7,6 +7,12 @@ using System.Threading.Tasks;
 
 namespace PersikSharp
 {
+    public class CommandLineEventArgs : EventArgs
+    {
+        public CommandLineEventArgs(string t) { Text = t; }
+        public string Text { get; }
+    }
+
     class CommandLine
     {
         private static CommandLine instance;
@@ -28,19 +34,8 @@ namespace PersikSharp
             }
         }
 
-        private event Action<object,string> onenteraction;
 
-        public event Action<object, string> onSubmitAction
-        {
-            add
-            {
-                onenteraction += value;
-            }
-            remove
-            {
-                onenteraction -= value;
-            }
-        }
+        public event EventHandler<CommandLineEventArgs> onSubmitAction;
 
         private int last_cursor_top;
         private bool Running;
@@ -106,7 +101,7 @@ namespace PersikSharp
                                 Text = Text.Remove(Text.Length - 1, 1);
                             break;
                         case ConsoleKey.Enter:
-                            onenteraction?.Invoke(this, text_var);
+                            onSubmitAction?.Invoke(this, new CommandLineEventArgs(text_var));
                             break;
                         default:
                             Text = Text + key.KeyChar;

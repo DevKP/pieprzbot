@@ -51,7 +51,7 @@ namespace PersikSharp
                 Bot = new TelegramBotClient(tokens["TELEGRAM"]);
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
                 if (clarifai.HttpClient.ApiKey == "")
-                    throw new ArgumentException("CLARIFAI token isnt valid!");
+                    throw new ArgumentException("CLARIFAI token isn't valid!");
 
                 botcallbacks = new BotCallBacks(Bot);
             }
@@ -74,8 +74,8 @@ namespace PersikSharp
             botcallbacks.onPhotoMessage += onPhotoMessage;
             botcallbacks.onStickerMessage += onStickerMessage;
             botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
-
             botcallbacks.onTextEdited += onTextEdited;
+
 
             botcallbacks.RegisterCommand("start", onStartCommand);
             botcallbacks.RegisterCommand("info", onInfoCommand);
@@ -85,6 +85,7 @@ namespace PersikSharp
             });
 
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
+
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.FirstName;
@@ -123,7 +124,7 @@ namespace PersikSharp
         {
             try
             {
-                strManager.Open("dict.json");
+                strManager.Open("./Configs/dict.json");
             }
             catch (FileNotFoundException fe)
             {
@@ -145,9 +146,11 @@ namespace PersikSharp
             }
         }
 
-        public static async void PrintString(object sender, string str)
+        public static async void PrintString(object sender, CommandLineEventArgs e)
         {
             CommandLine.Text = "";
+
+            string str = e.Text;
 
             var match = Regex.Match(str, @"ban:(.*):(.*):", RegexOptions.IgnoreCase);
             if (match.Success)
