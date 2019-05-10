@@ -11,19 +11,6 @@ namespace PersikSharp
     {
         private static CommandLine instance;
 
-        private object syncobject;
-        public static object SyncObject
-        {
-            get
-            {
-                return Inst().syncobject;
-            }
-            set
-            {
-                Inst().syncobject = value;
-            }
-        }
-
         private string text_var;
         public static string Text
         {

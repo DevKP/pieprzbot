@@ -25,7 +25,7 @@ namespace PersikSharp
 {
     class Program
     {
-        private static TelegramBotClient Bot;
+        public static TelegramBotClient Bot;
         private static ClarifaiClient clarifai;
         private static BotCallBacks botcallbacks;
         private static StringManager strManager = new StringManager();
@@ -77,10 +77,10 @@ namespace PersikSharp
 
             botcallbacks.onTextEdited += onTextEdited;
 
-            botcallbacks.RegisterCommand("/start", onStartCommand);
-            botcallbacks.RegisterCommand("/info", onInfoCommand);
-            botcallbacks.RegisterCommand("/rate", onRateCommand);
-            botcallbacks.RegisterCommand("/y", (x, y) => {
+            botcallbacks.RegisterCommand("start", onStartCommand);
+            botcallbacks.RegisterCommand("info", onInfoCommand);
+            botcallbacks.RegisterCommand("rate", onRateCommand);
+            botcallbacks.RegisterCommand("y", (x, y) => {
                 _ = Bot.SendTextMessageAsync(y.Message.Chat.Id, "*ХУЙ*", ParseMode.Markdown);
             });
 

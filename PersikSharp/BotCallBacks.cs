@@ -137,12 +137,15 @@ namespace PersikSharp
             {
                 if (match.Success)
                 {
-                    commandsCallbacks[match.Groups[0].Value]?.Invoke(this, new MessageArgs(message));
+                    commandsCallbacks[match.Groups[1].Value]?.Invoke(this, new MessageArgs(message));
                     Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
                 }
             }catch(KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> Command \"{match.Groups[0].Value}\" not found!!");
+
+                //REMOVE PLEEEEEESSSSSSSSEEEEEEEE
+                _ = Program.Bot.SendTextMessageAsync(message.Chat.Id, $"Что такое {match.Groups[0].Value}?", ParseMode.Markdown);
             }
         }
     }
