@@ -78,6 +78,7 @@ namespace PersikSharp
             botcallbacks.onPhotoMessage += onPhotoMessage;
             botcallbacks.onStickerMessage += onStickerMessage;
             botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
+            botcallbacks.onDocumentMessage += onDocumentMessage;
             botcallbacks.onTextEdited += onTextEdited;
 
 
@@ -98,11 +99,15 @@ namespace PersikSharp
             persik.AddCommandRegEx(@"скажи([\w\s!?,\-.:]+)", onTTS);
             persik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);
             persik.AddCommandRegEx(@"\b(мозг|живой|красав|молодец|хорош|умный|умница)\b", onBotPraise);
+            persik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);
             persik.onNoneMatched += (s, e) =>
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
-                _ = Bot.SendTextMessageAsync(e.Message.Chat.Id,
-                    strManager.GetRandom("HELLO"), ParseMode.Markdown, replyToMessageId: e.Message.MessageId);
+                _ = Bot.SendTextMessageAsync(
+                           chatId: e.Message.Chat.Id,
+                           text: strManager.GetRandom("HELLO"),
+                           parseMode: ParseMode.Markdown,
+                           replyToMessageId: e.Message.MessageId);
             };
 
             var me = Bot.GetMeAsync().Result;
@@ -135,7 +140,10 @@ namespace PersikSharp
             button.Text = e.Callback.From?.FirstName;
             var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
 
-            _ = Bot.SendTextMessageAsync(e.Callback.Message.Chat.Id, "У меня есть кнопка!", replyMarkup: inlineKeyboard);
+            _ = Bot.SendTextMessageAsync(
+                           chatId: e.Callback.Message.Chat.Id,
+                           text: "У меня есть кнопка!",
+                           replyMarkup: inlineKeyboard);
         }
         //=====Utils========
         private static void LoadDictionary()
@@ -177,8 +185,14 @@ namespace PersikSharp
                 try
                 {
                     var until = DateTime.Now.AddSeconds(int.Parse(match.Groups[2].Value));
-                    await Bot.RestrictChatMemberAsync("-1001125742098", 
-                        int.Parse(match.Groups[1].Value), until, false, false, false, false);
+                    await Bot.RestrictChatMemberAsync(
+                        chatId: "-1001125742098",
+                        userId: int.Parse(match.Groups[1].Value),
+                        untilDate: until,
+                        canSendMessages: false,
+                        canSendMediaMessages: false,
+                        canSendOtherMessages: false,
+                        canAddWebPagePreviews: false);
                 }
                 catch (Exception exp)
                 {
@@ -209,6 +223,36 @@ namespace PersikSharp
                 return false;
         }
 
+        private static void SaveFile(string fileId, string folder, string fileName = null)
+        {
+            try
+            {
+                var file = Bot.GetFileAsync(fileId).Result;
+                MemoryStream docu = new MemoryStream();
+                _ = Bot.DownloadFileAsync(file.FilePath, docu);
+
+                string file_ext = file.FilePath.Split('.')[1];
+                if (fileName == null)
+                    fileName = $"{fileId}.{file_ext}";
+
+                bool exists = System.IO.Directory.Exists($"./{folder}/");
+                if (!exists)
+                    System.IO.Directory.CreateDirectory($"./{folder}/");
+                using (FileStream file_stream = new FileStream($"./{folder}/{fileName}",
+                    FileMode.Create, System.IO.FileAccess.Write))
+                {
+                    docu.WriteTo(file_stream);
+                    file_stream.Flush();
+                    file_stream.Close();
+                }
+                Logger.Log(LogType.Info, $"<Downloader>: Filename: {fileName} saved.");
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+            }
+        }
+
         //=====Persik Commands======
         private static async void onPersikCommand(Message message)
         {
@@ -219,9 +263,11 @@ namespace PersikSharp
 
                 var names = await PredictImage(message.ReplyToMessage.Photo[message.ReplyToMessage.Photo.Length - 1]);
 
-                _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                    String.Format(strManager.GetSingle("PREDICTION"), message.From.FirstName, names[0], names[1], names[2]),
-                    ParseMode.Markdown, replyToMessageId: message.ReplyToMessage.MessageId);
+                _ = Bot.SendTextMessageAsync(
+                        chatId: message.Chat.Id,
+                        text: String.Format(strManager.GetSingle("PREDICTION"), message.From.FirstName, names[0], names[1], names[2]),
+                        parseMode: ParseMode.Markdown,
+                        replyToMessageId: message.MessageId);
 
                 Logger.Log(LogType.Info, $"Result: {names[0]}:{names[1]}:{names[2]}. IID: {message.ReplyToMessage.Photo[0].FileId}");
 
@@ -257,8 +303,11 @@ namespace PersikSharp
 
                 if(respone_str.Contains("The allowed number of requests has been exceeded."))
                 {
-                    _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                    $"*Количество запросов превышено, лол!*", ParseMode.Markdown, replyToMessageId: message.MessageId);
+                    _ = Bot.SendTextMessageAsync(
+                         chatId: message.Chat.Id,
+                         text: $"*Количество запросов превышено, лол!*",
+                         parseMode: ParseMode.Markdown,
+                         replyToMessageId: message.MessageId);
                     return;
                 }
 
@@ -277,29 +326,40 @@ namespace PersikSharp
 
                 weather_json = JsonConvert.DeserializeObject(respone_str);
 
-                _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                    $"*{location_json[0].LocalizedName}, {location_json[0].Country.LocalizedName}\n\n{weather_json[0].WeatherText}\nТемпература: {weather_json[0].Temperature.Metric.Value}°C*", ParseMode.Markdown, replyToMessageId: message.MessageId);
-
+                _ = Bot.SendTextMessageAsync(
+                          chatId: message.Chat.Id,
+                          text: $"*{location_json[0].LocalizedName}, {location_json[0].Country.LocalizedName}\n\n{weather_json[0].WeatherText}\nТемпература: {weather_json[0].Temperature.Metric.Value}°C*",
+                          parseMode: ParseMode.Markdown,
+                          replyToMessageId: message.MessageId);
             }catch(ArgumentOutOfRangeException exp)
             {
                 Logger.Log(LogType.Error, $"Exception: {exp.Message}");
 
-                _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                    $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*", ParseMode.Markdown, replyToMessageId: message.MessageId);
+                _ = Bot.SendTextMessageAsync(
+                          chatId: message.Chat.Id,
+                          text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
+                          parseMode: ParseMode.Markdown,
+                          replyToMessageId: message.MessageId);
             }catch(WebException w)
             {
                 Stream resStream = w.Response.GetResponseStream();
                 StreamReader reader = new StreamReader(resStream);
                 if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
                 {
-                    _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                    $"*Количество запросов превышено, лол!*", ParseMode.Markdown, replyToMessageId: message.MessageId);
+                    _ = Bot.SendTextMessageAsync(
+                           chatId: message.Chat.Id,
+                           text: $"*Количество запросов превышено, лол!*",
+                           parseMode: ParseMode.Markdown,
+                           replyToMessageId: message.MessageId);
                     return;
                 }
 
                 Logger.Log(LogType.Error, $"Exception: {w.Message}");
-                _ = Bot.SendTextMessageAsync(message.Chat.Id,
-                    w.Message, ParseMode.Markdown, replyToMessageId: message.MessageId);
+                _ = Bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: w.Message,
+                            parseMode: ParseMode.Markdown,
+                            replyToMessageId: message.MessageId);
             }catch(Exception e)
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
@@ -552,13 +612,64 @@ namespace PersikSharp
                 }
 
                 _ = Bot.SendTextMessageAsync(
-           chatId: message.Chat.Id,
-           text: String.Format(strManager.GetRandom("CHOICE"), result),
-           parseMode: ParseMode.Markdown,
-           replyToMessageId: message.MessageId).Result;
+                    chatId: message.Chat.Id,
+                    text: String.Format(strManager.GetRandom("CHOICE"), result),
+                    parseMode: ParseMode.Markdown,
+                    replyToMessageId: message.MessageId).Result;
             }
         }
 
+        private static void onRouletteCommand(object sender, PersikEventArgs e)
+        {
+            Message message = e.Message;
+
+            if (message.Chat.Type == ChatType.Private)
+                return;
+
+            try
+            {
+                Random rand = new Random(DateTime.Now.Millisecond);
+                int random_number = rand.Next(0, 6);
+                if (random_number == 3)
+                {
+                    var until = DateTime.Now.AddSeconds(10*60); //10 minutes
+                    _ = Bot.RestrictChatMemberAsync(
+                            chatId: message.Chat.Id,
+                            userId: message.From.Id,
+                            untilDate: until,
+                            canSendMessages: false,
+                            canSendMediaMessages: false,
+                            canSendOtherMessages: false,
+                            canAddWebPagePreviews: false);
+
+                    string user = $"[{message.From.FirstName}](tg://user?id={message.From.Id})";
+                    _ = Bot.SendTextMessageAsync(
+                        chatId: message.Chat.Id,
+                        text: String.Format(strManager.GetRandom("ROULETTEBAN"), user),
+                        parseMode: ParseMode.Markdown).Result;
+                }
+                else
+                {
+                    string user = $"[{message.From.FirstName}](tg://user?id={message.From.Id})";
+                    var msg = Bot.SendTextMessageAsync(
+                        chatId: message.Chat.Id,
+                        text: String.Format(strManager.GetRandom("ROULETTEMISS"), user),
+                        parseMode: ParseMode.Markdown).Result;
+
+                    Thread.Sleep(10 * 1000); //wait 10 seconds
+
+                    Bot.DeleteMessageAsync(
+                        chatId: message.Chat.Id,
+                        messageId: msg.MessageId);
+                    Bot.DeleteMessageAsync(
+                        chatId: message.Chat.Id,
+                        messageId: message.MessageId);
+                }
+            }catch(Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
+        }
 
         private static async Task<List<string>> PredictImage(PhotoSize ps)
         {
@@ -595,7 +706,7 @@ namespace PersikSharp
                 var result = await request.ExecuteAsync();
                 var nsfw_val = result.Get().Data.Find(x => x.Name == "nsfw").Value;
 
-                if ((float)nsfw_val > 0.8)
+                if ((float)nsfw_val > 1.0)//Set to 0.8 to fix
                 {
                     await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
 
@@ -633,16 +744,7 @@ namespace PersikSharp
                 }
                 else
                 {
-                    bool exists = System.IO.Directory.Exists("./photos/");
-                    if (!exists)
-                        System.IO.Directory.CreateDirectory("./photos/");
-                    using (FileStream file_stream = new FileStream($"./photos/{file.FileId}.jpg",
-                        FileMode.Create, System.IO.FileAccess.Write))
-                    {
-                        photo.WriteTo(file_stream);
-                        file_stream.Flush();
-                        file_stream.Close();
-                    }
+                    SaveFile(file.FileId, "photos");
                 }
             }
             catch (Exception exp)
@@ -652,6 +754,23 @@ namespace PersikSharp
         }
 
         //======Bot Updates=========
+
+        private static void onDocumentMessage(object sender, MessageArgs e)
+        {
+            Message message = e.Message;
+
+            try
+            {
+                SaveFile(message.Document.FileId, "documents", message.Document.FileName);
+                //Logger.Log(LogType.Info, $"<Document>: Filename: {message.Document.FileName} downloaded.");
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+            }
+        }
+
+
         private static void onTextMessage(object sender, MessageArgs message_args)
         {
             Message m = message_args.Message;
@@ -698,7 +817,7 @@ namespace PersikSharp
         {
             Message message = message_args.Message;
 
-            //NSFWDetect(message);
+            NSFWDetect(message);
         }
 
         private static void onStickerMessage(object sender, MessageArgs message_args)
@@ -898,7 +1017,6 @@ namespace PersikSharp
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
         }
-
         //==========================
     }
 }
