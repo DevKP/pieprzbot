@@ -12,6 +12,11 @@ namespace PersikSharp
         private readonly Random rand = new Random(DateTime.Now.Second);
         private Dictionary<string, List<string>> dict = null;
 
+        public string this[string s]
+        {
+            get { return GetSingle(s); }
+        }
+
         private List<string> get_value(string key)
         {
             try
