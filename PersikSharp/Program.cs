@@ -91,6 +91,7 @@ namespace PersikSharp
 
 
             persik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);
+            persik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);
             persik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);
             persik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
             persik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);
@@ -418,6 +419,40 @@ namespace PersikSharp
             }
         }
 
+        private static void onPersikUnbanCommand(object sender, PersikEventArgs e)
+        {
+            Message message = e.Message;
+
+            if (message.Chat.Type == ChatType.Private)
+                return;
+            if (!isUserAdmin(message.Chat.Id, message.From.Id))
+                return;
+            if (message.ReplyToMessage == null)
+                return;
+
+            try
+            {
+                var until = DateTime.Now.AddSeconds(1);
+                _ = Bot.RestrictChatMemberAsync(
+                    chatId: message.Chat.Id,
+                    userId: message.ReplyToMessage.From.Id,
+                    untilDate: until,
+                    canSendMessages: true,
+                    canSendMediaMessages: true,
+                    canSendOtherMessages: true,
+                    canAddWebPagePreviews: true);
+
+                _ = Bot.SendTextMessageAsync(
+                        chatId: message.Chat.Id,
+                        text: string.Format(strManager.GetRandom("UNBANNED"), message.ReplyToMessage.From.FirstName),
+                        parseMode: ParseMode.Markdown);
+            }
+            catch(Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
+        }
+
         private static void onByWord(object sender, PersikEventArgs e)
         {
             Message message = e.Message;
@@ -523,6 +558,7 @@ namespace PersikSharp
            replyToMessageId: message.MessageId).Result;
             }
         }
+
 
         private static async Task<List<string>> PredictImage(PhotoSize ps)
         {
