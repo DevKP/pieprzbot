@@ -225,6 +225,7 @@
     <Compile Include="Utils\StringManager.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
     <None Include="Configs\App.config" />
     <None Include="Configs\dict.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

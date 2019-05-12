@@ -339,3 +339,4 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 /PersikSharp/tokens.json
+/PersikSharp/ClassDiagram1.cd

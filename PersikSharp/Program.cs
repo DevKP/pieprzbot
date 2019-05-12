@@ -878,17 +878,27 @@ namespace PersikSharp
         //=======Bot commands========
         private static void onRateCommand(object sender, CommandEventArgs message_args)
         {
-            var msg = Bot.SendTextMessageAsync(
-                          chatId: message_args.Message.Chat.Id,
-                          text: "*Обновление...*",
-                          parseMode: ParseMode.Markdown).Result;
+            CallbackQuery cq;
+            try
+            {
+                var msg = Bot.SendTextMessageAsync(
+                              chatId: message_args.Message.Chat.Id,
+                              text: "*Обновление...*",
+                              parseMode: ParseMode.Markdown).Result;
 
-            var cq = new CallbackQuery();
-            cq.Message = msg;
-            cq.InlineMessageId = msg.MessageId.ToString();
-            cq.From = msg.From;
+                cq = new CallbackQuery();
+                cq.Message = msg;
+                cq.InlineMessageId = msg.MessageId.ToString();
+                cq.From = msg.From;
 
-            onRateUpdate(sender, new CallbackQueryArgs(cq));
+                onRateUpdate(sender, new CallbackQueryArgs(cq));
+            }
+            catch(Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+            }
+
+            
         }
 
         private static void onRateUpdate(object sender, CallbackQueryArgs e)
@@ -949,10 +959,17 @@ namespace PersikSharp
 
         private static void onStartCommand(object sender, CommandEventArgs message_args)
         {
-            if (message_args.Message.Chat.Type == ChatType.Private)
+            try
+            {
+                if (message_args.Message.Chat.Type == ChatType.Private)
                 _ = Bot.SendTextMessageAsync(
                           chatId: message_args.Message.Chat.Id,
                           text: String.Format(strManager.GetSingle("START"), message_args.Message.From.FirstName)).Result;
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+            }
         }
 
         private static void onInfoCommand(object sender, CommandEventArgs message_args)
