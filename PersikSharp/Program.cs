@@ -20,6 +20,7 @@ using System.Net;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Speech.Synthesis;
 using Telegram.Bot.Types.InputFiles;
+using System.Net.Http;
 
 namespace PersikSharp
 {
@@ -131,20 +132,6 @@ namespace PersikSharp
             Bot.StopReceiving();
             CommandLine.Inst().StopUpdating();
         }
-
-        //========JOKE DELETE ПЛЕЕЕЗЕ===========
-        private static void JokeLol(object s, CallbackQueryArgs e)
-        {
-            var button = new InlineKeyboardButton();
-            button.CallbackData = "hoba";
-            button.Text = e.Callback.From?.FirstName;
-            var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-
-            _ = Bot.SendTextMessageAsync(
-                           chatId: e.Callback.Message.Chat.Id,
-                           text: "У меня есть кнопка!",
-                           replyMarkup: inlineKeyboard);
-        }
         //=====Utils========
         private static void LoadDictionary()
         {
@@ -229,7 +216,22 @@ namespace PersikSharp
             {
                 var file = Bot.GetFileAsync(fileId).Result;
                 MemoryStream docu = new MemoryStream();
-                _ = Bot.DownloadFileAsync(file.FilePath, docu);
+
+                const int attempts = 5;
+                for (int a = 0; a < attempts; a++)
+                {
+                    try
+                    {
+                        _ = Bot.DownloadFileAsync(file.FilePath, docu);
+                        break;
+                    }
+                    catch (HttpRequestException)
+                    {
+                        Logger.Log(LogType.Info, $"<Downloader>: Bad Request, attempt #{a}");
+                        continue;
+                    }
+                }
+
 
                 string file_ext = file.FilePath.Split('.')[1];
                 if (fileName == null)
