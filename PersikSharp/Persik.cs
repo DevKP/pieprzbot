@@ -18,15 +18,28 @@ namespace PersikSharp
 // comment
     class Persik
     {
+        /// <summary>
+        /// Called if none of the regular expressions matches.
+        /// </summary>
         public event EventHandler<PersikEventArgs> onNoneMatched;
 
         private Dictionary<string, EventHandler<PersikEventArgs>> commandCallbacks =
        new Dictionary<string, EventHandler<PersikEventArgs>>();
+
+        /// <summary>
+        /// Registers a callback that will be called if the regular expression matches the message. (ParseMessage)
+        /// </summary>
+        /// <param name="regex">Regular expression string.</param>
+        /// <param name="e">Method to be called.</param>
         public void AddCommandRegEx(string regex, EventHandler<PersikEventArgs> e)
         {
             commandCallbacks.Add(regex, e);
         }
 
+        /// <summary>
+        /// Checks the message for a match with each of the regular expressions and sends callbacks.
+        /// </summary>
+        /// <param name="msg">Message object from API</param>
         public void ParseMessage(Message msg)
         {
             string text = msg.Text;
