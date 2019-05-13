@@ -92,15 +92,15 @@ namespace PersikSharp
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
 
-            persik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);
-            persik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);
-            persik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);
-            persik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
-            persik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);
-            persik.AddCommandRegEx(@"скажи([\w\s!?,\-.:]+)", onTTS);
-            persik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);
-            persik.AddCommandRegEx(@"\b(мозг|живой|красав|молодец|хорош|умный|умница)\b", onBotPraise);
-            persik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);
+            persik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
+            persik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
+            persik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);                             //один ИЛИ два
+            persik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
+            persik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
+            persik.AddCommandRegEx(@"скажи([\w\s!?,\-.:]+)", onTTS);                                          //скажи ПРЕДЛОЖЕНИЕ
+            persik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
+            persik.AddCommandRegEx(@"\b(мозг|живой|красав|молодец|хорош|умный|умница)\b", onBotPraise);       //
+            persik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
             persik.onNoneMatched += (s, e) =>
             {
                 Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
