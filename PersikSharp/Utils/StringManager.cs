@@ -90,7 +90,7 @@ namespace PersikSharp
         /// <returns>
         /// List of strings.
         /// </returns>
-        /// <param name="s">Key for the string in the dictionary.</param>
+        /// <param name="key">Key for the string in the dictionary.</param>
         public List<string> GetList(string key)
         {
             if (key == null)
@@ -130,7 +130,7 @@ namespace PersikSharp
         /// <returns>
         /// String from dictionary.
         /// </returns>
-        /// <param name="s">Key for the string in the dictionary.</param>
+        /// <param name="key">Key for the string in the dictionary.</param>
         public string GetSingle(string key)
         {
             if (key == null)

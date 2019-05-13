@@ -70,11 +70,21 @@ namespace PersikSharp
             }
         }
 
+        /// <summary>
+        /// Registers a callback for chat command. (ex. /test )
+        /// </summary>
+        /// <param name="command">Command without slash.</param>
+        /// <param name="c">Method to be called.</param>
         public void RegisterCommand(string command, EventHandler<CommandEventArgs> c)
         {
             commandsCallbacks.Add(command, c);
         }
 
+        /// <summary>
+        /// Registers a сallback query for chat event. Pressing the button, etc.
+        /// </summary>
+        /// <param name="data">Callback data, see. Telegram API</param>
+        /// <param name="c">Method to be called.</param>
         public void RegisterCallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
         {
             queryCallbacks.Add(data, c);
