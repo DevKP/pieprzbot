@@ -37,7 +37,7 @@ namespace PersikSharp
         public event EventHandler<MessageArgs> onStickerMessage;
         public event EventHandler<MessageArgs> onPhotoMessage;
         public event EventHandler<MessageArgs> onChatMembersAddedMessage;
-        public event EventHandler<MessageArgs> onVideoMessage;  //Not Implemented
+        public event EventHandler<MessageArgs> onVideoMessage;
         public event EventHandler<MessageArgs> onDocumentMessage;
 
         public event EventHandler<MessageArgs> onTextEdited;
@@ -130,6 +130,10 @@ namespace PersikSharp
                     message_str = message.Document.FileId;
                     onDocumentMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
+                case MessageType.Video:
+                    message_str = message.Video.FileId;
+                    onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
+                    break;
                 case MessageType.Unknown:
                     break;
             }
@@ -160,9 +164,6 @@ namespace PersikSharp
             }catch(KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> Command \"{match.Groups[0].Value}\" not found!!");
-
-                //REMOVE PLEEEEEESSSSSSSSEEEEEEEE
-                _ = Program.Bot.SendTextMessageAsync(message.Chat.Id, $"Что такое {match.Groups[0].Value}?", ParseMode.Markdown);
             }
         }
     }
