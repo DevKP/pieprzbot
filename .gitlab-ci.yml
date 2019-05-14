@@ -27,10 +27,10 @@ build:
 deploy:
   stage: deploy
   script:
+    - 'Stop-Process -Name "PersikSharp"'
     - 'xcopy /y ".\PersikSharp\bin\Release\PersikSharp.exe" "C:\Projects\PersikSharp\Builds\"'
     - 'xcopy /y ".\PersikSharp\bin\Release\*.dll" "C:\Projects\PersikSharp\Builds\"'
     - 'xcopy /y ".\PersikSharp\Configs\*" "C:\Projects\PersikSharp\Builds\Configs\"'
-    - 'Stop-Process -Name "PersikSharp"'
     - 'cd  "C:\Projects\PersikSharp\Builds\"'
     - 'start .\PersikSharp.exe'
   tags:
