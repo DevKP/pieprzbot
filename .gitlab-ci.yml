@@ -14,7 +14,7 @@ windows build:
   stage: build
   script:
     - C:\Nuget\nuget.exe restore
-    - $env:MSBUILD_PATH /p:Configuration=Release
+    - $MSBUILD_PATH /p:Configuration=Release
   artifacts:
     expire_in: 1 week
     paths:
