@@ -9,9 +9,8 @@ variables:
 
 stages:
   - build
-  - deploy
 
-powershell build_job:
+build:
   stage: build
   script:
     - '& "$env:NUGET_PATH" restore' # restore Nuget dependencies
@@ -22,18 +21,14 @@ powershell build_job:
       - '$env:EXE_RELEASE_FOLDER\PersikSharp.exe' # saving exe to copy to deploy folder
       - '$env:TEST_FOLDER\' # saving entire Test project so NUnit can run tests 
 
-powershell deploy_job:
-  stage: deploy
-  script:
-    # Compose a folder for each release based on commit tag.
-    # Assuming your tag is Rev1.0.0.1, and your last commit message is 'First commit'
-    # the artifact files will be copied to:
-    # P:\Projects\YourApp\Builds\Rev1.0.0.1 - First commit\
-    - '$commitSubject = git log -1 --pretty=%s'
-    - '$deployFolder = $($env:DEPLOY_FOLDER) + "\" + $($env:CI_BUILD_TAG) + " - " + $commitSubject + "\"'
+#deploy_job:
+  #stage: deploy
+  #script:
+    #- '$commitSubject = git log -1 --pretty=%s'
+    #- '$deployFolder = $($env:DEPLOY_FOLDER) + "\" + $($env:CI_BUILD_TAG) + " - " + $commitSubject + "\"'
 
     # xcopy takes care of recursively creating required folders
-    - 'xcopy /y ".\$env:EXE_RELEASE_FOLDER\PersikSharp.exe" "$deployFolder"'
+   # - 'xcopy /y ".\$env:EXE_RELEASE_FOLDER\PersikSharp.exe" "$deployFolder"'
 
-  dependencies:
-    - build_job
+ # dependencies:
+  #  - build
