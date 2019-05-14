@@ -10,7 +10,7 @@ variables:
 stages:
   - build
 
-build:
+windows build:
   stage: build
   script:
     - '& "$env:NUGET_PATH" restore' # restore Nuget dependencies
