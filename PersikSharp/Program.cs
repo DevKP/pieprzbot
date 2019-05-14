@@ -1064,7 +1064,6 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
-           
         }
 
         private static void onVersionCommand(object sender, CommandEventArgs e)
