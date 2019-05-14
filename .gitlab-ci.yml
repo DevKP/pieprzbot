@@ -13,7 +13,7 @@ stages:
 windows build:
   stage: build
   script:
-    - '& "$env:NUGET_PATH" restore' # restore Nuget dependencies
+    - '$env:NUGET_PATH restore' # restore Nuget dependencies
     - '& "$env:MSBUILD_PATH" /p:Configuration=Release' # build the project
   artifacts:
     expire_in: 1 week
