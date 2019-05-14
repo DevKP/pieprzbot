@@ -13,7 +13,7 @@ stages:
 windows build:
   stage: build
   script:
-    - $env:NUGET_PATH restore
+    - C:\Nuget\nuget.exe restore
     - $env:MSBUILD_PATH /p:Configuration=Release
   artifacts:
     expire_in: 1 week
