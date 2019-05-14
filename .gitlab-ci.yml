@@ -11,7 +11,7 @@
 # See other available tags for .NET Core: https://hub.docker.com/r/microsoft/dotnet
 # Learn more about Docker tags: https://docs.docker.com/glossary/?term=tag
 # and the Docker itself: https://opensource.com/resources/what-docker
-image: microsoft/dotnet:latest
+image: mcr.microsoft.com/dotnet/framework/sdk:latest
 
 # ### Define variables
 #
