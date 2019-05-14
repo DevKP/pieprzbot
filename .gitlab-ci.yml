@@ -6,7 +6,6 @@ variables:
   MSBUILD_PATH: 'E:\Microsoft Visual Studio\2019\Preview\MSBuild\Current\Bin\msbuild.exe'
   NUNIT_PATH: 'C:\Program Files (x86)\NUnit.org\nunit-console\nunit3-console.exe'
 
-policy: pull-push 
 
 stages:
   - build
