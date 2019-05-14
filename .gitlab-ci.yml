@@ -11,7 +11,7 @@ stages:
   - build
   - deploy
 
-windows build:
+build:
   stage: build
   script:
     - '"C:\Nuget\nuget.exe" restore'
@@ -24,7 +24,7 @@ windows build:
     - powershell
     - windows
 
-deploy_job:
+deploy:
   stage: deploy
   script:
     - 'xcopy /y ".\PersikSharp\bin\Release\PersikSharp.exe" "C:\Projects\PersikSharp\Builds"'
