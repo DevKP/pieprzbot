@@ -13,12 +13,12 @@ stages:
 windows build:
   stage: build
   script:
-    - '$env:NUGET_PATH restore' # restore Nuget dependencies
-    - '& "$env:MSBUILD_PATH" /p:Configuration=Release' # build the project
+    - $env:NUGET_PATH restore
+    - $env:MSBUILD_PATH /p:Configuration=Release
   artifacts:
     expire_in: 1 week
     paths:
-      - '$env:EXE_RELEASE_FOLDER\PersikSharp.exe' # saving exe to copy to deploy folder
+      - $env:EXE_RELEASE_FOLDER\PersikSharp.exe
   tags:
     - powershell
     - windows
