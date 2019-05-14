@@ -28,5 +28,8 @@ deploy:
   stage: deploy
   script:
     - 'xcopy /y ".\PersikSharp\bin\Release\PersikSharp.exe" "C:\Projects\PersikSharp\Builds"'
+  tags:
+    - powershell
+    - windows
   dependencies:
     - build
