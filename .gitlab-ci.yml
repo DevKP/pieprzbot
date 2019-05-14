@@ -9,6 +9,7 @@ variables:
 
 stages:
   - build
+  - deploy
 
 windows build:
   stage: build
@@ -23,15 +24,9 @@ windows build:
     - powershell
     - windows
 
-
-#deploy_job:
-  #stage: deploy
-  #script:
-    #- '$commitSubject = git log -1 --pretty=%s'
-    #- '$deployFolder = $($env:DEPLOY_FOLDER) + "\" + $($env:CI_BUILD_TAG) + " - " + $commitSubject + "\"'
-
-    # xcopy takes care of recursively creating required folders
-   # - 'xcopy /y ".\$env:EXE_RELEASE_FOLDER\PersikSharp.exe" "$deployFolder"'
-
- # dependencies:
-  #  - build
+deploy_job:
+  stage: deploy
+  script:
+    - 'xcopy /y ".\PersikSharp\bin\Release\PersikSharp.exe" "C:\Projects\PersikSharp\Builds"'
+  dependencies:
+    - build
