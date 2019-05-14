@@ -13,12 +13,12 @@ stages:
 windows build:
   stage: build
   script:
-    - C:\Nuget\nuget.exe restore
-    - $MSBUILD_PATH /p:Configuration=Release
+    - "C:\Nuget\nuget.exe" restore
+    - "E:\Microsoft Visual Studio\2019\Preview\MSBuild\Current\Bin\msbuild.exe" /p:Configuration=Release
   artifacts:
     expire_in: 1 week
     paths:
-      - $env:EXE_RELEASE_FOLDER\PersikSharp.exe
+      - PersikSharp\bin\Release\PersikSharp.exe
   tags:
     - powershell
     - windows
