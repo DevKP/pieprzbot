@@ -29,7 +29,7 @@ deploy:
   script:
     - 'xcopy /y ".\PersikSharp\bin\Release\PersikSharp.exe" "C:\Projects\PersikSharp\Builds\"'
     - 'xcopy /y ".\PersikSharp\bin\Release\*.dll" "C:\Projects\PersikSharp\Builds\"'
-    - 'xcopy /y ".\PersikSharp\bin\Release\Configs\*" "C:\Projects\PersikSharp\Builds\Configs\"'
+    - 'xcopy /y ".\PersikSharp\Configs\*" "C:\Projects\PersikSharp\Builds\Configs\"'
     - 'Get-Process | Where-Object {$_.Path -like "C:\Projects\PersikSharp\Builds\PersikSharp.exe"} | Stop-Process -Force -processname {$_.ProcessName}'
     - 'cd  "C:\Projects\PersikSharp\Builds\"'
     - 'start .\PersikSharp.exe'
