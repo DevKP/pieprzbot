@@ -48,11 +48,6 @@ namespace PersikSharp
 
             try
             {
-                //using (StreamReader streamReader = new StreamReader(strManager.GetSingle("TOKENS_PATH"), Encoding.UTF8))
-                //{
-                //    tokens = JsonConvert.DeserializeObject<Dictionary<string, string>>(streamReader.ReadToEnd());
-                //}
-
                 persik = new Persik();
                 Bot = new TelegramBotClient(tokens.GetSingle("TELEGRAM"));
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
