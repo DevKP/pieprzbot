@@ -6,14 +6,14 @@ variables:
   MSBUILD_PATH: 'E:\Microsoft Visual Studio\2019\Preview\MSBuild\Current\Bin\msbuild.exe'
   NUNIT_PATH: 'C:\Program Files (x86)\NUnit.org\nunit-console\nunit3-console.exe'
 
+policy: pull-push 
+
 stages:
   - build
   - deploy
 
 build_job:
   stage: build
-  only:
-    - tags # the build process will only be started by git tag commits
   script:
     - '& "$env:NUGET_PATH" restore' # restore Nuget dependencies
     - '& "$env:MSBUILD_PATH" /p:Configuration=Release' # build the project
@@ -25,8 +25,6 @@ build_job:
 
 deploy_job:
   stage: deploy
-  only:
-    - tags
   script:
     # Compose a folder for each release based on commit tag.
     # Assuming your tag is Rev1.0.0.1, and your last commit message is 'First commit'
