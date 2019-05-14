@@ -21,6 +21,8 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Speech.Synthesis;
 using Telegram.Bot.Types.InputFiles;
 using System.Net.Http;
+using System.Reflection;
+using System.Diagnostics;
 
 namespace PersikSharp
 {
@@ -38,7 +40,6 @@ namespace PersikSharp
         private static bool exit = false;
         static void Main(string[] args)
         {
-
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
 
@@ -88,6 +89,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("rate", onRateCommand);
             botcallbacks.RegisterCommand("me", onMeCommand);
             botcallbacks.RegisterCommand("upal_otjalsa", onUpalOtjalsaCommand);
+            botcallbacks.RegisterCommand("version", onVersionCommand);
 
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
@@ -132,6 +134,7 @@ namespace PersikSharp
             Bot.StopReceiving();
             CommandLine.Inst().StopUpdating();
         }
+
         //=====Utils======== ВЫНЕСТИ ВСЕ В ОТДЕЛЬНОЕ МЕСТО
         private static void LoadDictionary()
         {
@@ -1061,7 +1064,24 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
+           
         }
+
+        private static void onVersionCommand(object sender, CommandEventArgs e)
+        {
+            try
+            {
+                _ = Bot.SendTextMessageAsync(
+                       chatId: e.Message.Chat.Id,
+                       text: $"*Version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                       parseMode: ParseMode.Markdown).Result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
+        }
+
         //==========================
     }
 }
