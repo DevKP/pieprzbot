@@ -132,7 +132,7 @@ namespace PersikSharp
             Bot.StopReceiving();
             CommandLine.Inst().StopUpdating();
         }
-        //=====Utils========
+        //=====Utils======== ВЫНЕСТИ ВСЕ В ОТДЕЛЬНОЕ МЕСТО
         private static void LoadDictionary()
         {
             try
@@ -253,6 +253,26 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
+        }
+
+        /// <summary>
+        /// Generates clickable text link to user profile.
+        /// </summary>
+        /// <param name="user">User object.</param>
+        /// <returns>
+        /// Formated text string.
+        /// </returns>
+        public static string GetUserLink(User user)
+        {
+            try
+            {
+                return string.Format("[{0}](tg://user?id={1})", user.FirstName, user.Id);
+            }
+            catch (NullReferenceException)//If FirstName is null using id as name
+            {
+                return string.Format("[{0}](tg://user?id={1})", user.Id, user.Id);
+            }
+
         }
 
         //=====Persik Commands======
@@ -380,15 +400,15 @@ namespace PersikSharp
             int number = default_second;
             string word = "сек.";
 
-            var match = Regex.Match(message.Text, @"(\d{1,9})\W?([смчд])?", RegexOptions.IgnoreCase);
+            var match = Regex.Match(message.Text, @"(?<number>\d{1,9})\W?(?<letter>[смчд])?", RegexOptions.IgnoreCase);
             if (match.Success)
             {
-                number = int.Parse(match.Groups[1].Value);
+                number = int.Parse(match.Groups["number"].Value);
                 seconds = number;
 
-                if (match.Groups[2].Length > 0)
+                if (match.Groups["letter"].Length > 0)
                 {
-                    switch (match.Groups[2].Value.First())
+                    switch (match.Groups["letter"].Value.First())
                     {
                         case 'с':
                             seconds = number;
@@ -397,6 +417,7 @@ namespace PersikSharp
                         case 'м':
                             seconds *= 60;
                             word = "мин.";
+                            //SMOKE WEED EVERYDAY
                             break;
                         case 'ч':
                             word = "ч.";
@@ -417,24 +438,31 @@ namespace PersikSharp
                 {
                     if (!isUserAdmin(message.Chat.Id, message.From.Id))
                         return;
-
+                    
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
                         return;
 
-                    await Bot.RestrictChatMemberAsync(message.Chat.Id,
-                        message.ReplyToMessage.From.Id, until, false, false, false, false);
+                    await Bot.RestrictChatMemberAsync(
+                            chatId: message.Chat.Id,
+                            userId: message.ReplyToMessage.From.Id,
+                            untilDate: until,
+                            canSendMessages: false,
+                            canSendMediaMessages: false,
+                            canSendOtherMessages: false,
+                            canAddWebPagePreviews: false);
+;
                     if (seconds >= 40)
                     {
                         _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("BANNED"), message.ReplyToMessage.From.FirstName, number, word),
+                            text: String.Format(strManager.GetSingle("BANNED"), GetUserLink(message.ReplyToMessage.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                     else
                     {
                         _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_PERMANENT"), message.ReplyToMessage.From.FirstName, number, word),
+                            text: String.Format(strManager.GetSingle("SELF_PERMANENT"), GetUserLink(message.ReplyToMessage.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                 }
@@ -453,7 +481,7 @@ namespace PersikSharp
 
                         _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), message.From.FirstName, number, word),
+                            text: String.Format(strManager.GetSingle("SELF_BANNED"), GetUserLink(message.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                     else
@@ -470,7 +498,7 @@ namespace PersikSharp
 
                         _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), message.From.FirstName, 40, word),
+                            text: String.Format(strManager.GetSingle("SELF_BANNED"), GetUserLink(message.From), 40, word),
                             parseMode: ParseMode.Markdown);
                     }
                 }
@@ -506,7 +534,7 @@ namespace PersikSharp
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetRandom("UNBANNED"), message.ReplyToMessage.From.FirstName),
+                        text: string.Format(strManager.GetRandom("UNBANNED"), GetUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown);
             }
             catch(Exception ex)
@@ -643,19 +671,17 @@ namespace PersikSharp
                             canSendMediaMessages: false,
                             canSendOtherMessages: false,
                             canAddWebPagePreviews: false);
-
-                    string user = $"[{message.From.FirstName}](tg://user?id={message.From.Id})";
+  
                     _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetRandom("ROULETTEBAN"), user),
+                        text: String.Format(strManager.GetRandom("ROULETTEBAN"), GetUserLink(message.From)),
                         parseMode: ParseMode.Markdown).Result;
                 }
                 else
                 {
-                    string user = $"[{message.From.FirstName}](tg://user?id={message.From.Id})";
                     var msg = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetRandom("ROULETTEMISS"), user),
+                        text: String.Format(strManager.GetRandom("ROULETTEMISS"), GetUserLink(message.From)),
                         parseMode: ParseMode.Markdown).Result;
 
                     Thread.Sleep(10 * 1000); //wait 10 seconds
@@ -989,7 +1015,7 @@ namespace PersikSharp
                 return;
 
             Message message = message_args.Message;
-            string msg_text = $"[{message.From.FirstName}](tg://user?id={message.From.Id}) *{message_args.Text}*";
+            string msg_text = $"{GetUserLink(message.From)} *{message_args.Text}*";
 
             try
             {

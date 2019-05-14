@@ -71,7 +71,7 @@ namespace PersikSharp
         }
 
         /// <summary>
-        /// Registers a callback for chat command. (ex. /test )
+        /// Registers a callback for chat command. (ex. <c>/test</c> )
         /// </summary>
         /// <param name="command">Command without slash.</param>
         /// <param name="c">Method to be called.</param>
@@ -154,7 +154,7 @@ namespace PersikSharp
         private void onTextCommandsParsing(object sender, MessageArgs message_args)
         {
             var message = message_args.Message;
-            var match = Regex.Match(message.Text, $"^\\/(\\w*)((?=@{bot_username}))?", RegexOptions.IgnoreCase);
+            var match = Regex.Match(message.Text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
             try
             {
                 if (match.Success)
@@ -168,7 +168,7 @@ namespace PersikSharp
                     }
 
                     CommandEventArgs cmdargs = new CommandEventArgs(message, command, text);
-                    commandsCallbacks[match.Groups[1].Value]?.Invoke(this, cmdargs);
+                    commandsCallbacks[match.Groups["command"].Value]?.Invoke(this, cmdargs);
                     Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
                 }
             }catch(KeyNotFoundException)

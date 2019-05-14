@@ -13,7 +13,7 @@ namespace PersikSharp
         private Dictionary<string, List<string>> dict = null;
 
         /// <summary>
-        /// Analogue of method GetSingle().
+        /// Analogue of method <c>GetSingle()</c>.
         /// </summary>
         /// <returns>
         /// String from dictionary.
