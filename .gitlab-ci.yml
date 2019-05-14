@@ -11,7 +11,7 @@ stages:
   - build
   - deploy
 
-build_job:
+powershell build_job:
   stage: build
   script:
     - '& "$env:NUGET_PATH" restore' # restore Nuget dependencies
@@ -22,7 +22,7 @@ build_job:
       - '$env:EXE_RELEASE_FOLDER\PersikSharp.exe' # saving exe to copy to deploy folder
       - '$env:TEST_FOLDER\' # saving entire Test project so NUnit can run tests 
 
-deploy_job:
+powershell deploy_job:
   stage: deploy
   script:
     # Compose a folder for each release based on commit tag.
