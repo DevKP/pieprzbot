@@ -20,6 +20,7 @@ build:
     expire_in: 1 week
     paths:
       - PersikSharp\bin\Release\PersikSharp.exe
+      - PersikSharp\bin\Release\*.dll
   tags:
     - powershell
     - windows
@@ -27,12 +28,7 @@ build:
 deploy:
   stage: deploy
   script:
-   # - 'Stop-Process -Name "PersikSharp"'
-    - 'xcopy /y ".\PersikSharp\bin\Release\PersikSharp.exe" "C:\Projects\PersikSharp\Builds\"'
-    - 'xcopy /y ".\PersikSharp\bin\Release\*.dll" "C:\Projects\PersikSharp\Builds\"'
-    - 'xcopy /y ".\PersikSharp\Configs\*" "C:\Projects\PersikSharp\Builds\Configs\"'
-    - 'cd  "C:\Projects\PersikSharp\Builds\"'
-    - 'start .\PersikSharp.exe'
+    - '.\deploy.ps1'
   tags:
     - powershell
     - windows
