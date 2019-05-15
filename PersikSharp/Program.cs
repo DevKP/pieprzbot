@@ -208,7 +208,7 @@ namespace PersikSharp
                 return false;
         }
 
-        private static void SaveFile(string fileId, string folder, string fileName = null)
+        private static async void SaveFile(string fileId, string folder, string fileName = null)
         {
             try
             {
@@ -220,7 +220,7 @@ namespace PersikSharp
                 {
                     try
                     {
-                        _ = Bot.DownloadFileAsync(file.FilePath, docu);
+                        await Bot.DownloadFileAsync(file.FilePath, docu);
                         break;
                     }
                     catch (HttpRequestException)

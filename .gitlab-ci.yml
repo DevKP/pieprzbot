@@ -28,6 +28,7 @@ build:
 deploy:
   stage: deploy
   script:
+    - 'Set-ExecutionPolicy RemoteSigned'
     - '.\deploy.ps1'
   tags:
     - powershell
