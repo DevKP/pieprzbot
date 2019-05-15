@@ -1,11 +1,9 @@
 ﻿using System;
-
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
-using Telegram.Bot.Args;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
@@ -18,10 +16,7 @@ using Clarifai.DTOs.Predictions;
 using Newtonsoft.Json;
 using System.Net;
 using Telegram.Bot.Types.ReplyMarkups;
-using System.Speech.Synthesis;
-using Telegram.Bot.Types.InputFiles;
 using System.Net.Http;
-using System.Reflection;
 using System.Diagnostics;
 
 namespace PersikSharp

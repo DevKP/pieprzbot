@@ -16,3 +16,4 @@ xcopy /y ".\PersikSharp\Configs\*" "C:\Projects\PersikSharp\Builds\Configs\"
 Write-Host "Starting bot!"
 cd  "C:\Projects\PersikSharp\Builds\"
 start .\PersikSharpRelease.exe
+exit 0

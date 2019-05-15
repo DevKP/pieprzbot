@@ -28,7 +28,7 @@ build:
 deploy:
   stage: deploy
   script:
-    - '.\deploy.ps1'
+    - '${env:CI_PROJECT_DIR}/deploy.ps1'
   tags:
     - powershell
     - windows
