@@ -29,7 +29,7 @@ build:
 deploy:
   stage: deploy
   script:
-    - powershell -File .\psfile.ps1
+    - powershell -File .\deploy.ps1
   tags:
     - powershell
     - windows
