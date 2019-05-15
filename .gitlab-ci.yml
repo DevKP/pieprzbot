@@ -5,6 +5,7 @@ variables:
   NUGET_PATH: 'C:\Nuget\nuget.exe'
   MSBUILD_PATH: 'E:\Microsoft Visual Studio\2019\Preview\MSBuild\Current\Bin\msbuild.exe'
   NUNIT_PATH: 'C:\Program Files (x86)\NUnit.org\nunit-console\nunit3-console.exe'
+  ErrorActionPreference: STOP
 
 
 stages:
@@ -28,7 +29,7 @@ build:
 deploy:
   stage: deploy
   script:
-    - '${env:CI_PROJECT_DIR}/deploy.ps1'
+    - '.\deploy.ps1'
   tags:
     - powershell
     - windows
