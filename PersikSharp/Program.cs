@@ -35,6 +35,22 @@ namespace PersikSharp
         private static bool exit = false;
         static void Main(string[] args)
         {
+            Process current = Process.GetCurrentProcess();
+            foreach (Process process in Process.GetProcessesByName(current.ProcessName))
+            {
+                if (process.Id != current.Id)
+                {
+                    process.Kill();
+                }
+            }
+            foreach (Process process in Process.GetProcessesByName("PersikSharpRelease"))
+            {
+                if (process.Id != current.Id)
+                {
+                    process.Kill();
+                }
+            }
+
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
 
