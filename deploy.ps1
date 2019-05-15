@@ -1,6 +1,6 @@
 Write-Host "Terminating process PersikSharpRelease"
 Try {
-    Invoke-Expression -Command Get-Process | Where-Object { $_.Name -eq "PersikSharpRelease" } | Select-Object -First 1 | Stop-Process
+    Invoke-Expression -Command Get-Process | Where-Object { $_.Name -eq "PersikSharpRelease" } | Select-Object -First 1 | Stop-Process -Force
 }
 Catch{
     Write-Host "Process isn't running!"
@@ -14,5 +14,4 @@ xcopy /y ".\PersikSharp\bin\Release\*.*" "C:\Projects\PersikSharp\Builds\"
 Write-Host "Copying configs..."
 xcopy /y ".\PersikSharp\Configs\*" "C:\Projects\PersikSharp\Builds\Configs\"
 Write-Host "Starting bot!"
-cd  "C:\Projects\PersikSharp\Builds\"
-start .\PersikSharpRelease.exe
+Start-Process -FilePath "C:\Projects\PersikSharp\Builds\PersikSharpRelease.exe" -WorkingDirectory "C:\Projects\PersikSharp\Builds\"
