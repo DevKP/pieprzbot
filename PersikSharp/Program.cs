@@ -89,7 +89,6 @@ namespace PersikSharp
             persik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);                             //один ИЛИ два
             persik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
             persik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
-            persik.AddCommandRegEx(@"скажи([\w\s!?,\-.:]+)", onTTS);                                          //скажи ПРЕДЛОЖЕНИЕ
             persik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             persik.AddCommandRegEx(@"\b(мозг|живой|красав|молодец|хорош|умный|умница)\b", onBotPraise);       //
             persik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
@@ -290,11 +289,6 @@ namespace PersikSharp
             }
 
             persik.ParseMessage(message);
-        }
-
-        private static void onTTS(object sender, PersikEventArgs e)
-        {
-            throw new NotImplementedException();
         }
 
         private static void onWeather(object sender, PersikEventArgs a)//Переделать под другой АПИ
