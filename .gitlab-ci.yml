@@ -22,6 +22,8 @@ build:
     paths:
       - PersikSharp\bin\Release\PersikSharp.exe
       - PersikSharp\bin\Release\*.dll
+  only:
+    - master
   tags:
     - powershell
     - windows
@@ -30,6 +32,8 @@ deploy:
   stage: deploy
   script:
     - powershell -File .\deploy.ps1
+  only:
+    - master
   tags:
     - powershell
     - windows
