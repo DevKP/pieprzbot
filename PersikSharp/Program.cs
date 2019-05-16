@@ -43,6 +43,8 @@ namespace PersikSharp
                 }
             }
 
+            
+
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
 
