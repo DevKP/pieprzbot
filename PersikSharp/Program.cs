@@ -90,6 +90,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("me", onMeCommand);
             botcallbacks.RegisterCommand("upal_otjalsa", onUpalOtjalsaCommand);
             botcallbacks.RegisterCommand("version", onVersionCommand);
+            botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
 
@@ -136,6 +137,24 @@ namespace PersikSharp
 
             Bot.StopReceiving();
             CommandLine.Inst().StopUpdating();
+        }
+
+        private static void onPickleCommand(object sender, CommandEventArgs e)
+        {
+            try
+            {
+                using (var stream = System.IO.File.OpenRead("P_20190512_225535_BF.jpg"))
+                {
+                    _ = Bot.SendPhotoAsync(
+                      chatId: e.Message.Chat,
+                      photo: stream
+                    ).Result;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
         }
 
         //=====Utils======== ВЫНЕСТИ ВСЕ В ОТДЕЛЬНОЕ МЕСТО
