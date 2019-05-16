@@ -1,4 +1,4 @@
-﻿assembly-informational-format: '{LegacySemVerPadded}'
+﻿assembly-informational-format: '{major}.{minor}.{PreReleaseNumber}-{ShortSha}'
 mode: ContinuousDeployment
 next-version: 0.2
 branches:
