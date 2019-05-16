@@ -107,15 +107,7 @@ namespace PersikSharp
             persik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             persik.AddCommandRegEx(@"\b(мозг|живой|красав|молодец|хорош|умный|умница)\b", onBotPraise);       //
             persik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            persik.onNoneMatched += (s, e) =>
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
-                _ = Bot.SendTextMessageAsync(
-                           chatId: e.Message.Chat.Id,
-                           text: strManager.GetRandom("HELLO"),
-                           parseMode: ParseMode.Markdown,
-                           replyToMessageId: e.Message.MessageId);
-            };
+            persik.onNoneMatched += onNoneMatchedCommand;
 
             //Update Message to group and me
             if(args.Length > 0)
@@ -401,6 +393,16 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
+        }
+
+        private static void onNoneMatchedCommand(object sender, PersikEventArgs e)
+        {
+            Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
+            _ = Bot.SendTextMessageAsync(
+                       chatId: e.Message.Chat.Id,
+                       text: strManager.GetRandom("HELLO"),
+                       parseMode: ParseMode.Markdown,
+                       replyToMessageId: e.Message.MessageId);
         }
 
         private static async void onPersikBanCommand(object sender, PersikEventArgs e)//Переделать
