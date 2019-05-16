@@ -30,9 +30,8 @@ namespace PersikSharp
         private static StringManager strManager = new StringManager();
         private static StringManager tokens = new StringManager();
 
-        //private static Dictionary<string, string> tokens;
-
-        private static bool exit = false;
+        private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+        private static CancellationToken cancel_token = cancelTokenSource.Token;
         static void Main(string[] args)
         {
             Process current = Process.GetCurrentProcess();
@@ -43,13 +42,6 @@ namespace PersikSharp
                     process.Kill();
                 }
             }
-            //foreach (Process process in Process.GetProcessesByName("PersikSharpRelease"))
-            //{
-            //    if (process.Id != current.Id)
-            //    {
-            //        process.Kill();
-            //    }
-            //}
 
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
@@ -105,17 +97,9 @@ namespace PersikSharp
             persik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
             persik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
             persik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
-            persik.AddCommandRegEx(@"\b(мозг|живой|красав|молодец|хорош|умный|умница)\b", onBotPraise);       //
+            persik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             persik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            persik.onNoneMatched += (s, e) =>
-            {
-                Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
-                _ = Bot.SendTextMessageAsync(
-                           chatId: e.Message.Chat.Id,
-                           text: strManager.GetRandom("HELLO"),
-                           parseMode: ParseMode.Markdown,
-                           replyToMessageId: e.Message.MessageId);
-            };
+            persik.onNoneMatched += onNoneMatchedCommand;
 
             //Update Message to group and me
             if(args.Length > 0)
@@ -145,7 +129,7 @@ namespace PersikSharp
             }
 
 
-            while (!exit)
+            while (!cancel_token.IsCancellationRequested)
                 Thread.Sleep(1000);
 
             Bot.StopReceiving();
@@ -215,7 +199,7 @@ namespace PersikSharp
                 return;
             }
             if (str.Contains("exit"))
-                exit = true;
+                cancelTokenSource.Cancel();
             else
                 Logger.Log(LogType.Info, $"{str}  <- Syntax Error!");
         }
@@ -401,6 +385,16 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
+        }
+
+        private static void onNoneMatchedCommand(object sender, PersikEventArgs e)
+        {
+            Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
+            _ = Bot.SendTextMessageAsync(
+                       chatId: e.Message.Chat.Id,
+                       text: strManager.GetRandom("HELLO"),
+                       parseMode: ParseMode.Markdown,
+                       replyToMessageId: e.Message.MessageId);
         }
 
         private static async void onPersikBanCommand(object sender, PersikEventArgs e)//Переделать
