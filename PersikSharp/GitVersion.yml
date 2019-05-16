@@ -1,0 +1,9 @@
+﻿assembly-informational-format: '{LegacySemVerPadded}'
+mode: ContinuousDeployment
+next-version: 0.2
+branches:
+  master:
+    mode: ContinuousDeployment
+    tag: ''
+ignore:
+  sha: []
