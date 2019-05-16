@@ -228,14 +228,12 @@
     <None Include=".gitlab-ci.yml" />
     <None Include="app.config" />
     <None Include="ClassDiagram1.cd" />
-    <None Include="Configs\App.config" />
     <None Include="Configs\dict.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Configs\log4net.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Configs\packages.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

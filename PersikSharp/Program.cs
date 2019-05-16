@@ -43,13 +43,13 @@ namespace PersikSharp
                     process.Kill();
                 }
             }
-            foreach (Process process in Process.GetProcessesByName("PersikSharpRelease"))
-            {
-                if (process.Id != current.Id)
-                {
-                    process.Kill();
-                }
-            }
+            //foreach (Process process in Process.GetProcessesByName("PersikSharpRelease"))
+            //{
+            //    if (process.Id != current.Id)
+            //    {
+            //        process.Kill();
+            //    }
+            //}
 
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
@@ -96,7 +96,6 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("me", onMeCommand);
             botcallbacks.RegisterCommand("upal_otjalsa", onUpalOtjalsaCommand);
             botcallbacks.RegisterCommand("version", onVersionCommand);
-
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
 
@@ -117,6 +116,19 @@ namespace PersikSharp
                            parseMode: ParseMode.Markdown,
                            replyToMessageId: e.Message.MessageId);
             };
+
+            //Update Message to group and me
+            if(args.Length > 0)
+                if (args.First().Equals("/u"))
+                {
+                    Bot.SendTextMessageAsync("204678400",
+                        $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                        ParseMode.Markdown);
+                    Bot.SendTextMessageAsync("-1001125742098",
+                        $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                        ParseMode.Markdown);
+                }
+
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.FirstName;
@@ -902,7 +914,7 @@ namespace PersikSharp
             ///Spam Bot detection
             
 
-            string msg_string = String.Format(strManager.GetSingle("NEW_MEMBERS"), username);
+            string msg_string = String.Format(strManager.GetRandom("NEW_MEMBERS"), username);
             _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
         }
 
