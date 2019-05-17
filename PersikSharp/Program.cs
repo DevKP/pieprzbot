@@ -100,6 +100,7 @@ namespace PersikSharp
 
             persik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
             persik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
+            persik.AddCommandRegEx(@"\bкик\b", onKickCommand);
             persik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);                             //один ИЛИ два
             persik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
             persik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
@@ -143,9 +144,6 @@ namespace PersikSharp
             CommandLine.Inst().StopUpdating();
         }
 
-  
-
-        //=====Utils======== ВЫНЕСТИ ВСЕ В ОТДЕЛЬНОЕ МЕСТО
         private static void LoadDictionary()
         {
             try
@@ -535,6 +533,34 @@ namespace PersikSharp
             }
         }
 
+        private static void onKickCommand(object sender, PersikEventArgs e)
+        {
+            Message message = e.Message;
+
+            if (message.Chat.Type == ChatType.Private)
+                return;
+            if (!Persik.isUserAdmin(message.Chat.Id, message.From.Id))
+                return;
+            if (message.ReplyToMessage == null)
+                return;
+
+            try
+            {
+                _ = Bot.KickChatMemberAsync(
+                    chatId: message.Chat.Id,
+                    userId: message.ReplyToMessage.From.Id);
+
+                _ = Bot.SendTextMessageAsync(
+                        chatId: message.Chat.Id,
+                        text: string.Format(strManager.GetRandom("KICK"), Persik.GetUserLink(message.ReplyToMessage.From)),
+                        parseMode: ParseMode.Markdown).Result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
+        }
+
         private static void onByWord(object sender, PersikEventArgs e)
         {
             Message message = e.Message;
@@ -891,8 +917,6 @@ namespace PersikSharp
                             canSendOtherMessages: false,
                             canAddWebPagePreviews: false);
             }
-            ///Spam Bot detection
-
 
             string msg_string = String.Format(strManager.GetRandom("NEW_MEMBERS"), username);
             _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
