@@ -24,7 +24,7 @@ namespace PersikSharp
     class Program
     {
         public static TelegramBotClient Bot;
-        private static Persik persik;
+        private static Perchik persik;
         private static ClarifaiClient clarifai;
         private static BotCallBacks botcallbacks;
         private static StringManager strManager = new StringManager();
@@ -56,7 +56,7 @@ namespace PersikSharp
 
             try
             {
-                persik = new Persik();
+                persik = new Perchik();
                 Bot = new TelegramBotClient(tokens.GetSingle("TELEGRAM"));
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
                 if (clarifai.HttpClient.ApiKey == "")
@@ -281,7 +281,7 @@ namespace PersikSharp
             persik.ParseMessage(message);
         }
 
-        private static void onWeather(object sender, PersikEventArgs a)//Переделать под другой АПИ
+        private static void onWeather(object sender, PerchikEventArgs a)//Переделать под другой АПИ
         {
             Message message = a.Message;
             Match weather_match = a.Match;
@@ -368,7 +368,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onNoneMatchedCommand(object sender, PersikEventArgs e)
+        private static void onNoneMatchedCommand(object sender, PerchikEventArgs e)
         {
             Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
             _ = Bot.SendTextMessageAsync(
@@ -378,7 +378,7 @@ namespace PersikSharp
                        replyToMessageId: e.Message.MessageId);
         }
 
-        private static async void onPersikBanCommand(object sender, PersikEventArgs e)//Переделать
+        private static async void onPersikBanCommand(object sender, PerchikEventArgs e)//Переделать
         {
             Message message = e.Message;
 
@@ -426,7 +426,7 @@ namespace PersikSharp
                 var until = DateTime.Now.AddSeconds(seconds);
                 if (message.ReplyToMessage != null)
                 {
-                    if (!Persik.isUserAdmin(message.Chat.Id, message.From.Id))
+                    if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
                         return;
 
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
@@ -445,14 +445,14 @@ namespace PersikSharp
                     {
                         _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("BANNED"), Persik.GetUserLink(message.ReplyToMessage.From), number, word),
+                            text: String.Format(strManager.GetSingle("BANNED"), Perchik.GetUserLink(message.ReplyToMessage.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                     else
                     {
                         _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_PERMANENT"), Persik.GetUserLink(message.ReplyToMessage.From), number, word),
+                            text: String.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.GetUserLink(message.ReplyToMessage.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                 }
@@ -471,7 +471,7 @@ namespace PersikSharp
 
                         _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Persik.GetUserLink(message.From), number, word),
+                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.GetUserLink(message.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                     else
@@ -488,7 +488,7 @@ namespace PersikSharp
 
                         _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Persik.GetUserLink(message.From), 40, word),
+                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.GetUserLink(message.From), 40, word),
                             parseMode: ParseMode.Markdown);
                     }
                 }
@@ -499,13 +499,13 @@ namespace PersikSharp
             }
         }
 
-        private static void onPersikUnbanCommand(object sender, PersikEventArgs e)
+        private static void onPersikUnbanCommand(object sender, PerchikEventArgs e)
         {
             Message message = e.Message;
 
             if (message.Chat.Type == ChatType.Private)
                 return;
-            if (!Persik.isUserAdmin(message.Chat.Id, message.From.Id))
+            if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
                 return;
             if (message.ReplyToMessage == null)
                 return;
@@ -524,7 +524,7 @@ namespace PersikSharp
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetRandom("UNBANNED"), Persik.GetUserLink(message.ReplyToMessage.From)),
+                        text: string.Format(strManager.GetRandom("UNBANNED"), Perchik.GetUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)
@@ -533,13 +533,13 @@ namespace PersikSharp
             }
         }
 
-        private static void onKickCommand(object sender, PersikEventArgs e)
+        private static void onKickCommand(object sender, PerchikEventArgs e)
         {
             Message message = e.Message;
 
             if (message.Chat.Type == ChatType.Private)
                 return;
-            if (!Persik.isUserAdmin(message.Chat.Id, message.From.Id))
+            if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
                 return;
             if (message.ReplyToMessage == null)
                 return;
@@ -552,7 +552,7 @@ namespace PersikSharp
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetRandom("KICK"), Persik.GetUserLink(message.ReplyToMessage.From)),
+                        text: string.Format(strManager.GetRandom("KICK"), Perchik.GetUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown).Result;
             }
             catch (Exception ex)
@@ -561,7 +561,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onByWord(object sender, PersikEventArgs e)
+        private static void onByWord(object sender, PerchikEventArgs e)
         {
             Message message = e.Message;
 
@@ -592,13 +592,13 @@ namespace PersikSharp
             }
         }
 
-        private static void onBotPraise(object sender, PersikEventArgs e)
+        private static void onBotPraise(object sender, PerchikEventArgs e)
         {
             Message message = e.Message;
             Bot.SendStickerAsync(message.Chat.Id, "CAADAgADQQMAApFfCAABzoVI0eydHSgC");
         }
 
-        private static async void onBotInsulting(object sender, PersikEventArgs e)
+        private static async void onBotInsulting(object sender, PerchikEventArgs e)
         {
             Message message = e.Message;
             try
@@ -634,7 +634,7 @@ namespace PersikSharp
 
         }
 
-        private static void onRandomChoice(object sender, PersikEventArgs e)
+        private static void onRandomChoice(object sender, PerchikEventArgs e)
         {
             Message message = e.Message;
 
@@ -668,7 +668,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onRouletteCommand(object sender, PersikEventArgs e)
+        private static void onRouletteCommand(object sender, PerchikEventArgs e)
         {
             Message message = e.Message;
 
@@ -693,14 +693,14 @@ namespace PersikSharp
 
                     _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetRandom("ROULETTEBAN"), Persik.GetUserLink(message.From)),
+                        text: String.Format(strManager.GetRandom("ROULETTEBAN"), Perchik.GetUserLink(message.From)),
                         parseMode: ParseMode.Markdown).Result;
                 }
                 else
                 {
                     var msg = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetRandom("ROULETTEMISS"), Persik.GetUserLink(message.From)),
+                        text: String.Format(strManager.GetRandom("ROULETTEMISS"), Perchik.GetUserLink(message.From)),
                         parseMode: ParseMode.Markdown).Result;
 
                     Thread.Sleep(10 * 1000); //wait 10 seconds
@@ -827,7 +827,7 @@ namespace PersikSharp
             //Message to superchat from privat Example: !Hello World
             if (m.Chat.Type == ChatType.Private && m.Text[0] == '!')
             {
-                if (Persik.isUserAdmin(-1001125742098, m.From.Id))
+                if (Perchik.isUserAdmin(-1001125742098, m.From.Id))
                 {
                     string msg = m.Text.Substring(1, m.Text.Length - 1);
                     _ = Bot.SendTextMessageAsync(offtopia_id, $"*{msg}*", ParseMode.Markdown);
@@ -1011,7 +1011,7 @@ namespace PersikSharp
                 if (message_args.Message.Chat.Type == ChatType.Private)
                     _ = Bot.SendTextMessageAsync(
                               chatId: message_args.Message.Chat.Id,
-                              text: String.Format(strManager.GetSingle("START"), Persik.GetUserLink(message_args.Message.From)),
+                              text: String.Format(strManager.GetSingle("START"), Perchik.GetUserLink(message_args.Message.From)),
                               parseMode: ParseMode.Markdown).Result;
             }
             catch (Exception e)
@@ -1035,7 +1035,7 @@ namespace PersikSharp
                 return;
 
             Message message = message_args.Message;
-            string msg_text = $"{Persik.GetUserLink(message.From)} *{message_args.Text}*";
+            string msg_text = $"{Perchik.GetUserLink(message.From)} *{message_args.Text}*";
 
             try
             {
@@ -1121,7 +1121,7 @@ namespace PersikSharp
             if (e.Message.Chat.Type != ChatType.Private)
                 return;
 
-            if (!Persik.isUserAdmin(offtopia_id, e.Message.From.Id))
+            if (!Perchik.isUserAdmin(offtopia_id, e.Message.From.Id))
                 return;
 
             try
@@ -1156,7 +1156,7 @@ namespace PersikSharp
                 }
                 else
                 {
-                    if (Persik.FindTextCommand(e.Message.Text, "stop"))
+                    if (Perchik.FindTextCommand(e.Message.Text, "stop"))
                     {
                         _ = Bot.SendTextMessageAsync(
                            chatId: e.Message.Chat.Id,
