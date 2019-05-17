@@ -46,6 +46,8 @@ namespace PersikSharp
             new Dictionary<string, EventHandler<CommandEventArgs>>();
         public Dictionary<string, EventHandler<CallbackQueryArgs>> queryCallbacks =
             new Dictionary<string, EventHandler<CallbackQueryArgs>>();
+        public Dictionary<int, EventHandler<MessageArgs>> nextstepCallbacks =
+            new Dictionary<int, EventHandler<MessageArgs>>();
 
         private string bot_username;
 
@@ -71,7 +73,7 @@ namespace PersikSharp
         }
 
         /// <summary>
-        /// Registers a callback for chat command. (ex. <c>/test</c> )
+        /// Registers a callback for chat command. (e.g. test )
         /// </summary>
         /// <param name="command">Command without slash.</param>
         /// <param name="c">Method to be called.</param>
@@ -88,6 +90,12 @@ namespace PersikSharp
         public void RegisterCallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
         {
             queryCallbacks.Add(data, c);
+        }
+
+
+        public void RegisterNextstepCallback(int userId, EventHandler<MessageArgs> c)
+        {
+            nextstepCallbacks.Add(userId, c);
         }
 
         private void Bot_OnCallbackQuery(object sender, CallbackQueryEventArgs a)
@@ -115,9 +123,16 @@ namespace PersikSharp
         private void Bot_OnMessage(object sender, MessageEventArgs e)
         {
             var message = e.Message;
+
+            if (nextstepCallbacks.ContainsKey(message.From.Id))
+            {
+                var event_method = nextstepCallbacks[message.From.Id];
+                nextstepCallbacks.Remove(message.From.Id);
+                event_method?.Invoke(this, new MessageArgs(message));
+            }
+
             string message_type_str = $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
             string message_str = "";
-
             switch (e.Message.Type)
             {
                 case MessageType.Text:
