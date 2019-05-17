@@ -1,9 +1,3 @@
 ﻿assembly-informational-format: '{major}.{minor}.{PreReleaseNumber}-{ShortSha}'
 mode: ContinuousDeployment
 next-version: 0.2
-branches:
-  master:
-    mode: ContinuousDeployment
-    tag: ''
-ignore:
-  sha: []

@@ -32,6 +32,9 @@ namespace PersikSharp
 
         private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
         private static CancellationToken cancel_token = cancelTokenSource.Token;
+
+        private const long offtopia_id = -1001125742098;
+
         static void Main(string[] args)
         {
             Process current = Process.GetCurrentProcess();
@@ -43,7 +46,7 @@ namespace PersikSharp
                 }
             }
 
-            
+
 
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
@@ -61,7 +64,7 @@ namespace PersikSharp
 
                 botcallbacks = new BotCallBacks(Bot);
             }
-            catch(FileNotFoundException e)
+            catch (FileNotFoundException e)
             {
                 Logger.Log(LogType.Fatal, $"No tokens file found! Exception: {e.Message}");
                 Console.ReadKey();
@@ -91,6 +94,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("upal_otjalsa", onUpalOtjalsaCommand);
             botcallbacks.RegisterCommand("version", onVersionCommand);
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
+            botcallbacks.RegisterCommand("stk", onStickerCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
 
@@ -105,13 +109,13 @@ namespace PersikSharp
             persik.onNoneMatched += onNoneMatchedCommand;
 
             //Update Message to group and me
-            if(args.Length > 0)
+            if (args.Length > 0)
                 if (args.First().Equals("/u"))
                 {
                     Bot.SendTextMessageAsync("204678400",
                         $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
                         ParseMode.Markdown);
-                    Bot.SendTextMessageAsync("-1001125742098",
+                    Bot.SendTextMessageAsync(offtopia_id,
                         $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
                         ParseMode.Markdown);
                 }
@@ -177,7 +181,7 @@ namespace PersikSharp
                 Console.ReadKey();
                 Environment.Exit(1);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
                 Console.ReadKey();
@@ -198,7 +202,7 @@ namespace PersikSharp
                 {
                     var until = DateTime.Now.AddSeconds(int.Parse(match.Groups[2].Value));
                     await Bot.RestrictChatMemberAsync(
-                        chatId: "-1001125742098",
+                        chatId: offtopia_id,
                         userId: int.Parse(match.Groups[1].Value),
                         untilDate: until,
                         canSendMessages: false,
@@ -214,8 +218,9 @@ namespace PersikSharp
                 Logger.Log(LogType.Info, $"User {match.Groups[1].Value} - RESTRICTED!");
                 return;
             }
-            if (str[0] == '!') { 
-                 await Bot.SendTextMessageAsync("-1001125742098", str.Substring(1, str.Length - 1), ParseMode.Markdown);
+            if (str[0] == '!')
+            {
+                await Bot.SendTextMessageAsync(offtopia_id, str.Substring(1, str.Length - 1), ParseMode.Markdown);
                 Logger.Log(LogType.Info, $"(ME) {str}");
                 return;
             }
@@ -227,13 +232,20 @@ namespace PersikSharp
 
         private static bool isUserAdmin(long chatId, int userId)
         {
-
-            ChatMember[] chat_members = Bot.GetChatAdministratorsAsync(chatId).Result;
-            if (Array.Find(chat_members, e => e.User.Id == userId) != null)
-                return true;
-            else
+            try
+            {
+                ChatMember[] chat_members = Bot.GetChatAdministratorsAsync(chatId).Result;
+                if (Array.Find(chat_members, e => e.User.Id == userId) != null)
+                    return true;
+                else
+                    return false;
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
                 return false;
-        }
+            }
+}
 
         private static async void SaveFile(string fileId, string folder, string fileName = null)
         {
@@ -343,7 +355,7 @@ namespace PersikSharp
                 StreamReader reader = new StreamReader(resStream);
                 string respone_str = reader.ReadToEnd();
 
-                if(respone_str.Contains("The allowed number of requests has been exceeded."))
+                if (respone_str.Contains("The allowed number of requests has been exceeded."))
                 {
                     _ = Bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
@@ -373,7 +385,8 @@ namespace PersikSharp
                           text: $"*{location_json[0].LocalizedName}, {location_json[0].Country.LocalizedName}\n\n{weather_json[0].WeatherText}\nТемпература: {weather_json[0].Temperature.Metric.Value}°C*",
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
-            }catch(ArgumentOutOfRangeException exp)
+            }
+            catch (ArgumentOutOfRangeException exp)
             {
                 Logger.Log(LogType.Error, $"Exception: {exp.Message}");
 
@@ -382,7 +395,8 @@ namespace PersikSharp
                           text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
-            }catch(WebException w)
+            }
+            catch (WebException w)
             {
                 Stream resStream = w.Response.GetResponseStream();
                 StreamReader reader = new StreamReader(resStream);
@@ -402,7 +416,8 @@ namespace PersikSharp
                             text: w.Message,
                             parseMode: ParseMode.Markdown,
                             replyToMessageId: message.MessageId);
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
@@ -468,7 +483,7 @@ namespace PersikSharp
                 {
                     if (!isUserAdmin(message.Chat.Id, message.From.Id))
                         return;
-                    
+
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
                         return;
 
@@ -480,7 +495,7 @@ namespace PersikSharp
                             canSendMediaMessages: false,
                             canSendOtherMessages: false,
                             canAddWebPagePreviews: false);
-;
+                    ;
                     if (seconds >= 40)
                     {
                         _ = Bot.SendTextMessageAsync(
@@ -567,7 +582,7 @@ namespace PersikSharp
                         text: string.Format(strManager.GetRandom("UNBANNED"), GetUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
@@ -578,11 +593,11 @@ namespace PersikSharp
             Message message = e.Message;
 
             Bot.SendStickerAsync(message.Chat.Id, "CAADAgADGwAD0JwyGF7MX7q4n6d_Ag");
-            if(message.Chat.Type != ChatType.Private)
+            if (message.Chat.Type != ChatType.Private)
             {
                 try
                 {
-                    _ =  Bot.SendTextMessageAsync(
+                    _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
                         text: string.Format(strManager.GetSingle("BYWORD_BAN"), message.From.FirstName),
                         parseMode: ParseMode.Markdown);
@@ -617,7 +632,7 @@ namespace PersikSharp
             {
                 await Bot.SendStickerAsync(message.Chat.Id, "CAADAgADJwMAApFfCAABfVrdPYRn8x4C");
 
-                if(message.Chat.Type != ChatType.Private)
+                if (message.Chat.Type != ChatType.Private)
                 {
                     await Task.Delay(2000);
 
@@ -638,7 +653,8 @@ namespace PersikSharp
 
                     _ = Bot.SendStickerAsync(message.Chat.Id, "CAADAgADPQMAApFfCAABt8Meib23A_QC");
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
@@ -692,7 +708,7 @@ namespace PersikSharp
                 int random_number = rand.Next(0, 6);
                 if (random_number == 3)
                 {
-                    var until = DateTime.Now.AddSeconds(10*60); //10 minutes
+                    var until = DateTime.Now.AddSeconds(10 * 60); //10 minutes
                     _ = Bot.RestrictChatMemberAsync(
                             chatId: message.Chat.Id,
                             userId: message.From.Id,
@@ -701,7 +717,7 @@ namespace PersikSharp
                             canSendMediaMessages: false,
                             canSendOtherMessages: false,
                             canAddWebPagePreviews: false);
-  
+
                     _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
                         text: String.Format(strManager.GetRandom("ROULETTEBAN"), GetUserLink(message.From)),
@@ -723,7 +739,8 @@ namespace PersikSharp
                         chatId: message.Chat.Id,
                         messageId: message.MessageId);
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
@@ -743,7 +760,8 @@ namespace PersikSharp
             List<string> predictions = new List<string>();
 
             for (int i = 0; predictions.Count < 3; i++)
-            {   if(result.Get().Data[i].Name != "нет человек")
+            {
+                if (result.Get().Data[i].Name != "нет человек")
                     predictions.Add(result.Get().Data[i].Name);
             }
 
@@ -752,7 +770,7 @@ namespace PersikSharp
 
         private static async void NSFWDetect(Message message)//Упростить
         {
-            
+
             try
             {
                 var file = await Bot.GetFileAsync(message.Photo[message.Photo.Length - 1].FileId);
@@ -773,7 +791,7 @@ namespace PersikSharp
                     if (!exists)
                         System.IO.Directory.CreateDirectory("./nsfw/");
 
-                    using (FileStream file_stream = new FileStream($"./nsfw/{file.FileId}.jpg", 
+                    using (FileStream file_stream = new FileStream($"./nsfw/{file.FileId}.jpg",
                         FileMode.Create, System.IO.FileAccess.Write))
                     {
                         photo.WriteTo(file_stream);
@@ -839,7 +857,7 @@ namespace PersikSharp
                 if (isUserAdmin(-1001125742098, m.From.Id))
                 {
                     string msg = m.Text.Substring(1, m.Text.Length - 1);
-                    _ = Bot.SendTextMessageAsync("-1001125742098", $"*{msg}*", ParseMode.Markdown);
+                    _ = Bot.SendTextMessageAsync(offtopia_id, $"*{msg}*", ParseMode.Markdown);
 
                     Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id}) (ME) {msg}");
                 }
@@ -908,7 +926,7 @@ namespace PersikSharp
                 }
             }
 
-            
+
             ///Spam Bot detection
             if (Regex.IsMatch(firstName, @"\b[bб6][оo][т7t]\b", RegexOptions.IgnoreCase) ||
                Regex.IsMatch(lastName, @"\b[bб6][оo][т7t]\b", RegexOptions.IgnoreCase))
@@ -927,7 +945,7 @@ namespace PersikSharp
                             canAddWebPagePreviews: false);
             }
             ///Spam Bot detection
-            
+
 
             string msg_string = String.Format(strManager.GetRandom("NEW_MEMBERS"), username);
             _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
@@ -951,12 +969,12 @@ namespace PersikSharp
 
                 onRateUpdate(sender, new CallbackQueryArgs(cq));
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
 
-            
+
         }
 
         private static void onRateUpdate(object sender, CallbackQueryArgs e)
@@ -1020,9 +1038,9 @@ namespace PersikSharp
             try
             {
                 if (message_args.Message.Chat.Type == ChatType.Private)
-                _ = Bot.SendTextMessageAsync(
-                          chatId: message_args.Message.Chat.Id,
-                          text: String.Format(strManager.GetSingle("START"), message_args.Message.From.FirstName)).Result;
+                    _ = Bot.SendTextMessageAsync(
+                              chatId: message_args.Message.Chat.Id,
+                              text: String.Format(strManager.GetSingle("START"), message_args.Message.From.FirstName)).Result;
             }
             catch (Exception e)
             {
@@ -1066,7 +1084,7 @@ namespace PersikSharp
                        parseMode: ParseMode.Markdown).Result;
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
@@ -1082,8 +1100,8 @@ namespace PersikSharp
                     _ = Bot.SendAudioAsync(
                       chatId: e.Message.Chat,
                       audio: stream,
-                      performer:"Жизнь",
-                      title:"Не слушать!"
+                      performer: "Жизнь",
+                      title: "Не слушать!"
                     ).Result;
                 }
             }
@@ -1101,6 +1119,71 @@ namespace PersikSharp
                        chatId: e.Message.Chat.Id,
                        text: $"*Version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
                        parseMode: ParseMode.Markdown).Result;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
+        }
+
+        private static void onStickerCommand(object sender, CommandEventArgs e)
+        {
+            if (e.Message.Chat.Type == ChatType.Private)
+                return;
+
+            if (!isUserAdmin(offtopia_id, e.Message.From.Id))
+                return;
+
+            try
+            {
+                _ = Bot.SendTextMessageAsync(
+                         chatId: e.Message.Chat.Id,
+                         text: strManager.GetRandom("STK"),
+                         parseMode: ParseMode.Markdown,
+                         replyMarkup: new ForceReplyMarkup()).Result;
+                botcallbacks.RegisterNextstepCallback(e.Message.From.Id, onStickerAnswer);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
+        }
+
+        private static void onStickerAnswer(object sender, MessageArgs e)
+        {
+            try
+            {
+                if (e.Message.Type == MessageType.Sticker)
+                {
+
+                    _ = Bot.SendTextMessageAsync(
+                            chatId: e.Message.Chat.Id,
+                            text: strManager.GetRandom("STK_OK"),
+                            parseMode: ParseMode.Markdown).Result;
+                    _ = Bot.SendStickerAsync(
+                        chatId: offtopia_id,
+                        sticker: e.Message.Sticker.FileId);
+                }
+                else
+                {
+                    if (Persik.FindTextCommand(e.Message.Text, "stop"))
+                    {
+                        _ = Bot.SendTextMessageAsync(
+                           chatId: e.Message.Chat.Id,
+                           text: strManager.GetRandom("STK_CANCEL"),
+                           parseMode: ParseMode.Markdown).Result;
+
+                        return;
+                    }
+
+                    _ = Bot.SendTextMessageAsync(
+                            chatId: e.Message.Chat.Id,
+                            text: strManager.GetRandom("STK_WRONG"),
+                            parseMode: ParseMode.Markdown,
+                            replyMarkup: new ForceReplyMarkup()).Result;
+                    botcallbacks.RegisterNextstepCallback(e.Message.From.Id, onStickerAnswer);
+                }
+
             }
             catch (Exception ex)
             {

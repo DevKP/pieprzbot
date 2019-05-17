@@ -65,5 +65,18 @@ namespace PersikSharp
             }
         }
 
+        public static bool FindTextCommand(string text, string command)
+        {
+            var bot_username = Program.Bot.GetMeAsync().Result.Username;
+            var match = Regex.Match(text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                return match.Groups["command"].Value.Equals(command);
+            }
+            else
+            {
+                return false;
+            }
+        }
     }
 }
