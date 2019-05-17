@@ -27,7 +27,8 @@ namespace PersikSharp
        new Dictionary<string, EventHandler<PersikEventArgs>>();
 
         /// <summary>
-        /// Registers a callback that will be called if the regular expression matches the message. (ParseMessage)
+        /// Registers a callback that will be called if the regular
+        /// expression matches the message. <see cref="ParseMessage">
         /// </summary>
         /// <param name="regex">Regular expression string.</param>
         /// <param name="e">Method to be called.</param>
@@ -37,7 +38,8 @@ namespace PersikSharp
         }
 
         /// <summary>
-        /// Checks the message for a match with each of the regular expressions and sends callbacks.
+        /// Checks the message for a match with each of the regular
+        /// expressions and sends callbacks.
         /// </summary>
         /// <param name="msg">Message object from API</param>
         public void ParseMessage(Message msg)
@@ -65,6 +67,14 @@ namespace PersikSharp
             }
         }
 
+        /// <summary>
+        /// Checks if there is a specified command in the string.
+        /// </summary>
+        /// <returns>
+        /// Boolean.
+        /// </returns>
+        /// <param name="text">Text.</param>
+        /// <param name="command">Command to find.</param>
         public static bool FindTextCommand(string text, string command)
         {
             var bot_username = Program.Bot.GetMeAsync().Result.Username;
@@ -77,6 +87,51 @@ namespace PersikSharp
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Checks if the user has administrator rights in the chat.
+        /// </summary>
+        /// <returns>
+        /// Boolean.
+        /// </returns>
+        /// <param name="chatId">Chat ID.</param>
+        /// <param name="userId">User ID.</param>
+        public static bool isUserAdmin(long chatId, int userId)
+        {
+            try
+            {
+                ChatMember[] chat_members = Program.Bot.GetChatAdministratorsAsync(chatId).Result;
+                if (Array.Find(chat_members, e => e.User.Id == userId) != null)
+                    return true;
+                else
+                    return false;
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Generates clickable text link to user profile.
+        /// </summary>
+        /// <param name="user">User object.</param>
+        /// <returns>
+        /// Formated text string.
+        /// </returns>
+        public static string GetUserLink(User user)
+        {
+            try
+            {
+                return string.Format("[{0}](tg://user?id={1})", user.FirstName, user.Id);
+            }
+            catch (NullReferenceException)//If FirstName is null using id as name
+            {
+                return string.Format("[{0}](tg://user?id={1})", user.Id, user.Id);
+            }
+
         }
     }
 }
