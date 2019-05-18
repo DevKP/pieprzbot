@@ -126,9 +126,9 @@ namespace PersikSharp
 
             if (nextstepCallbacks.ContainsKey(message.From.Id))
             {
-                var event_method = nextstepCallbacks[message.From.Id];
+                var event_method_temp = nextstepCallbacks[message.From.Id];
                 nextstepCallbacks.Remove(message.From.Id);
-                event_method?.Invoke(this, new MessageArgs(message));
+                event_method_temp?.Invoke(this, new MessageArgs(message));
             }
 
             string message_type_str = $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
@@ -157,6 +157,10 @@ namespace PersikSharp
                     break;
                 case MessageType.Video:
                     message_str = message.Video.FileId;
+                    onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
+                    break;
+                case MessageType.Voice:
+                    message_str = message.Voice.FileId;
                     onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Unknown:

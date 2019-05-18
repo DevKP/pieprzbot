@@ -38,7 +38,8 @@ namespace PersikSharp
         public event EventHandler<CommandLineEventArgs> onSubmitAction;
 
         private int last_cursor_top;
-        private bool Running;
+        private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+        private static CancellationToken cancel_token = cancelTokenSource.Token;
 
         public static CommandLine Inst()
         {
@@ -51,7 +52,6 @@ namespace PersikSharp
         {
             last_cursor_top = Console.WindowHeight;
             text_var = "";
-            Running = false;
 
             Console.WriteLine();
             this.Draw();
@@ -59,14 +59,13 @@ namespace PersikSharp
 
         public void StartUpdating()
         {
-            this.Running = true;
             Thread loop = new Thread(update_loop);
             loop.Start();
         }
 
         public void StopUpdating()
         {
-            this.Running = false;
+            cancelTokenSource.Cancel();
         }
 
         private IEnumerable<ConsoleKeyInfo> GetInput()
@@ -84,7 +83,7 @@ namespace PersikSharp
 
         private void update_loop()
         {
-            while (Running)
+            while (!cancel_token.IsCancellationRequested)
             {
                 var keysHit = GetInput();
                 foreach (var key in keysHit)
@@ -104,7 +103,7 @@ namespace PersikSharp
                             onSubmitAction?.Invoke(this, new CommandLineEventArgs(text_var));
                             break;
                         default:
-                            Text = Text + key.KeyChar;
+                            Text += key.KeyChar;
                             break;
                     }
                     

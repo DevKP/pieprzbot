@@ -8,23 +8,23 @@ using Telegram.Bot.Types;
 
 namespace PersikSharp
 {
-    public class PersikEventArgs : EventArgs
+    public class PerchikEventArgs : EventArgs
     {
-        public PersikEventArgs(Message msg, Match m)
+        public PerchikEventArgs(Message msg, Match m)
         { this.Message = msg; this.Match = m; }
         public Match Match { get; }
         public Message Message { get; }
     }
 // comment
-    class Persik
+    class Perchik
     {
         /// <summary>
         /// Called if none of the regular expressions matches.
         /// </summary>
-        public event EventHandler<PersikEventArgs> onNoneMatched;
+        public event EventHandler<PerchikEventArgs> onNoneMatched;
 
-        private Dictionary<string, EventHandler<PersikEventArgs>> commandCallbacks =
-       new Dictionary<string, EventHandler<PersikEventArgs>>();
+        private Dictionary<string, EventHandler<PerchikEventArgs>> commandCallbacks =
+       new Dictionary<string, EventHandler<PerchikEventArgs>>();
 
         /// <summary>
         /// Registers a callback that will be called if the regular
@@ -32,7 +32,7 @@ namespace PersikSharp
         /// </summary>
         /// <param name="regex">Regular expression string.</param>
         /// <param name="e">Method to be called.</param>
-        public void AddCommandRegEx(string regex, EventHandler<PersikEventArgs> e)
+        public void AddCommandRegEx(string regex, EventHandler<PerchikEventArgs> e)
         {
             commandCallbacks.Add(regex, e);
         }
@@ -54,7 +54,7 @@ namespace PersikSharp
                 {
                     AtLeastOneMatch = true; 
 
-                    PersikEventArgs args = new PersikEventArgs(msg, command_match);
+                    PerchikEventArgs args = new PerchikEventArgs(msg, command_match);
                     command.Value?.Invoke(this, args);
                     Logger.Log(LogType.Info, $"<{this.GetType().Name}>({msg.From.FirstName}:{msg.From.Id}) -> {command.Key}");
                 }
@@ -62,7 +62,7 @@ namespace PersikSharp
 
             if (!AtLeastOneMatch)
             {
-                PersikEventArgs args = new PersikEventArgs(msg, null);
+                PerchikEventArgs args = new PerchikEventArgs(msg, null);
                 onNoneMatched?.Invoke(this, args);
             }
         }

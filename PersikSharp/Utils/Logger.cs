@@ -19,11 +19,6 @@ namespace PersikSharp
     {
         private static Logger instance;
         private static readonly ILog log = LogManager.GetLogger("CHAT");
-        public Logger()
-        {
-
-        }
-        ~Logger() { }
         public static Logger Inst()
         {
             if (instance == null)
