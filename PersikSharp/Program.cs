@@ -46,8 +46,6 @@ namespace PersikSharp
                 }
             }
 
-
-
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
 
@@ -727,11 +725,11 @@ namespace PersikSharp
 
 
             ClarifaiFileImage file_image = new ClarifaiFileImage(photo.GetBuffer());
-            PredictRequest<Concept> request = clarifai.PublicModels.GeneralModel.Predict(file_image, language: "ru");
+            PredictRequest<Concept> request = 
+                clarifai.PublicModels.GeneralModel.Predict(file_image, language: "ru");
             var result = await request.ExecuteAsync();
 
             List<string> predictions = new List<string>();
-
             for (int i = 0; predictions.Count < 3; i++)
             {
                 if (result.Get().Data[i].Name != "нет человек")
@@ -950,7 +948,6 @@ namespace PersikSharp
 
         private static void onRateUpdate(object sender, CallbackQueryArgs e)
         {
-            //Message message = message_args.Message;
             try
             {
                 string url = "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,ETC,ZEC,LTC,BCH&tsyms=USD";
@@ -990,8 +987,6 @@ namespace PersikSharp
                 button.Text = strManager.GetSingle("RATE_UPDATE_BTN");
                 var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
 
-
-                //_ = Bot.SendTextMessageAsync(message.Chat.Id, formated_str, replyMarkup: inlineKeyboard);
                 _ = Bot.EditMessageTextAsync(
                      chatId: e.Callback.Message.Chat.Id,
                      messageId: e.Callback.Message.MessageId,
@@ -1060,7 +1055,6 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
-            //Bot.SendTextMessageAsync(message.Chat.Id, message_args.Text, ParseMode.Markdown);
         }
 
         private static void onUpalOtjalsaCommand(object sender, CommandEventArgs e)

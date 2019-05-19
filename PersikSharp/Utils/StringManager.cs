@@ -37,6 +37,11 @@ namespace PersikSharp
                 return errorString;
             }
         }
+
+        public StringManager()
+        {
+        }
+
         public StringManager(string json_path)
         {
             if (json_path == null)
@@ -57,16 +62,19 @@ namespace PersikSharp
                 
             }
         }
+
         public StringManager(FileStream file)
         {
             if (file == null)
                 throw new ArgumentNullException();
 
-            throw new NotImplementedException();
-        }
+            string readContents;
+            using (StreamReader reader = new StreamReader(file))
+            {
+                readContents = reader.ReadToEnd();
+            }
 
-        public StringManager()
-        {
+            dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
         }
 
         /// <summary>
@@ -117,7 +125,7 @@ namespace PersikSharp
             if (dict == null)
                 throw new NullReferenceException();
 
-            List<string> strings = this.get_value(key);
+            List<string> strings = get_value(key);
             if (strings.Count > 1)
                 return strings[rand.Next(0, strings.Count - 1)];
             else
@@ -153,7 +161,7 @@ namespace PersikSharp
             if (dict == null)
                 throw new NullReferenceException();
 
-            throw new NotImplementedException();
+            return dict.Values.SelectMany(x => x).ToList();
         }
 
         /// <summary>
@@ -167,7 +175,7 @@ namespace PersikSharp
             if (dict == null)
                 throw new NullReferenceException();
 
-            throw new NotImplementedException();
+            return new List<string>(dict.Keys);
         }
     }
 }

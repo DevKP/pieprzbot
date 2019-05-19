@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace PersikSharp
 {
@@ -17,16 +15,16 @@ namespace PersikSharp
     {
         private static CommandLine instance;
 
-        private string text_var;
+        private string text;
         public static string Text
         {
             get
             {
-                return Inst().text_var;
+                return Inst().text;
             }
             set
             {
-                Inst().text_var = value;
+                Inst().text = value;
                 lock (CommandLine.Inst())
                 {
                     Inst().Draw();
@@ -51,7 +49,7 @@ namespace PersikSharp
         public CommandLine()
         {
             last_cursor_top = Console.WindowHeight;
-            text_var = "";
+            text = "";
 
             Console.WriteLine();
             this.Draw();
@@ -90,9 +88,6 @@ namespace PersikSharp
                 {
                     switch (key.Key)
                     {
-                        case ConsoleKey.F1:
-                            Logger.Log(LogType.Info, "F1 was pressed!!!");
-                            break;
                         case ConsoleKey.End:
                             break;
                         case ConsoleKey.Backspace:
@@ -100,10 +95,11 @@ namespace PersikSharp
                                 Text = Text.Remove(Text.Length - 1, 1);
                             break;
                         case ConsoleKey.Enter:
-                            onSubmitAction?.Invoke(this, new CommandLineEventArgs(text_var));
+                            onSubmitAction?.Invoke(this, new CommandLineEventArgs(text));
                             break;
                         default:
-                            Text += key.KeyChar;
+                            if(Text.Length < Console.WindowWidth - 3)
+                                Text += key.KeyChar;
                             break;
                     }
                     
@@ -112,7 +108,7 @@ namespace PersikSharp
             }
         }
 
-        private void clr_old()
+        private void clear_line()
         {
             int temp_cursor_top = Console.CursorTop;
             Console.SetCursorPosition(0, this.last_cursor_top);
@@ -128,7 +124,7 @@ namespace PersikSharp
         }
         public void Draw()
         {
-            clr_old();
+            clear_line();
 
             int temp_cursor_top = Console.CursorTop;
 
@@ -140,12 +136,15 @@ namespace PersikSharp
             Console.BackgroundColor = ConsoleColor.Gray;
             Console.ForegroundColor = ConsoleColor.Black;
 
-            Console.Write("> " + text_var);
+            Console.Write("> " + text);
 
-            StringBuilder filler = new StringBuilder(' ', Console.WindowWidth - text_var.Length - 3);
-            for (int i = 0; i < Console.WindowWidth - text_var.Length - 3; i++)
-                filler.Append(' ') ;
-            filler[0] = '▄';
+            StringBuilder filler = new StringBuilder(Console.WindowWidth);
+            if (Console.WindowWidth - text.Length - 3 > 0)
+            {
+                for (int i = 0; i < Console.WindowWidth - text.Length - 3; i++)
+                    filler.Append(' ');
+                filler[0] = '▄';
+            }
             Console.Write(filler);
 
             Console.BackgroundColor = ConsoleColor.Black;
