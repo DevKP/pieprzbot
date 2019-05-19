@@ -39,6 +39,8 @@ namespace PersikSharp
         public event EventHandler<MessageArgs> onChatMembersAddedMessage;
         public event EventHandler<MessageArgs> onVideoMessage;
         public event EventHandler<MessageArgs> onDocumentMessage;
+        public event EventHandler<MessageArgs> onVoiceMessage;
+        public event EventHandler<MessageArgs> onVideoNoteMessage;
 
         public event EventHandler<MessageArgs> onTextEdited;
 
@@ -161,7 +163,11 @@ namespace PersikSharp
                     break;
                 case MessageType.Voice:
                     message_str = message.Voice.FileId;
-                    onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
+                    onVoiceMessage?.Invoke(this, new MessageArgs(e.Message));
+                    break;
+                case MessageType.VideoNote:
+                    message_str = message.VideoNote.FileId;
+                    onVideoNoteMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Unknown:
                     break;
