@@ -1125,7 +1125,7 @@ namespace PersikSharp
                          text: strManager.GetRandom("STK"),
                          parseMode: ParseMode.Markdown,
                          replyMarkup: new ForceReplyMarkup()).Result;
-                botcallbacks.RegisterNextstepCallback(e.Message.From.Id, onStickerAnswer);
+                botcallbacks.RegisterNextstepCallback(e.Message.Chat.Id, onStickerAnswer);
             }
             catch (Exception ex)
             {
@@ -1165,7 +1165,7 @@ namespace PersikSharp
                             text: strManager.GetRandom("STK_WRONG"),
                             parseMode: ParseMode.Markdown,
                             replyMarkup: new ForceReplyMarkup()).Result;
-                    botcallbacks.RegisterNextstepCallback(e.Message.From.Id, onStickerAnswer);
+                    botcallbacks.RegisterNextstepCallback(e.Message.Chat.Id, onStickerAnswer);
                 }
 
             }
