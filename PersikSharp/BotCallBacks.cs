@@ -95,9 +95,9 @@ namespace PersikSharp
         }
 
 
-        public void RegisterNextstepCallback(int userId, EventHandler<MessageArgs> c)
+        public void RegisterNextstepCallback(int chatId, EventHandler<MessageArgs> c)
         {
-            nextstepCallbacks.Add(userId, c);
+            nextstepCallbacks.Add(chatId, c);
         }
 
         private void Bot_OnCallbackQuery(object sender, CallbackQueryEventArgs a)
@@ -126,10 +126,10 @@ namespace PersikSharp
         {
             var message = e.Message;
 
-            if (nextstepCallbacks.ContainsKey(message.From.Id))
+            if (nextstepCallbacks.ContainsKey(message.Chat.Id))
             {
-                var event_method_temp = nextstepCallbacks[message.From.Id];
-                nextstepCallbacks.Remove(message.From.Id);
+                var event_method_temp = nextstepCallbacks[messag.Chat.Id];
+                nextstepCallbacks.Remove(messag.Chat.Id);
                 event_method_temp?.Invoke(this, new MessageArgs(message));
             }
 
