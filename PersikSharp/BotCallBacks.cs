@@ -49,7 +49,7 @@ namespace PersikSharp
         public Dictionary<string, EventHandler<CallbackQueryArgs>> queryCallbacks =
             new Dictionary<string, EventHandler<CallbackQueryArgs>>();
         public Dictionary<int, EventHandler<MessageArgs>> nextstepCallbacks =
-            new Dictionary<int, EventHandler<MessageArgs>>();
+            new Dictionary<long, EventHandler<MessageArgs>>();
 
         private string bot_username;
 
@@ -95,7 +95,7 @@ namespace PersikSharp
         }
 
 
-        public void RegisterNextstepCallback(int chatId, EventHandler<MessageArgs> c)
+        public void RegisterNextstepCallback(long chatId, EventHandler<MessageArgs> c)
         {
             nextstepCallbacks.Add(chatId, c);
         }
@@ -128,8 +128,8 @@ namespace PersikSharp
 
             if (nextstepCallbacks.ContainsKey(message.Chat.Id))
             {
-                var event_method_temp = nextstepCallbacks[messag.Chat.Id];
-                nextstepCallbacks.Remove(messag.Chat.Id);
+                var event_method_temp = nextstepCallbacks[message.Chat.Id];
+                nextstepCallbacks.Remove(message.Chat.Id);
                 event_method_temp?.Invoke(this, new MessageArgs(message));
             }
 
