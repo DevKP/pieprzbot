@@ -97,24 +97,24 @@ namespace PersikSharp
 
         public void RegisterNextstepCallback(Message message, EventHandler<MessageArgs> callback)
         {
-			var isWaitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
-				&& unit.chatId == message.Chat.Id).Any();
+            var isWaitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
+                && unit.chatId == message.Chat.Id).Any();
             if (!isWaitingMessages)
             {
-				var cbUnit = new BotCallBackUnit(message, callback);
-				nextstepCallbacks.Add(cbUnit);
-			}
+                var cbUnit = new BotCallBackUnit(message, callback);
+                nextstepCallbacks.Add(cbUnit);
+            }
         }
 		
 		public void RemoveNextstepCallback(Message message)
         {
-			var waitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
-				&& unit.chatId == message.Chat.Id);
+            var waitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
+                && unit.chatId == message.Chat.Id);
             if (waitingMessages.Any())
             {
-				var waitingMessage = waitingMessages.First();
-				nextstepCallbacks.Remove(waitingMessage);
-			}
+                var waitingMessage = waitingMessages.First();
+                nextstepCallbacks.Remove(waitingMessage);
+            }
         }
 
         private void Bot_OnCallbackQuery(object sender, CallbackQueryEventArgs a)
@@ -143,15 +143,15 @@ namespace PersikSharp
         {
             var message = e.Message;
 
-			var waitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
-				&& unit.chatId == message.Chat.Id);
+            var waitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
+                && unit.chatId == message.Chat.Id);
 			
             if (waitingMessages.Any())
             {
-				var waitingMessage = waitingMessages.First();
-				nextstepCallbacks.Remove(waitingMessage);
-				
-				waitingMessage.InvokeCallback(message);
+                var waitingMessage = waitingMessages.First();
+                nextstepCallbacks.Remove(waitingMessage);
+
+                waitingMessage.InvokeCallback(message);
             }
 
             string message_type_str = $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
