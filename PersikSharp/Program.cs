@@ -1125,7 +1125,7 @@ namespace PersikSharp
                          text: strManager.GetRandom("STK"),
                          parseMode: ParseMode.Markdown,
                          replyMarkup: new ForceReplyMarkup()).Result;
-                botcallbacks.RegisterNextstepCallback(e.Message.Chat.Id, onStickerAnswer);
+                botcallbacks.RegisterNextstepCallback(e.Message, onStickerAnswer);
             }
             catch (Exception ex)
             {
@@ -1147,6 +1147,8 @@ namespace PersikSharp
                     _ = Bot.SendStickerAsync(
                         chatId: offtopia_id,
                         sticker: e.Message.Sticker.FileId);
+                        
+                        botcallbacks.RemoveNextstepCallback(e.Message);
                 }
                 else
                 {
@@ -1165,7 +1167,7 @@ namespace PersikSharp
                             text: strManager.GetRandom("STK_WRONG"),
                             parseMode: ParseMode.Markdown,
                             replyMarkup: new ForceReplyMarkup()).Result;
-                    botcallbacks.RegisterNextstepCallback(e.Message.Chat.Id, onStickerAnswer);
+                    botcallbacks.RegisterNextstepCallback(e.Message, onStickerAnswer);
                 }
 
             }
