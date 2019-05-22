@@ -217,6 +217,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BotCallBacks.cs" />
+    <Compile Include="BotCallBackUnit.cs" />
     <Compile Include="CommandLine.cs" />
     <Compile Include="Utils\Logger.cs" />
     <Compile Include="Persik.cs" />
