@@ -106,7 +106,7 @@ namespace PersikSharp
             }
         }
 		
-		public void RemoveNextstepCallback(Message message)
+        public void RemoveNextstepCallback(Message message)
         {
             var waitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
                 && unit.chatId == message.Chat.Id);
