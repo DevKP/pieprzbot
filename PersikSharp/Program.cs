@@ -24,7 +24,7 @@ namespace PersikSharp
     class Program
     {
         public static TelegramBotClient Bot;
-        private static Perchik persik;
+        private static Perchik perchik;
         private static ClarifaiClient clarifai;
         private static BotCallBacks botcallbacks;
         private static StringManager strManager = new StringManager();
@@ -54,7 +54,7 @@ namespace PersikSharp
 
             try
             {
-                persik = new Perchik();
+                perchik = new Perchik();
                 Bot = new TelegramBotClient(tokens.GetSingle("TELEGRAM"));
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
                 if (clarifai.HttpClient.ApiKey == "")
@@ -96,16 +96,17 @@ namespace PersikSharp
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
 
-            persik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
-            persik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
-            persik.AddCommandRegEx(@"\bкик\b", onKickCommand);
-            persik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);                             //один ИЛИ два
-            persik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
-            persik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
-            persik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
-            persik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
-            persik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            persik.onNoneMatched += onNoneMatchedCommand;
+            perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
+            perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
+            perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
+            perchik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);                             //один ИЛИ два
+            perchik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
+            perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
+            perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
+            perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
+            perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
+            perchik.AddCommandRegEx(@"\bзагадай\b", onGuessNumberCommand);                                    //рулетка
+            perchik.onNoneMatched += onNoneCommandMatched;
 
             //Update Message to group and me
             if (args.Length > 0)
@@ -276,7 +277,7 @@ namespace PersikSharp
                 return;
             }
 
-            persik.ParseMessage(message);
+            perchik.ParseMessage(message);
         }
 
         private static void onWeather(object sender, PerchikEventArgs a)//Переделать под другой АПИ
@@ -366,7 +367,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onNoneMatchedCommand(object sender, PerchikEventArgs e)
+        private static void onNoneCommandMatched(object sender, PerchikEventArgs e)
         {
             Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
             _ = Bot.SendTextMessageAsync(
@@ -709,6 +710,75 @@ namespace PersikSharp
                     Bot.DeleteMessageAsync(
                         chatId: message.Chat.Id,
                         messageId: message.MessageId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
+        }
+
+        private static void onGuessNumberCommand(object sender, PerchikEventArgs e)
+        {
+            Message message = e.Message;
+
+            try
+            {
+                int number = new Random(DateTime.Now.Second).Next(1, 100);
+                Bot.SendTextMessageAsync(
+                         chatId: message.Chat.Id,
+                         text: "Угадай число от 1 до 100",
+                         parseMode: ParseMode.Markdown,
+                         replyMarkup: new ForceReplyMarkup());
+                botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message, number);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
+        }
+
+        private static void onGuessNumberNextstep(object sender, NextstepArgs e)
+        {
+            Message message = e.Message;
+
+            try
+            {
+                var match = Regex.Match(message.Text, @"\d{1,2}");
+                if (match.Success)
+                {
+                    int number = int.Parse(match.Groups[0].Value);
+                    if(number == (e.Arg as int?))
+                    {
+                        Bot.SendTextMessageAsync(
+                         chatId: message.Chat.Id,
+                         text: "Угадал",
+                         parseMode: ParseMode.Markdown,
+                         replyToMessageId: message.MessageId);
+                    }
+                    else
+                    {
+                        if (number < (e.Arg as int?))
+                        {
+                            Bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: "Неа! Больше.",
+                            parseMode: ParseMode.Markdown,
+                            replyMarkup: new ForceReplyMarkup(),
+                            replyToMessageId: message.MessageId);
+                            botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message, e.Arg);
+                        }
+                        else
+                        {
+                            Bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: "Неа! Меньше.",
+                            parseMode: ParseMode.Markdown,
+                            replyMarkup: new ForceReplyMarkup(),
+                            replyToMessageId: message.MessageId);
+                            botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message, e.Arg);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -1125,7 +1195,7 @@ namespace PersikSharp
                          text: strManager.GetRandom("STK"),
                          parseMode: ParseMode.Markdown,
                          replyMarkup: new ForceReplyMarkup()).Result;
-                botcallbacks.RegisterNextstepCallback(e.Message, onStickerAnswer);
+                botcallbacks.RegisterNextstep(onStickerAnswer, e.Message);
             }
             catch (Exception ex)
             {
@@ -1133,7 +1203,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onStickerAnswer(object sender, MessageArgs e)
+        private static void onStickerAnswer(object sender, NextstepArgs e)
         {
             try
             {
@@ -1167,7 +1237,7 @@ namespace PersikSharp
                             text: strManager.GetRandom("STK_WRONG"),
                             parseMode: ParseMode.Markdown,
                             replyMarkup: new ForceReplyMarkup()).Result;
-                    botcallbacks.RegisterNextstepCallback(e.Message, onStickerAnswer);
+                    botcallbacks.RegisterNextstep(onStickerAnswer, e.Message);
                 }
 
             }

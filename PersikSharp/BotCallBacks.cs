@@ -31,6 +31,13 @@ namespace PersikSharp
         }
         public CallbackQuery Callback { get; }
     }
+    public class NextstepArgs : EventArgs
+    {
+        public NextstepArgs(Message m, object arg)
+        { Message = m; Arg = arg; }
+        public Message Message { get; }
+        public object Arg { get; }
+    }
 
     class BotCallBacks
     {
@@ -95,20 +102,20 @@ namespace PersikSharp
             queryCallbacks.Add(data, c);
         }
 
-        public void RegisterNextstepCallback(Message message, EventHandler<MessageArgs> callback)
+        public void RegisterNextstep(EventHandler<NextstepArgs> callback, Message message, object arg = null)
         {
-            var isWaitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
+            var isWaitingMessages = nextstepCallbacks.Where(unit => unit.userId == message.From.Id
                 && unit.chatId == message.Chat.Id).Any();
             if (!isWaitingMessages)
             {
-                var cbUnit = new BotCallBackUnit(message, callback);
+                var cbUnit = new BotCallBackUnit(callback, message, arg);
                 nextstepCallbacks.Add(cbUnit);
             }
         }
 		
         public void RemoveNextstepCallback(Message message)
         {
-            var waitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
+            var waitingMessages = nextstepCallbacks.Where(unit => unit.userId == message.From.Id
                 && unit.chatId == message.Chat.Id);
             if (waitingMessages.Any())
             {

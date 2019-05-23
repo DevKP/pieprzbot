@@ -9,18 +9,20 @@ namespace PersikSharp
     {
         public int userId;
         public long chatId;
-        public event EventHandler<MessageArgs> callback;
+        public object arg;
+        public event EventHandler<NextstepArgs> callback;
 
-        public BotCallBackUnit(Message message, EventHandler<MessageArgs> callback)
+        public BotCallBackUnit(EventHandler<NextstepArgs> callback, Message message, object arg)
         {
-            this.userId   = message.From.Id;
-            this.chatId   = message.Chat.Id;
             this.callback = callback;
+            this.userId = message.From.Id;
+            this.chatId = message.Chat.Id;
+            this.arg = arg;
         }
 
         public void InvokeCallback(Message message)
         {
-            callback?.Invoke(this, new MessageArgs(message));
+            callback?.Invoke(this, new NextstepArgs(message, arg));
         }
     }
 }
