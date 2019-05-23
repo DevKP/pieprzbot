@@ -747,7 +747,7 @@ namespace PersikSharp
 
             try
             {
-                var match = Regex.Match(message.Text, @"\d{1,2}");
+                var match = Regex.Match(message.Text, @"\d{1,3}");
                 if (match.Success)
                 {
                     int guess = int.Parse(match.Groups[0].Value);
