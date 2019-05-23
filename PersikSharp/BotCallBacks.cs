@@ -31,6 +31,13 @@ namespace PersikSharp
         }
         public CallbackQuery Callback { get; }
     }
+    public class NextstepArgs : EventArgs
+    {
+        public NextstepArgs(Message m, object arg)
+        { Message = m; Arg = arg; }
+        public Message Message { get; }
+        public object Arg { get; }
+    }
 
     class BotCallBacks
     {
@@ -95,20 +102,31 @@ namespace PersikSharp
             queryCallbacks.Add(data, c);
         }
 
-        public void RegisterNextstepCallback(Message message, EventHandler<MessageArgs> callback)
+        public void RegisterNextstep(EventHandler<NextstepArgs> callback, Message message, bool fromAnyUser = false, object arg = null)
         {
-            var isWaitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
-                && unit.chatId == message.Chat.Id).Any();
+            var isWaitingMessages = nextstepCallbacks.Where(unit => 
+            {
+                if (unit.chatId == message.Chat.Id)
+                {
+                    if (fromAnyUser)
+                        return true;
+
+                    if (unit.userId == message.From.Id)
+                        return true;
+                }
+                return false;
+            }).Any();
+
             if (!isWaitingMessages)
             {
-                var cbUnit = new BotCallBackUnit(message, callback);
+                var cbUnit = new BotCallBackUnit(callback, message, fromAnyUser, arg);
                 nextstepCallbacks.Add(cbUnit);
             }
         }
 		
         public void RemoveNextstepCallback(Message message)
         {
-            var waitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
+            var waitingMessages = nextstepCallbacks.Where(unit => unit.userId == message.From.Id
                 && unit.chatId == message.Chat.Id);
             if (waitingMessages.Any())
             {
@@ -143,9 +161,19 @@ namespace PersikSharp
         {
             var message = e.Message;
 
-            var waitingMessages = nextstepCallbacks.Where(unit=>unit.userId == message.From.Id
-                && unit.chatId == message.Chat.Id);
-			
+            var waitingMessages = nextstepCallbacks.Where(unit =>
+            {
+                if (unit.chatId == message.Chat.Id)
+                {
+                    if (unit.fromAnyUser)
+                        return true;
+
+                    if (unit.userId == message.From.Id)
+                        return true;
+                }
+                return false;
+            });
+
             if (waitingMessages.Any())
             {
                 var waitingMessage = waitingMessages.First();
@@ -197,7 +225,7 @@ namespace PersikSharp
             Logger.Log(LogType.Info, $"{message_type_str}: {message_str}");
         }
 
-        private void onTextCommandsParsing(object sender, MessageArgs message_args)
+        private void onTextCommandsParsing(object sender, MessageArgs message_args)//TODO: Redo :D
         {
             var message = message_args.Message;
             var match = Regex.Match(message.Text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);

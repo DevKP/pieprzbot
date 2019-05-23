@@ -121,7 +121,7 @@ namespace PersikSharp
         /// <returns>
         /// Formated text string.
         /// </returns>
-        public static string GetUserLink(User user)
+        public static string MakeUserLink(User user)
         {
             try
             {
