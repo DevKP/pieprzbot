@@ -110,6 +110,7 @@ namespace PersikSharp
                 {
                     if (fromAnyUser)
                         return true;
+
                     if (unit.userId == message.From.Id)
                         return true;
                 }
@@ -166,6 +167,7 @@ namespace PersikSharp
                 {
                     if (unit.fromAnyUser)
                         return true;
+
                     if (unit.userId == message.From.Id)
                         return true;
                 }
