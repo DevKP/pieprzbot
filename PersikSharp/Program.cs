@@ -724,13 +724,13 @@ namespace PersikSharp
 
             try
             {
-                int number = new Random(DateTime.Now.Second).Next(1, 100);
+                int number = new Random(DateTime.Now.Second).Next(1, 500);
                 Bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
-                         text: "Угадай число от 1 до 100",
+                         text: strManager.GetRandom("GUESS_MSG"),
                          parseMode: ParseMode.Markdown,
                          replyMarkup: new ForceReplyMarkup());
-                botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message, number);
+                botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message, fromAnyUser: true, arg: number);
             }
             catch (Exception ex)
             {
@@ -742,41 +742,46 @@ namespace PersikSharp
         {
             Message message = e.Message;
 
+            if (message.Type != MessageType.Text)
+                return;
+
             try
             {
                 var match = Regex.Match(message.Text, @"\d{1,2}");
                 if (match.Success)
                 {
-                    int number = int.Parse(match.Groups[0].Value);
-                    if(number == (e.Arg as int?))
+                    int guess = int.Parse(match.Groups[0].Value);
+                    if(guess == (e.Arg as int?))
                     {
                         Bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
-                         text: "Угадал",
+                         text: string.Format(strManager.GetRandom("GUESS_WIN"), Perchik.GetUserLink(message.From)),
                          parseMode: ParseMode.Markdown,
                          replyToMessageId: message.MessageId);
                     }
                     else
                     {
-                        if (number < (e.Arg as int?))
+                        if (guess < (e.Arg as int?))
                         {
                             Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: "Неа! Больше.",
-                            parseMode: ParseMode.Markdown,
-                            replyMarkup: new ForceReplyMarkup(),
-                            replyToMessageId: message.MessageId);
-                            botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message, e.Arg);
+                                chatId: message.Chat.Id,
+                                text: string.Format(strManager.GetRandom("GUESS_HIGHER"), Perchik.GetUserLink(message.From)),
+                                parseMode: ParseMode.Markdown,
+                                replyMarkup: new ForceReplyMarkup(),
+                                replyToMessageId: message.MessageId);
+                            botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message,
+                                fromAnyUser: true, arg: e.Arg);
                         }
                         else
                         {
                             Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: "Неа! Меньше.",
-                            parseMode: ParseMode.Markdown,
-                            replyMarkup: new ForceReplyMarkup(),
-                            replyToMessageId: message.MessageId);
-                            botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message, e.Arg);
+                                chatId: message.Chat.Id,
+                                text: string.Format(strManager.GetRandom("GUESS_LOWER"), Perchik.GetUserLink(message.From)),
+                                parseMode: ParseMode.Markdown,
+                                replyMarkup: new ForceReplyMarkup(),
+                                replyToMessageId: message.MessageId);
+                            botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message,
+                                fromAnyUser: true, arg: e.Arg);
                         }
                     }
                 }
