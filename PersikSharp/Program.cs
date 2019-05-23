@@ -743,7 +743,8 @@ namespace PersikSharp
             Message message = e.Message;
 
             if (message.Type != MessageType.Text)
-                return;
+                botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message,
+                                fromAnyUser: true, arg: e.Arg);
 
             try
             {
