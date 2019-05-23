@@ -784,6 +784,11 @@ namespace PersikSharp
                         }
                     }
                 }
+                else
+                {
+                    botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message,
+                                fromAnyUser: true, arg: e.Arg);
+                }
             }
             catch (Exception ex)
             {
