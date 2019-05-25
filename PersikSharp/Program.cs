@@ -820,6 +820,7 @@ namespace PersikSharp
 
         private static async void NSFWDetect(Message message)//Упростить
         {
+            const bool ENABLE_FILTER = false;
 
             try
             {
@@ -832,43 +833,32 @@ namespace PersikSharp
                 var result = await request.ExecuteAsync();
                 var nsfw_val = result.Get().Data.Find(x => x.Name == "nsfw").Value;
 
-                if ((float)nsfw_val > 0.7)//Set to 0.8 to fix
+                if ((float)nsfw_val > 0.7)
                 {
                     SaveFile(file.FileId, "nsfw");
 
-                    //await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                    if (ENABLE_FILTER)
+                    {
+                        await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
 
+                        if (message.Chat.Type != ChatType.Private)
+                        {
+                            var until = DateTime.Now.AddSeconds(120);
+                            await Bot.RestrictChatMemberAsync(
+                                chatId: message.Chat.Id,
+                                userId: message.From.Id,
+                                untilDate: until,
+                                canSendMessages: false,
+                                canSendMediaMessages: false,
+                                canSendOtherMessages: false,
+                                canAddWebPagePreviews: false);
 
-                    //bool exists = System.IO.Directory.Exists("./nsfw/");
-                    //if (!exists)
-                    //    System.IO.Directory.CreateDirectory("./nsfw/");
-
-                    //using (FileStream file_stream = new FileStream($"./nsfw/{file.FileId}.jpg",
-                    //    FileMode.Create, System.IO.FileAccess.Write))
-                    //{
-                    //    photo.WriteTo(file_stream);
-                    //    file_stream.Flush();
-                    //    file_stream.Close();
-                    //}
-
-
-                    //if (message.Chat.Type != ChatType.Private)
-                    //{
-                    //    var until = DateTime.Now.AddSeconds(120);
-                    //    await Bot.RestrictChatMemberAsync(
-                    //        chatId: message.Chat.Id,
-                    //        userId: message.From.Id,
-                    //        untilDate: until,
-                    //        canSendMessages: false,
-                    //        canSendMediaMessages: false,
-                    //        canSendOtherMessages: false,
-                    //        canAddWebPagePreviews: false);
-
-                    //    await Bot.SendTextMessageAsync(
-                    //      chatId: message.Chat.Id,
-                    //      text: String.Format(strManager.GetSingle("NSFW_TRIGGER"), message.From.FirstName, 2, 1 - nsfw_val),
-                    //      parseMode: ParseMode.Markdown);
-                    //}
+                            await Bot.SendTextMessageAsync(
+                              chatId: message.Chat.Id,
+                              text: String.Format(strManager.GetSingle("NSFW_TRIGGER"), message.From.FirstName, 2, 1 - nsfw_val),
+                              parseMode: ParseMode.Markdown);
+                        }
+                    }
                 }
                 else
                 {
