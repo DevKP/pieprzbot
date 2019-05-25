@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -132,6 +134,52 @@ namespace PersikSharp
                 return string.Format("[{0}](tg://user?id={1})", user.Id, user.Id);
             }
 
+        }
+
+
+        public static async void SaveFile(string fileId, string folder, string fileName = null)
+        {
+            try
+            {
+                var file = Program.Bot.GetFileAsync(fileId).Result;
+                MemoryStream docu = new MemoryStream();
+
+                const int attempts = 5;
+                for (int a = 0; a < attempts; a++)
+                {
+                    try
+                    {
+                        await Program.Bot.DownloadFileAsync(file.FilePath, docu);
+                        break;
+                    }
+                    catch (HttpRequestException)
+                    {
+                        Logger.Log(LogType.Info, $"<Downloader>: Bad Request, attempt #{a}");
+                        continue;
+                    }
+                }
+
+
+                string file_ext = file.FilePath.Split('.')[1];
+                if (fileName == null)
+                    fileName = $"{fileId}.{file_ext}";
+
+                bool exists = System.IO.Directory.Exists($"./{folder}/");
+                if (!exists)
+                    System.IO.Directory.CreateDirectory($"./{folder}/");
+                using (FileStream file_stream = new FileStream($"./{folder}/{fileName}",
+                    FileMode.Create, System.IO.FileAccess.Write))
+                {
+                    docu.WriteTo(file_stream);
+                    file_stream.Flush();
+                    file_stream.Close();
+                }
+                Logger.Log(LogType.Info, $"<Downloader>: Filename: {fileName} saved.");
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+            }
         }
     }
 }

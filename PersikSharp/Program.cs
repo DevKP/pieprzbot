@@ -211,51 +211,6 @@ namespace PersikSharp
                 Logger.Log(LogType.Info, $"{str}  <- Syntax Error!");
         }
 
-        private static async void SaveFile(string fileId, string folder, string fileName = null)
-        {
-            try
-            {
-                var file = Bot.GetFileAsync(fileId).Result;
-                MemoryStream docu = new MemoryStream();
-
-                const int attempts = 5;
-                for (int a = 0; a < attempts; a++)
-                {
-                    try
-                    {
-                        await Bot.DownloadFileAsync(file.FilePath, docu);
-                        break;
-                    }
-                    catch (HttpRequestException)
-                    {
-                        Logger.Log(LogType.Info, $"<Downloader>: Bad Request, attempt #{a}");
-                        continue;
-                    }
-                }
-
-
-                string file_ext = file.FilePath.Split('.')[1];
-                if (fileName == null)
-                    fileName = $"{fileId}.{file_ext}";
-
-                bool exists = System.IO.Directory.Exists($"./{folder}/");
-                if (!exists)
-                    System.IO.Directory.CreateDirectory($"./{folder}/");
-                using (FileStream file_stream = new FileStream($"./{folder}/{fileName}",
-                    FileMode.Create, System.IO.FileAccess.Write))
-                {
-                    docu.WriteTo(file_stream);
-                    file_stream.Flush();
-                    file_stream.Close();
-                }
-                Logger.Log(LogType.Info, $"<Downloader>: Filename: {fileName} saved.");
-            }
-            catch (Exception e)
-            {
-                Logger.Log(LogType.Error, $"Exception: {e.Message}");
-            }
-        }
-
         //=====Persik Commands======
         private static async void onPersikCommand(Message message)
         {
@@ -835,11 +790,11 @@ namespace PersikSharp
 
                 if ((float)nsfw_val > 0.7)
                 {
-                    SaveFile(file.FileId, "nsfw");
+                    Perchik.SaveFile(file.FileId, "nsfw");
 
                     if (ENABLE_FILTER)
                     {
-                        await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                        _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
 
                         if (message.Chat.Type != ChatType.Private)
                         {
@@ -862,7 +817,7 @@ namespace PersikSharp
                 }
                 else
                 {
-                    SaveFile(file.FileId, "photos");
+                    Perchik.SaveFile(file.FileId, "photos");
                 }
             }
             catch (Exception exp)
@@ -879,7 +834,7 @@ namespace PersikSharp
 
             try
             {
-                SaveFile(message.Document.FileId, "documents", message.Document.FileName);
+                Perchik.SaveFile(message.Document.FileId, "documents", message.Document.FileName);
                 //Logger.Log(LogType.Info, $"<Document>: Filename: {message.Document.FileName} downloaded.");
             }
             catch (Exception exp)
