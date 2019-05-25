@@ -752,7 +752,7 @@ namespace PersikSharp
                 if (match.Success)
                 {
                     int guess = int.Parse(match.Groups[0].Value);
-                    if(guess == (e.Arg as int?))
+                    if (guess == (e.Arg as int?))
                     {
                         Bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
@@ -804,7 +804,7 @@ namespace PersikSharp
 
 
             ClarifaiFileImage file_image = new ClarifaiFileImage(photo.GetBuffer());
-            PredictRequest<Concept> request = 
+            PredictRequest<Concept> request =
                 clarifai.PublicModels.GeneralModel.Predict(file_image, language: "ru");
             var result = await request.ExecuteAsync();
 
@@ -832,41 +832,43 @@ namespace PersikSharp
                 var result = await request.ExecuteAsync();
                 var nsfw_val = result.Get().Data.Find(x => x.Name == "nsfw").Value;
 
-                if ((float)nsfw_val > 1.0)//Set to 0.8 to fix
+                if ((float)nsfw_val > 0.7)//Set to 0.8 to fix
                 {
-                    await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                    SaveFile(file.FileId, "nsfw");
+
+                    //await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
 
 
-                    bool exists = System.IO.Directory.Exists("./nsfw/");
-                    if (!exists)
-                        System.IO.Directory.CreateDirectory("./nsfw/");
+                    //bool exists = System.IO.Directory.Exists("./nsfw/");
+                    //if (!exists)
+                    //    System.IO.Directory.CreateDirectory("./nsfw/");
 
-                    using (FileStream file_stream = new FileStream($"./nsfw/{file.FileId}.jpg",
-                        FileMode.Create, System.IO.FileAccess.Write))
-                    {
-                        photo.WriteTo(file_stream);
-                        file_stream.Flush();
-                        file_stream.Close();
-                    }
+                    //using (FileStream file_stream = new FileStream($"./nsfw/{file.FileId}.jpg",
+                    //    FileMode.Create, System.IO.FileAccess.Write))
+                    //{
+                    //    photo.WriteTo(file_stream);
+                    //    file_stream.Flush();
+                    //    file_stream.Close();
+                    //}
 
 
-                    if (message.Chat.Type != ChatType.Private)
-                    {
-                        var until = DateTime.Now.AddSeconds(120);
-                        await Bot.RestrictChatMemberAsync(
-                            chatId: message.Chat.Id,
-                            userId: message.From.Id,
-                            untilDate: until,
-                            canSendMessages: false,
-                            canSendMediaMessages: false,
-                            canSendOtherMessages: false,
-                            canAddWebPagePreviews: false);
+                    //if (message.Chat.Type != ChatType.Private)
+                    //{
+                    //    var until = DateTime.Now.AddSeconds(120);
+                    //    await Bot.RestrictChatMemberAsync(
+                    //        chatId: message.Chat.Id,
+                    //        userId: message.From.Id,
+                    //        untilDate: until,
+                    //        canSendMessages: false,
+                    //        canSendMediaMessages: false,
+                    //        canSendOtherMessages: false,
+                    //        canAddWebPagePreviews: false);
 
-                        await Bot.SendTextMessageAsync(
-                          chatId: message.Chat.Id,
-                          text: String.Format(strManager.GetSingle("NSFW_TRIGGER"), message.From.FirstName, 2, 1 - nsfw_val),
-                          parseMode: ParseMode.Markdown);
-                    }
+                    //    await Bot.SendTextMessageAsync(
+                    //      chatId: message.Chat.Id,
+                    //      text: String.Format(strManager.GetSingle("NSFW_TRIGGER"), message.From.FirstName, 2, 1 - nsfw_val),
+                    //      parseMode: ParseMode.Markdown);
+                    //}
                 }
                 else
                 {
@@ -1226,8 +1228,8 @@ namespace PersikSharp
                     _ = Bot.SendStickerAsync(
                         chatId: offtopia_id,
                         sticker: e.Message.Sticker.FileId);
-                        
-                        botcallbacks.RemoveNextstepCallback(e.Message);
+
+                    botcallbacks.RemoveNextstepCallback(e.Message);
                 }
                 else
                 {
