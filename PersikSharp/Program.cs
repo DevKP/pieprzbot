@@ -790,7 +790,7 @@ namespace PersikSharp
 
                 if ((float)nsfw_val > 0.7)
                 {
-                    Perchik.SaveFile(file.FileId, "nsfw");
+                    await Perchik.SaveFileAsync(file.FileId, "nsfw");
 
                     if (ENABLE_FILTER)
                     {
@@ -817,7 +817,7 @@ namespace PersikSharp
                 }
                 else
                 {
-                    Perchik.SaveFile(file.FileId, "photos");
+                    await Perchik.SaveFileAsync(file.FileId, "photos");
                 }
             }
             catch (Exception exp)
@@ -828,14 +828,13 @@ namespace PersikSharp
 
         //======Bot Updates=========
 
-        private static void onDocumentMessage(object sender, MessageArgs e)
+        private static async void onDocumentMessage(object sender, MessageArgs e)
         {
             Message message = e.Message;
 
             try
             {
-                Perchik.SaveFile(message.Document.FileId, "documents", message.Document.FileName);
-                //Logger.Log(LogType.Info, $"<Document>: Filename: {message.Document.FileName} downloaded.");
+                await Perchik.SaveFileAsync(message.Document.FileId, "documents", message.Document.FileName);
             }
             catch (Exception exp)
             {
