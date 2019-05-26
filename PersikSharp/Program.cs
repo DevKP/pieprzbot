@@ -30,8 +30,8 @@ namespace PersikSharp
         private static StringManager strManager = new StringManager();
         private static StringManager tokens = new StringManager();
 
-        private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
-        private static CancellationToken cancel_token = cancelTokenSource.Token;
+        private static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
+        private static CancellationToken exit_token = exitTokenSource.Token;
 
         private const long offtopia_id = -1001125742098;
 
@@ -45,6 +45,7 @@ namespace PersikSharp
                     process.Kill();
                 }
             }
+
 
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
@@ -112,7 +113,9 @@ namespace PersikSharp
             if (args.Length > 0)
                 if (args.First().Equals("/u"))
                 {
-                    Bot.SendTextMessageAsync("204678400",
+                    const int via_tcp_Id = 204678400;
+
+                    Bot.SendTextMessageAsync(via_tcp_Id,
                         $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
                         ParseMode.Markdown);
                     Bot.SendTextMessageAsync(offtopia_id,
@@ -136,7 +139,7 @@ namespace PersikSharp
             }
 
 
-            while (!cancel_token.IsCancellationRequested)
+            while (!exit_token.IsCancellationRequested)
                 Thread.Sleep(1000);
 
             Bot.StopReceiving();
@@ -206,7 +209,7 @@ namespace PersikSharp
                 return;
             }
             if (str.Contains("exit"))
-                cancelTokenSource.Cancel();
+                exitTokenSource.Cancel();
             else
                 Logger.Log(LogType.Info, $"{str}  <- Syntax Error!");
         }
@@ -361,7 +364,6 @@ namespace PersikSharp
                         case 'м':
                             seconds *= 60;
                             word = "мин.";
-                            //SMOKE WEED EVERYDAY
                             break;
                         case 'ч':
                             word = "ч.";
@@ -414,6 +416,8 @@ namespace PersikSharp
                 {
                     if (seconds >= 40)
                     {
+
+                        //SMOKE WEED EVERYDAY
                         _ = Bot.RestrictChatMemberAsync(
                             chatId: message.Chat.Id,
                             userId: message.From.Id,
