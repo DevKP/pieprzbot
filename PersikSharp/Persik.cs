@@ -17,7 +17,7 @@ namespace PersikSharp
         public Match Match { get; }
         public Message Message { get; }
     }
-// comment
+    // comment
     class Perchik
     {
         /// <summary>
@@ -54,7 +54,7 @@ namespace PersikSharp
                 var command_match = Regex.Match(text, command.Key, RegexOptions.IgnoreCase);
                 if (command_match.Success)
                 {
-                    AtLeastOneMatch = true; 
+                    AtLeastOneMatch = true;
 
                     PerchikEventArgs args = new PerchikEventArgs(msg, command_match);
                     command.Value?.Invoke(this, args);
@@ -136,8 +136,12 @@ namespace PersikSharp
 
         }
 
+        public static Task SaveFileAsync(string fileId, string folder, string fileName = null)
+        {
+            return Task.Run(() => SaveFile(fileId, folder, fileName));
+        }
 
-        public static async void SaveFile(string fileId, string folder, string fileName = null)
+        private static async void SaveFile(string fileId, string folder, string fileName = null)
         {
             try
             {
