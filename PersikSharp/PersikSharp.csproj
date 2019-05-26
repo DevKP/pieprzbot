@@ -219,6 +219,7 @@
     <Compile Include="BotCallBacks.cs" />
     <Compile Include="BotCallBackUnit.cs" />
     <Compile Include="CommandLine.cs" />
+    <Compile Include="Utils\ConsoleWindow.cs" />
     <Compile Include="Utils\Logger.cs" />
     <Compile Include="Persik.cs" />
     <Compile Include="Program.cs" />
@@ -228,7 +229,6 @@
   <ItemGroup>
     <None Include=".gitlab-ci.yml" />
     <None Include="app.config" />
-    <None Include="ClassDiagram1.cd" />
     <None Include="Configs\dict.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
