@@ -777,7 +777,7 @@ namespace PersikSharp
                     string msg = m.Text.Substring(1, m.Text.Length - 1);
                     _ = Bot.SendTextMessageAsync(offtopia_id, $"*{msg}*", ParseMode.Markdown);
 
-                    Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id}) (ME) {msg}");
+                    Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id})(DM): {msg}");
                 }
             }
 
