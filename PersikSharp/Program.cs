@@ -105,7 +105,6 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            perchik.AddCommandRegEx(@"\bзагадай\b", onGuessNumberCommand);                                    //рулетка
             perchik.onNoneMatched += onNoneCommandMatched;
 
             //Update Message to group and me
@@ -676,84 +675,6 @@ namespace PersikSharp
             }
         }
 
-        private static void onGuessNumberCommand(object sender, PerchikEventArgs e)
-        {
-            Message message = e.Message;
-
-            try
-            {
-                int number = new Random(DateTime.Now.Second).Next(1, 500);
-                Bot.SendTextMessageAsync(
-                         chatId: message.Chat.Id,
-                         text: strManager.GetRandom("GUESS_MSG"),
-                         parseMode: ParseMode.Markdown,
-                         replyMarkup: new ForceReplyMarkup());
-                botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message, fromAnyUser: true, arg: number);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
-            }
-        }
-
-        private static void onGuessNumberNextstep(object sender, NextstepArgs e)
-        {
-            Message message = e.Message;
-
-            if (message.Type != MessageType.Text)
-                botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message,
-                                fromAnyUser: true, arg: e.Arg);
-
-            try
-            {
-                var match = Regex.Match(message.Text, @"\d{1,3}");
-                if (match.Success)
-                {
-                    int guess = int.Parse(match.Groups[0].Value);
-                    if (guess == (e.Arg as int?))
-                    {
-                        Bot.SendTextMessageAsync(
-                         chatId: message.Chat.Id,
-                         text: string.Format(strManager.GetRandom("GUESS_WIN"), Perchik.MakeUserLink(message.From)),
-                         parseMode: ParseMode.Markdown,
-                         replyToMessageId: message.MessageId);
-                    }
-                    else
-                    {
-                        if (guess < (e.Arg as int?))
-                        {
-                            Bot.SendTextMessageAsync(
-                                chatId: message.Chat.Id,
-                                text: string.Format(strManager.GetRandom("GUESS_HIGHER"), Perchik.MakeUserLink(message.From)),
-                                parseMode: ParseMode.Markdown,
-                                replyToMessageId: message.MessageId);
-                            botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message,
-                                fromAnyUser: true, arg: e.Arg);
-                        }
-                        else
-                        {
-                            Bot.SendTextMessageAsync(
-                                chatId: message.Chat.Id,
-                                text: string.Format(strManager.GetRandom("GUESS_LOWER"), Perchik.MakeUserLink(message.From)),
-                                parseMode: ParseMode.Markdown,
-                                replyToMessageId: message.MessageId);
-                            botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message,
-                                fromAnyUser: true, arg: e.Arg);
-                        }
-                    }
-                }
-                else
-                {
-                    botcallbacks.RegisterNextstep(onGuessNumberNextstep, e.Message,
-                                fromAnyUser: true, arg: e.Arg);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
-            }
-        }
-
         private static async Task<List<string>> PredictImage(PhotoSize ps)
         {
             var file = await Bot.GetFileAsync(ps.FileId);
@@ -858,7 +779,7 @@ namespace PersikSharp
                     string msg = m.Text.Substring(1, m.Text.Length - 1);
                     _ = Bot.SendTextMessageAsync(offtopia_id, $"*{msg}*", ParseMode.Markdown);
 
-                    Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id}) (ME) {msg}");
+                    Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id})(DM): {msg}");
                 }
             }
 
