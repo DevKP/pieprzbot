@@ -46,7 +46,6 @@ namespace PersikSharp
                 }
             }
 
-
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
 
@@ -138,7 +137,7 @@ namespace PersikSharp
                 Console.ReadKey();
             }
 
-
+            ConsoleWindow.StartTrayAsync();
             while (!exit_token.IsCancellationRequested)
                 Thread.Sleep(1000);
 
