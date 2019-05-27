@@ -36,7 +36,6 @@ namespace PersikSharp
             ContextMenu trayMenu = new ContextMenu();
 
             trayMenu.MenuItems.Add("Hide", Min_Click);
-            trayMenu.MenuItems.Add("Show", Max_Click);
             trayMenu.MenuItems.Add("-");
             trayMenu.MenuItems.Add("Close", Close_Click);
 
@@ -48,10 +47,18 @@ namespace PersikSharp
 
         private static void Min_Click(object sender, EventArgs e)
         {
+            (sender as MenuItem).Text = "Show";
+            (sender as MenuItem).Click -= Min_Click;
+            (sender as MenuItem).Click += Max_Click;
+
             ShowWindow(GetConsoleWindow(), SW_HIDE);
         }
         private static void Max_Click(object sender, EventArgs e)
         {
+            (sender as MenuItem).Text = "Hide";
+            (sender as MenuItem).Click += Min_Click;
+            (sender as MenuItem).Click -= Max_Click;
+
             ShowWindow(GetConsoleWindow(), SW_SHOW);
         }
         private static void Close_Click(object sender, EventArgs e)
