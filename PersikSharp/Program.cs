@@ -396,7 +396,7 @@ namespace PersikSharp
                             canSendMediaMessages: false,
                             canSendOtherMessages: false,
                             canAddWebPagePreviews: false);
-                    ;
+
                     if (seconds >= 40)
                     {
                         _ = Bot.SendTextMessageAsync(
