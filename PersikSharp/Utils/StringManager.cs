@@ -13,7 +13,7 @@ namespace PersikSharp
         private Dictionary<string, List<string>> dict = null;
 
         /// <summary>
-        /// Analogue of method <see cref="GetSingle">.
+        /// Analogue of method <see cref="GetRandom">.
         /// </summary>
         /// <returns>
         /// String from dictionary.
@@ -21,7 +21,7 @@ namespace PersikSharp
         /// <param name="s">Key for the string in the dictionary.</param>
         public string this[string s]
         {
-            get { return GetSingle(s); }
+            get { return GetRandom(s); }
         }
 
         private List<string> get_value(string key)
@@ -127,7 +127,7 @@ namespace PersikSharp
 
             List<string> strings = get_value(key);
             if (strings.Count > 1)
-                return strings[rand.Next(0, strings.Count - 1)];
+                return strings[rand.Next(0, strings.Count)];
             else
                 return strings.First();
         }
