@@ -42,25 +42,33 @@ namespace PersikSharp
         }
         public static void StartTray(bool hidden = false)
         {
-            trayIcon.Text = Console.Title;
-            trayIcon.Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
-            trayIcon.MouseDoubleClick += TrayIcon_MouseDoubleClick;
+            try
+            {
+                trayIcon.Text = Console.Title;
 
-            ContextMenu trayMenu = new ContextMenu();
+                trayIcon.Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
+                trayIcon.MouseDoubleClick += TrayIcon_MouseDoubleClick;
 
-            trayMenu.MenuItems.Add("Show", Min_Click);
-            trayMenu.MenuItems.Add("-");
-            trayMenu.MenuItems.Add("Close", Close_Click);
+                ContextMenu trayMenu = new ContextMenu();
 
-            trayIcon.ContextMenu = trayMenu;
-            trayIcon.Visible = true;
+                trayMenu.MenuItems.Add("Show", Min_Click);
+                trayMenu.MenuItems.Add("-");
+                trayMenu.MenuItems.Add("Close", Close_Click);
 
-            Application.Run();
+                trayIcon.ContextMenu = trayMenu;
+                trayIcon.Visible = true;
+
+                Application.Run();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
         }
 
         private static void TrayIcon_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-            trayIcon.ContextMenu.MenuItems[0].PerformClick();
+            trayIcon.ContextMenu.MenuItems[0].PerformClick(); //First Item
         }
 
         private static void Min_Click(object sender, EventArgs e)
@@ -79,6 +87,7 @@ namespace PersikSharp
         private static void Close_Click(object sender, EventArgs e)
         {
             trayIcon.Visible = false;
+            Application.Exit();
             Environment.Exit(0);
         }
     }
