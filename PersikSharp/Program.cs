@@ -109,18 +109,27 @@ namespace PersikSharp
 
             //Update Message to group and me
             if (args.Length > 0)
-                if (args.First().Equals("/u"))
+            {
+                foreach (var arg in args)
                 {
-                    const int via_tcp_Id = 204678400;
+                    switch (arg)
+                    {
+                        case "/u":
+                            const int via_tcp_Id = 204678400;
 
-                    Bot.SendTextMessageAsync(via_tcp_Id,
-                        $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
-                        ParseMode.Markdown);
-                    Bot.SendTextMessageAsync(offtopia_id,
-                        $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
-                        ParseMode.Markdown);
+                            Bot.SendTextMessageAsync(via_tcp_Id,
+                                $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                                ParseMode.Markdown);
+                            Bot.SendTextMessageAsync(offtopia_id,
+                                $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                                ParseMode.Markdown);
+                            break;
+                        case "/min":
+                            ConsoleWindow.HideConsole();
+                            break;
+                    }
                 }
-
+            }
 
             var me = Bot.GetMeAsync().Result;
             Console.Title = me.FirstName;
