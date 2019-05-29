@@ -37,6 +37,9 @@ namespace PersikSharp
 
         static void Main(string[] args)
         {
+
+            Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
+
             Process current = Process.GetCurrentProcess();
             foreach (Process process in Process.GetProcessesByName(current.ProcessName))
             {
@@ -77,13 +80,13 @@ namespace PersikSharp
 
 
             botcallbacks.onTextMessage += onTextMessage;
-            botcallbacks.onTextMessage += onTextMessageFilter;
+            botcallbacks.onTextMessage += onPerchikReplyTrigger;
             botcallbacks.onPhotoMessage += onPhotoMessage;
             botcallbacks.onStickerMessage += onStickerMessage;
             botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
             botcallbacks.onDocumentMessage += onDocumentMessage;
             botcallbacks.onTextEdited += onTextEdited;
-
+            
 
             botcallbacks.RegisterCommand("start", onStartCommand);
             botcallbacks.RegisterCommand("info", onInfoCommand);
@@ -243,6 +246,17 @@ namespace PersikSharp
             }
 
             perchik.ParseMessage(message);
+        }
+
+        private static void onPerchikReplyTrigger(object sender, MessageArgs e)
+        {
+            if (e.Message.Chat.Type == ChatType.Private)
+                return;
+            if (e.Message.ReplyToMessage == null)
+                return;
+
+            if (e.Message.ReplyToMessage.From.Id == Bot.GetMeAsync().Result.Id)
+                onPersikCommand(e.Message);
         }
 
         private static void onWeather(object sender, PerchikEventArgs a)//Переделать под другой АПИ
@@ -806,18 +820,6 @@ namespace PersikSharp
             onTextMessage(sender, message_args);
         }
 
-        private static void onTextMessageFilter(object sender, MessageArgs e)
-        {
-            if (e.Message.Chat.Type == ChatType.Supergroup)
-            {
-                if (e.Message.Text.Contains("LE9Xo1hHKm6CkkJpGg3Qrg"))
-                {
-                    _ = Bot.DeleteMessageAsync(e.Message.Chat.Id, e.Message.MessageId);
-                    Logger.Log(LogType.Info, $"<TextFilter> Message deleted.");
-                }
-            }
-        }
-
         private static void onPhotoMessage(object sender, MessageArgs message_args)
         {
             Message message = message_args.Message;
@@ -1059,7 +1061,7 @@ namespace PersikSharp
             {
                 _ = Bot.SendTextMessageAsync(
                        chatId: e.Message.Chat.Id,
-                       text: $"*Version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                       text: $"*Version: {Perchik.BotVersion}*",
                        parseMode: ParseMode.Markdown).Result;
             }
             catch (Exception ex)

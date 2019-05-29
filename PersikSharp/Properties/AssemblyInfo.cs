@@ -35,4 +35,7 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: log4net.Config.XmlConfigurator(ConfigFile = "./Configs/log4net.config", Watch = true)]
 [assembly: NeutralResourcesLanguage("ru")]
-
+[assembly: AssemblyVersion(ThisAssembly.Git.SemVer.Major+ "." + ThisAssembly.Git.SemVer.Minor)]
+[assembly: AssemblyInformationalVersion("0.5." +
+  ThisAssembly.Git.Commits + "-" +
+  ThisAssembly.Git.Commit)]

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -20,6 +21,8 @@ namespace PersikSharp
     // comment
     class Perchik
     {
+        public static string BotVersion = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
+
         /// <summary>
         /// Called if none of the regular expressions matches.
         /// </summary>
