@@ -37,6 +37,10 @@ namespace PersikSharp
 
         static void Main(string[] args)
         {
+
+            Logger.Log(LogType.Info, ThisAssembly.Git.Tag);
+            Logger.Log(LogType.Info, ThisAssembly.Git.SemVer.Label);
+
             Process current = Process.GetCurrentProcess();
             foreach (Process process in Process.GetProcessesByName(current.ProcessName))
             {
@@ -77,13 +81,13 @@ namespace PersikSharp
 
 
             botcallbacks.onTextMessage += onTextMessage;
-            botcallbacks.onTextMessage += onTextMessageFilter;
+            botcallbacks.onTextMessage += onPerchikReplyTrigger;
             botcallbacks.onPhotoMessage += onPhotoMessage;
             botcallbacks.onStickerMessage += onStickerMessage;
             botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
             botcallbacks.onDocumentMessage += onDocumentMessage;
             botcallbacks.onTextEdited += onTextEdited;
-
+            
 
             botcallbacks.RegisterCommand("start", onStartCommand);
             botcallbacks.RegisterCommand("info", onInfoCommand);
@@ -96,7 +100,6 @@ namespace PersikSharp
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
 
-            botcallbacks.onTextMessage += onPerchikReplyTrigger;
             perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
             perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
@@ -816,18 +819,6 @@ namespace PersikSharp
 
             Logger.Log(LogType.Info, $"[EDITED MESSAGE] ({message.From.FirstName}:{message.From.Id}): {message.Text}");
             onTextMessage(sender, message_args);
-        }
-
-        private static void onTextMessageFilter(object sender, MessageArgs e)
-        {
-            if (e.Message.Chat.Type == ChatType.Supergroup)
-            {
-                if (e.Message.Text.Contains("LE9Xo1hHKm6CkkJpGg3Qrg"))
-                {
-                    _ = Bot.DeleteMessageAsync(e.Message.Chat.Id, e.Message.MessageId);
-                    Logger.Log(LogType.Info, $"<TextFilter> Message deleted.");
-                }
-            }
         }
 
         private static void onPhotoMessage(object sender, MessageArgs message_args)
