@@ -38,8 +38,7 @@ namespace PersikSharp
         static void Main(string[] args)
         {
 
-            Logger.Log(LogType.Info, ThisAssembly.Git.Tag);
-            Logger.Log(LogType.Info, ThisAssembly.Git.SemVer.Label);
+            Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
 
             Process current = Process.GetCurrentProcess();
             foreach (Process process in Process.GetProcessesByName(current.ProcessName))
@@ -1062,7 +1061,7 @@ namespace PersikSharp
             {
                 _ = Bot.SendTextMessageAsync(
                        chatId: e.Message.Chat.Id,
-                       text: $"*Version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                       text: $"*Version: {Perchik.BotVersion}*",
                        parseMode: ParseMode.Markdown).Result;
             }
             catch (Exception ex)

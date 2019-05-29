@@ -228,7 +228,6 @@
     <Compile Include="Utils\StringManager.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include=".gitlab-ci.yml" />
     <None Include="app.config" />
     <None Include="Configs\dict.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -236,7 +235,6 @@
     <None Include="Configs\log4net.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="GitVersion.yml" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
