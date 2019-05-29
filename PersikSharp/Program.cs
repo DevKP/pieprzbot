@@ -96,6 +96,7 @@ namespace PersikSharp
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
 
+            botcallbacks.onTextMessage += onPerchikReplyTrigger;
             perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
             perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
@@ -243,6 +244,17 @@ namespace PersikSharp
             }
 
             perchik.ParseMessage(message);
+        }
+
+        private static void onPerchikReplyTrigger(object sender, MessageArgs e)
+        {
+            if (e.Message.Chat.Type == ChatType.Private)
+                return;
+            if (e.Message.ReplyToMessage == null)
+                return;
+
+            if (e.Message.ReplyToMessage.From.Id == Bot.GetMeAsync().Result.Id)
+                onPersikCommand(e.Message);
         }
 
         private static void onWeather(object sender, PerchikEventArgs a)//Переделать под другой АПИ
