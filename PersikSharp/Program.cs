@@ -624,7 +624,7 @@ namespace PersikSharp
             else
                 only_choice_str = message.Text.Replace(temp_match.Groups[1].Value, "");
 
-            var match = Regex.Match(only_choice_str, @"([\W\w\s]+)\sили\s([\W\w\s]+)", RegexOptions.IgnoreCase);
+            var match = Regex.Match(only_choice_str, @"(?<first>[\W\w\s]+)\sили\s([?<second>\W\w\s]+)", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 Random rand = new Random();
@@ -632,13 +632,13 @@ namespace PersikSharp
 
                 if (rand.NextDouble() >= 0.5)
                 {
-                    result = match.Groups[1].Value;
+                    result = match.Groups["first"].Value;
                 }
                 else
                 {
-                    result = match.Groups[2].Value;
+                    result = match.Groups["second"].Value;
                 }
-                if (match.Groups[1].Value == match.Groups[2].Value)
+                if (match.Groups["first"].Value == match.Groups["second"].Value)
                 {
                     result = strManager.GetRandom("OR_EQUAL");
                 }
