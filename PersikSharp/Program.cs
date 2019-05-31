@@ -981,7 +981,7 @@ namespace PersikSharp
 
             _ = Bot.SendTextMessageAsync(
                        chatId: message.Chat.Id,
-                       text: strManager.GetSingle("INFO"),
+                       text: StringManager.StringFromFile(strManager["INFO_PATH"]),
                        parseMode: ParseMode.Markdown).Result;
         }
         private static void onMeCommand(object sender, CommandEventArgs message_args)
