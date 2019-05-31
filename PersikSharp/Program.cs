@@ -638,9 +638,9 @@ namespace PersikSharp
                 {
                     result = match.Groups[2].Value;
                 }
-                if(match.Groups[1].Value==match.Groups[2].Value)
+                if (match.Groups[1].Value == match.Groups[2].Value)
                 {
-                    result = GetRandom("INSULTING");
+                    result = strManager.GetRandom("OR_EQUAL");
                 }
 
                 _ = Bot.SendTextMessageAsync(
