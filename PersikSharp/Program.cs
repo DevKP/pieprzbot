@@ -102,7 +102,7 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
             perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
-            perchik.AddCommandRegEx(@"([\w\s]+)\sили\s([\w\s]+)", onRandomChoice);                             //один ИЛИ два
+            perchik.AddCommandRegEx(@"([\W\w\s]+)\sили\s([\W\w\s]+)", onRandomChoice);                             //один ИЛИ два
             perchik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
             perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
@@ -624,7 +624,7 @@ namespace PersikSharp
             else
                 only_choice_str = message.Text.Replace(temp_match.Groups[1].Value, "");
 
-            var match = Regex.Match(only_choice_str, @"([\w\s]+)\sили\s([\w\s]+)", RegexOptions.IgnoreCase);
+            var match = Regex.Match(only_choice_str, @"([\W\w\s]+)\sили\s([\W\w\s]+)", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 Random rand = new Random();
@@ -637,6 +637,10 @@ namespace PersikSharp
                 else
                 {
                     result = match.Groups[2].Value;
+                }
+                if(match.Groups[1].Value==match.Groups[2].Value)
+                {
+                    result = GetRandom("INSULTING");
                 }
 
                 _ = Bot.SendTextMessageAsync(
