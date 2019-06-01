@@ -29,13 +29,37 @@ namespace PersikSharp
             try
             {
                 return dict[key];
-            }catch(KeyNotFoundException)
+            }
+            catch (KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> String \"{key}\" not found!!");
                 var errorString = new List<string>();
                 errorString.Add($"Строка \"{key}\" не найдена!");
                 return errorString;
             }
+        }
+
+        /// <summary>
+        /// Returns text file content.
+        /// </summary>
+        /// <returns>
+        /// Text string.
+        /// </returns>
+        /// <param name="path">Path to text file.</param>
+        public static string StringFromFile(string path)
+        {
+            if (path == null)
+                throw new ArgumentNullException();
+
+            if (path.Length == 0)
+                throw new ArgumentException();
+
+            string readContents;
+            using (StreamReader streamReader = new StreamReader(path, Encoding.UTF8))
+            {
+                readContents = streamReader.ReadToEnd();
+            }
+            return readContents;
         }
 
         public StringManager()
@@ -56,10 +80,11 @@ namespace PersikSharp
                 }
 
                 dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
-            }catch(FileNotFoundException fe)
+            }
+            catch (FileNotFoundException fe)
             {
                 Logger.Log(LogType.Fatal, $"No dictionary file found! Exception: {fe.Message}");
-                
+
             }
         }
 
