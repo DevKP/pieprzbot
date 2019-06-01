@@ -38,6 +38,14 @@ namespace PersikSharp
         public Message Message { get; }
         public object Arg { get; }
     }
+    public class RegExArgs : EventArgs
+    {
+        public RegExArgs(Message msg, Match m, string p)
+        { this.Message = msg; this.Match = m; this.Pattern = p; }
+        public Match Match { get; }
+        public string Pattern { get; }
+        public Message Message { get; }
+    }
 
     class BotCallBacks
     {
@@ -58,6 +66,8 @@ namespace PersikSharp
             new Dictionary<string, EventHandler<CallbackQueryArgs>>();
         public List<BotCallBackUnit> nextstepCallbacks =
             new List<BotCallBackUnit>();
+        public Dictionary<string, EventHandler<RegExArgs>> regexCallbacks =
+            new Dictionary<string, EventHandler<RegExArgs>>();
 
         private string bot_username;
 
@@ -68,7 +78,8 @@ namespace PersikSharp
             bot.OnMessageEdited += Bot_OnMessageEdited;
             bot.OnCallbackQuery += Bot_OnCallbackQuery;
 
-            onTextMessage += onTextCommandsParsing;
+            this.onTextMessage += onTextCommandsParsing;
+            this.onTextMessage += RegEx_OnMessage;
 
             try
             {
@@ -90,6 +101,16 @@ namespace PersikSharp
         public void RegisterCommand(string command, EventHandler<CommandEventArgs> c)
         {
             commandsCallbacks.Add(command, c);
+        }
+
+        /// <summary>
+        /// Register patterns for searching in messages.
+        /// </summary>
+        /// <param name="pattern">Regular expression.</param>
+        /// <param name="c">Method to be called.</param>
+        public void RegisterRegEx(string pattern, EventHandler<RegExArgs> c)
+        {
+            regexCallbacks.Add(pattern, c);
         }
 
         /// <summary>
@@ -223,6 +244,29 @@ namespace PersikSharp
             }
 
             Logger.Log(LogType.Info, $"{message_type_str}: {message_str}");
+        }
+
+        private void RegEx_OnMessage(object sender, MessageArgs e)
+        {
+            Message message = e.Message;
+            try
+            {
+                foreach(var regex in regexCallbacks)
+                {
+                    string pattern = regex.Key;
+                    Match match = Regex.Match(message.Text, pattern);
+                    if (match.Success)
+                    {
+                        RegExArgs rgxArgs = new RegExArgs(message, match, pattern);
+                        regex.Value?.Invoke(this, rgxArgs);
+                        Logger.Log(LogType.Info, $"<{this.GetType().Name}:RegEx>({message.From.FirstName}:{message.From.Id}) -> {pattern}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
         }
 
         private void onTextCommandsParsing(object sender, MessageArgs message_args)//TODO: Redo :D

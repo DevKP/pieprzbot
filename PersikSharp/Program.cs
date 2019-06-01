@@ -78,6 +78,24 @@ namespace PersikSharp
                 return;
             }
 
+            perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
+            perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
+            perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
+            perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
+            perchik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
+            perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
+            perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
+            perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
+            perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
+            perchik.onNoneMatched += onNoneCommandMatched;
+
+            botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => perchik.ParseMessage(e.Message));
+            botcallbacks.RegisterRegEx("420", (_, e) => 
+            {
+                Bot.SendStickerAsync(e.Message.Chat.Id,
+                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
+                    replyToMessageId: e.Message.MessageId);
+            });
 
             botcallbacks.onTextMessage += onTextMessage;
             botcallbacks.onTextMessage += onPerchikReplyTrigger;
@@ -87,7 +105,6 @@ namespace PersikSharp
             botcallbacks.onDocumentMessage += onDocumentMessage;
             botcallbacks.onTextEdited += onTextEdited;
             
-
             botcallbacks.RegisterCommand("start", onStartCommand);
             botcallbacks.RegisterCommand("info", onInfoCommand);
             botcallbacks.RegisterCommand("rate", onRateCommand);
@@ -97,18 +114,6 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCommand("stk", onStickerCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
-
-
-            perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
-            perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
-            perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
-            perchik.AddCommandRegEx(@"([\W\w\s]+)\sили\s([\W\w\s]+)", onRandomChoice);                             //один ИЛИ два
-            perchik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
-            perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
-            perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
-            perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
-            perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            perchik.onNoneMatched += onNoneCommandMatched;
 
             //Update Message to group and me
             if (args.Length > 0)
@@ -259,7 +264,7 @@ namespace PersikSharp
                 onPersikCommand(e.Message);
         }
 
-        private static void onWeather(object sender, PerchikEventArgs a)//Переделать под другой АПИ
+        private static void onWeather(object sender, RegExArgs a)//Переделать под другой АПИ
         {
             Message message = a.Message;
             Match weather_match = a.Match;
@@ -346,9 +351,9 @@ namespace PersikSharp
             }
         }
 
-        private static void onNoneCommandMatched(object sender, PerchikEventArgs e)
+        private static void onNoneCommandMatched(object sender, RegExArgs e)
         {
-            Logger.Log(LogType.Info, $"[PERSIK]({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
+            Logger.Log(LogType.Info, $"<Perchik>({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
             _ = Bot.SendTextMessageAsync(
                        chatId: e.Message.Chat.Id,
                        text: strManager.GetRandom("HELLO"),
@@ -356,7 +361,7 @@ namespace PersikSharp
                        replyToMessageId: e.Message.MessageId);
         }
 
-        private static async void onPersikBanCommand(object sender, PerchikEventArgs e)//Переделать
+        private static async void onPersikBanCommand(object sender, RegExArgs e)//Переделать
         {
             Message message = e.Message;
 
@@ -478,7 +483,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onPersikUnbanCommand(object sender, PerchikEventArgs e)
+        private static void onPersikUnbanCommand(object sender, RegExArgs e)
         {
             Message message = e.Message;
 
@@ -512,7 +517,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onKickCommand(object sender, PerchikEventArgs e)
+        private static void onKickCommand(object sender, RegExArgs e)
         {
             Message message = e.Message;
 
@@ -540,7 +545,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onByWord(object sender, PerchikEventArgs e)
+        private static void onByWord(object sender, RegExArgs e)
         {
             Message message = e.Message;
 
@@ -571,13 +576,13 @@ namespace PersikSharp
             }
         }
 
-        private static void onBotPraise(object sender, PerchikEventArgs e)
+        private static void onBotPraise(object sender, RegExArgs e)
         {
             Message message = e.Message;
             Bot.SendStickerAsync(message.Chat.Id, "CAADAgADQQMAApFfCAABzoVI0eydHSgC");
         }
 
-        private static async void onBotInsulting(object sender, PerchikEventArgs e)
+        private static async void onBotInsulting(object sender, RegExArgs e)
         {
             Message message = e.Message;
             try
@@ -613,14 +618,14 @@ namespace PersikSharp
 
         }
 
-        private static void onRandomChoice(object sender, PerchikEventArgs e)
+        private static void onRandomChoice(object sender, RegExArgs e)
         {
             Message message = e.Message;
 
-            Regex regx = new Regex(@"(п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к))", RegexOptions.IgnoreCase);
+            Regex regx = new Regex(strManager["BOT_REGX"], RegexOptions.IgnoreCase);
             string without_perchik = regx.Replace(message.Text,string.Empty, 1);
 
-            var match = Regex.Match(without_perchik, @"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", RegexOptions.IgnoreCase);
+            var match = Regex.Match(without_perchik, e.Pattern, RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 Random rand = new Random();
@@ -649,7 +654,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onRouletteCommand(object sender, PerchikEventArgs e)
+        private static void onRouletteCommand(object sender, RegExArgs e)
         {
             Message message = e.Message;
 
@@ -806,11 +811,6 @@ namespace PersikSharp
 
                     Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id})(DM): {msg}");
                 }
-            }
-
-            if (Regex.IsMatch(m.Text, @".*п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к).*", RegexOptions.IgnoreCase))
-            {
-                onPersikCommand(m);
             }
         }
 

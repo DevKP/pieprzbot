@@ -11,14 +11,6 @@ using Telegram.Bot.Types;
 
 namespace PersikSharp
 {
-    public class PerchikEventArgs : EventArgs
-    {
-        public PerchikEventArgs(Message msg, Match m)
-        { this.Message = msg; this.Match = m; }
-        public Match Match { get; }
-        public Message Message { get; }
-    }
-    // comment
     class Perchik
     {
         public static string BotVersion = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
@@ -26,10 +18,10 @@ namespace PersikSharp
         /// <summary>
         /// Called if none of the regular expressions matches.
         /// </summary>
-        public event EventHandler<PerchikEventArgs> onNoneMatched;
+        public event EventHandler<RegExArgs> onNoneMatched;
 
-        private Dictionary<string, EventHandler<PerchikEventArgs>> commandCallbacks =
-       new Dictionary<string, EventHandler<PerchikEventArgs>>();
+        private Dictionary<string, EventHandler<RegExArgs>> commandCallbacks =
+       new Dictionary<string, EventHandler<RegExArgs>>();
 
         /// <summary>
         /// Registers a callback that will be called if the regular
@@ -37,7 +29,7 @@ namespace PersikSharp
         /// </summary>
         /// <param name="regex">Regular expression string.</param>
         /// <param name="e">Method to be called.</param>
-        public void AddCommandRegEx(string regex, EventHandler<PerchikEventArgs> e)
+        public void AddCommandRegEx(string regex, EventHandler<RegExArgs> e)
         {
             commandCallbacks.Add(regex, e);
         }
@@ -59,7 +51,7 @@ namespace PersikSharp
                 {
                     AtLeastOneMatch = true;
 
-                    PerchikEventArgs args = new PerchikEventArgs(msg, command_match);
+                    RegExArgs args = new RegExArgs(msg, command_match, command.Key);
                     command.Value?.Invoke(this, args);
                     Logger.Log(LogType.Info, $"<{this.GetType().Name}>({msg.From.FirstName}:{msg.From.Id}) -> {command.Key}");
                 }
@@ -67,7 +59,7 @@ namespace PersikSharp
 
             if (!AtLeastOneMatch)
             {
-                PerchikEventArgs args = new PerchikEventArgs(msg, null);
+                RegExArgs args = new RegExArgs(msg, null, null);
                 onNoneMatched?.Invoke(this, args);
             }
         }
