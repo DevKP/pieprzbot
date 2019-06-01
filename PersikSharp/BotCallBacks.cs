@@ -254,7 +254,7 @@ namespace PersikSharp
                 foreach(var regex in regexCallbacks)
                 {
                     string pattern = regex.Key;
-                    Match match = Regex.Match(message.Text, pattern);
+                    Match match = Regex.Match(message.Text, pattern, RegexOptions.IgnoreCase);
                     if (match.Success)
                     {
                         RegExArgs rgxArgs = new RegExArgs(message, match, pattern);
