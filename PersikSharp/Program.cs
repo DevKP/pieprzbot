@@ -90,6 +90,12 @@ namespace PersikSharp
             perchik.onNoneMatched += onNoneCommandMatched;
 
             botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => perchik.ParseMessage(e.Message));
+            botcallbacks.RegisterRegEx("420", (_, e) => 
+            {
+                Bot.SendStickerAsync(e.Message.Chat.Id,
+                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
+                    replyToMessageId: e.Message.MessageId);
+            });
 
             botcallbacks.onTextMessage += onTextMessage;
             botcallbacks.onTextMessage += onPerchikReplyTrigger;
