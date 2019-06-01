@@ -617,30 +617,28 @@ namespace PersikSharp
         {
             Message message = e.Message;
 
-            string only_choice_str = "";
-            var temp_match = Regex.Match(message.Text, @"(п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к))", RegexOptions.IgnoreCase);
-            if (temp_match.Groups[1].Index + temp_match.Groups[1].Length < message.Text.Length)
-                only_choice_str = message.Text.Substring(temp_match.Groups[1].Index + temp_match.Groups[1].Length);
-            else
-                only_choice_str = message.Text.Replace(temp_match.Groups[1].Value, "");
+            Regex regx = new Regex(@"(п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к))", RegexOptions.IgnoreCase);
+            string without_perchik = regx.Replace(message.Text,string.Empty, 1);
 
-            var match = Regex.Match(only_choice_str, @"(?<first>[\W\w\s]+)\sили\s([?<second>\W\w\s]+)", RegexOptions.IgnoreCase);
+            var match = Regex.Match(without_perchik, @"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 Random rand = new Random();
-                string result = "none";
+                string result;
+                string first = match.Groups["first"].Value;
+                string second = match.Groups["second"].Value;
 
                 if (rand.NextDouble() >= 0.5)
                 {
-                    result = match.Groups["first"].Value;
+                    result = first;
                 }
                 else
                 {
-                    result = match.Groups["second"].Value;
+                    result = second;
                 }
-                if (match.Groups["first"].Value == match.Groups["second"].Value)
+                if (first.Equals(second))
                 {
-                    result = strManager.GetRandom("OR_EQUAL");
+                    result = strManager.GetRandom("CHOICE_EQUAL");
                 }
 
                 _ = Bot.SendTextMessageAsync(
