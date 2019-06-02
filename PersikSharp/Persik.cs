@@ -49,11 +49,12 @@ namespace PersikSharp
                 var command_match = Regex.Match(text, command.Key, RegexOptions.IgnoreCase);
                 if (command_match.Success)
                 {
+                    Logger.Log(LogType.Info, $"<{this.GetType().Name}>({msg.From.FirstName}:{msg.From.Id}) -> {command.Key}");
+
                     AtLeastOneMatch = true;
 
                     RegExArgs args = new RegExArgs(msg, command_match, command.Key);
                     command.Value?.Invoke(this, args);
-                    Logger.Log(LogType.Info, $"<{this.GetType().Name}>({msg.From.FirstName}:{msg.From.Id}) -> {command.Key}");
                 }
             }
 
