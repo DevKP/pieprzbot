@@ -172,7 +172,6 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
             perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
-            perchik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
             perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
@@ -181,6 +180,7 @@ namespace PersikSharp
 
 
             botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => onPersikCommand(e.Message));
+            botcallbacks.RegisterRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
             botcallbacks.RegisterRegEx("420", (_, e) =>
             {
                 Bot.SendStickerAsync(e.Message.Chat.Id,
