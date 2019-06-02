@@ -48,30 +48,6 @@ namespace PersikSharp
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
-
-            try
-            {
-                perchik = new Perchik();
-                Bot = new TelegramBotClient(tokens.GetSingle("TELEGRAM"));
-                clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
-                if (clarifai.HttpClient.ApiKey == "")
-                    throw new ArgumentException("CLARIFAI token isn't valid!");
-
-                botcallbacks = new BotCallBacks(Bot);
-            }
-            catch (FileNotFoundException e)
-            {
-                Logger.Log(LogType.Fatal, $"No tokens file found! Exception: {e.Message}");
-                Console.ReadKey();
-                return;
-            }
-            catch (Exception e)
-            {
-                Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
-                Console.ReadKey();
-                return;
-            }
-
             Init();
 
             //Update Message to group and me
@@ -83,12 +59,13 @@ namespace PersikSharp
                     {
                         case "/u":
                             const int via_tcp_Id = 204678400;
+                            string version = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
                             Bot.SendTextMessageAsync(via_tcp_Id,
-                                $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                                $"*Updated to version: {version}*",
                                 ParseMode.Markdown);
                             Bot.SendTextMessageAsync(offtopia_id,
-                                $"*Updated to version: {FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion}*",
+                                $"*Updated to version: {version}*",
                                 ParseMode.Markdown);
                             break;
                         case "/min":
@@ -168,12 +145,33 @@ namespace PersikSharp
 
         private static void Init()
         {
+            try
+            {
+                perchik = new Perchik();
+                Bot = new TelegramBotClient(tokens["TELEGRAM"]);
+                clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
+                if (clarifai.HttpClient.ApiKey == string.Empty)
+                    throw new ArgumentException("CLARIFAI token isn't valid!");
+
+                botcallbacks = new BotCallBacks(Bot);
+            }
+            catch (FileNotFoundException e)
+            {
+                Logger.Log(LogType.Fatal, $"No tokens file found! Exception: {e.Message}");
+                Console.ReadKey();
+                Environment.Exit(1);
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
+                Console.ReadKey();
+                Environment.Exit(1);
+            }
 
             perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
             perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
             perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
-            perchik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
             perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
@@ -181,7 +179,8 @@ namespace PersikSharp
             perchik.onNoneMatched += onNoneCommandMatched;
 
 
-            botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => perchik.ParseMessage(e.Message));
+            botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => onPersikCommand(e.Message));
+            botcallbacks.RegisterRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
             botcallbacks.RegisterRegEx("420", (_, e) =>
             {
                 Bot.SendStickerAsync(e.Message.Chat.Id,
@@ -210,8 +209,7 @@ namespace PersikSharp
 
         public static async void PrintString(object sender, CommandLineEventArgs e)
         {
-            CommandLine.Text = "";
-
+            CommandLine.Text = string.Empty;
             string str = e.Text;
 
             var match = Regex.Match(str, @"ban:(.*):(.*):", RegexOptions.IgnoreCase);
@@ -247,6 +245,19 @@ namespace PersikSharp
                 exitTokenSource.Cancel();
             else
                 Logger.Log(LogType.Info, $"{str}  <- Syntax Error!");
+        }
+
+        private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40) 
+        {
+            var until = DateTime.Now.AddSeconds(forSeconds);
+            return Bot.RestrictChatMemberAsync(
+                            chatId: chatId,
+                            userId: userId,
+                            untilDate: until,
+                            canSendMessages: false,
+                            canSendMediaMessages: false,
+                            canSendOtherMessages: false,
+                            canAddWebPagePreviews: false);
         }
 
         //=====Persik Commands======
@@ -289,7 +300,7 @@ namespace PersikSharp
             Message message = a.Message;
             Match weather_match = a.Match;
 
-            string search_url = System.Uri.EscapeUriString(
+            string search_url = Uri.EscapeUriString(
                 $"http://dataservice.accuweather.com/locations/v1/cities/search?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru");
             int location_code = 0;
             dynamic location_json;
@@ -419,13 +430,12 @@ namespace PersikSharp
                             word = "д.";
                             seconds *= 86400;
                             break;
-                    }
+                    }//SMOKE WEED EVERYDAY
                 }
             }
 
             try
             {
-                var until = DateTime.Now.AddSeconds(seconds);
                 if (message.ReplyToMessage != null)
                 {
                     if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
@@ -434,27 +444,23 @@ namespace PersikSharp
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
                         return;
 
-                    await Bot.RestrictChatMemberAsync(
+                    await FullyRestrictUserAsync(
                             chatId: message.Chat.Id,
                             userId: message.ReplyToMessage.From.Id,
-                            untilDate: until,
-                            canSendMessages: false,
-                            canSendMediaMessages: false,
-                            canSendOtherMessages: false,
-                            canAddWebPagePreviews: false);
+                            forSeconds: seconds);
 
                     if (seconds >= 40)
                     {
-                        _ = Bot.SendTextMessageAsync(
+                        await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word),
+                            text: string.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                     else
                     {
-                        _ = Bot.SendTextMessageAsync(
+                        await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word),
+                            text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                 }
@@ -462,35 +468,23 @@ namespace PersikSharp
                 {
                     if (seconds >= 40)
                     {
+                        await FullyRestrictUserAsync(
+                                chatId: message.Chat.Id,
+                                userId: message.ReplyToMessage.From.Id,
+                                forSeconds: seconds);
 
-                        //SMOKE WEED EVERYDAY
-                        _ = Bot.RestrictChatMemberAsync(
-                            chatId: message.Chat.Id,
-                            userId: message.From.Id,
-                            untilDate: until,
-                            canSendMessages: false,
-                            canSendMediaMessages: false,
-                            canSendOtherMessages: false,
-                            canAddWebPagePreviews: false);
-
-                        _ = Bot.SendTextMessageAsync(
+                        await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
                     else
                     {
-                        until = DateTime.Now.AddSeconds(40);
-                        _ = Bot.RestrictChatMemberAsync(
-                            chatId: message.Chat.Id,
-                            userId: message.From.Id,
-                            untilDate: until,
-                            canSendMessages: false,
-                            canSendMediaMessages: false,
-                            canSendOtherMessages: false,
-                            canAddWebPagePreviews: false);
+                        await FullyRestrictUserAsync(
+                                chatId: message.Chat.Id,
+                                userId: message.ReplyToMessage.From.Id);
 
-                        _ = Bot.SendTextMessageAsync(
+                        await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word),
                             parseMode: ParseMode.Markdown);
@@ -537,7 +531,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onKickCommand(object sender, RegExArgs e)
+        private static async void onKickCommand(object sender, RegExArgs e)
         {
             Message message = e.Message;
 
@@ -550,7 +544,7 @@ namespace PersikSharp
 
             try
             {
-                _ = Bot.KickChatMemberAsync(
+                await Bot.KickChatMemberAsync(
                     chatId: message.Chat.Id,
                     userId: message.ReplyToMessage.From.Id);
 
@@ -565,29 +559,24 @@ namespace PersikSharp
             }
         }
 
-        private static void onByWord(object sender, RegExArgs e)
+        private static async void onByWord(object sender, RegExArgs e)
         {
             Message message = e.Message;
 
-            Bot.SendStickerAsync(message.Chat.Id, "CAADAgADGwAD0JwyGF7MX7q4n6d_Ag");
+            await Bot.SendStickerAsync(message.Chat.Id, "CAADAgADGwAD0JwyGF7MX7q4n6d_Ag");
             if (message.Chat.Type != ChatType.Private)
             {
                 try
                 {
+                    await FullyRestrictUserAsync(
+                            chatId: message.Chat.Id,
+                            userId: message.ReplyToMessage.From.Id,
+                            forSeconds: 60 * 5);
+
                     _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
                         text: string.Format(strManager.GetSingle("BYWORD_BAN"), message.From.FirstName),
                         parseMode: ParseMode.Markdown);
-
-                    var until = DateTime.Now.AddSeconds(60 * 5);
-                    _ = Bot.RestrictChatMemberAsync(
-                        chatId: message.Chat.Id,
-                        userId: message.From.Id,
-                        untilDate: until,
-                        canSendMessages: false,
-                        canSendMediaMessages: false,
-                        canSendOtherMessages: false,
-                        canAddWebPagePreviews: false);
                 }
                 catch (Exception ex)
                 {
@@ -613,15 +602,10 @@ namespace PersikSharp
                 {
                     await Task.Delay(2000);
 
-                    var until = DateTime.Now.AddSeconds(120);
-                    await Bot.RestrictChatMemberAsync(
-                        chatId: message.Chat.Id,
-                        userId: message.From.Id,
-                        untilDate: until,
-                        canSendMessages: false,
-                        canSendMediaMessages: false,
-                        canSendOtherMessages: false,
-                        canAddWebPagePreviews: false);
+                    await FullyRestrictUserAsync(
+                                chatId: message.Chat.Id,
+                                userId: message.ReplyToMessage.From.Id,
+                                forSeconds: 120);
 
                     await Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,

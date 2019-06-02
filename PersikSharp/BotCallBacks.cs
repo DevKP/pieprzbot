@@ -78,9 +78,6 @@ namespace PersikSharp
             bot.OnMessageEdited += Bot_OnMessageEdited;
             bot.OnCallbackQuery += Bot_OnCallbackQuery;
 
-            this.onTextMessage += onTextCommandsParsing;
-            this.onTextMessage += RegEx_OnMessage;
-
             try
             {
                 bot_username = bot.GetMeAsync().Result.Username;
@@ -158,9 +155,9 @@ namespace PersikSharp
 
         private void Bot_OnCallbackQuery(object sender, CallbackQueryEventArgs a)
         {
-            try { 
-                queryCallbacks[a.CallbackQuery.Data].Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
+            try {
                 Logger.Log(LogType.Info, $"<{this.GetType().Name}> InlineCallback \"{a.CallbackQuery.Data}\" from user ({a.CallbackQuery.From.FirstName}:{a.CallbackQuery.From.Id}).");
+                queryCallbacks[a.CallbackQuery.Data].Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
             }
             catch (KeyNotFoundException)
             {
@@ -244,6 +241,11 @@ namespace PersikSharp
             }
 
             Logger.Log(LogType.Info, $"{message_type_str}: {message_str}");
+
+
+            MessageArgs message_args = new MessageArgs(message);
+            this.onTextCommandsParsing(this, message_args);
+            this.RegEx_OnMessage(this, message_args);
         }
 
         private void RegEx_OnMessage(object sender, MessageArgs e)
@@ -257,9 +259,10 @@ namespace PersikSharp
                     Match match = Regex.Match(message.Text, pattern, RegexOptions.IgnoreCase);
                     if (match.Success)
                     {
-                        RegExArgs rgxArgs = new RegExArgs(message, match, pattern);
-                        regex.Value?.Invoke(this, rgxArgs);
                         Logger.Log(LogType.Info, $"<{this.GetType().Name}:RegEx>({message.From.FirstName}:{message.From.Id}) -> {pattern}");
+
+                        RegExArgs rgxArgs = new RegExArgs(message, match, pattern);
+                        regex.Value?.Invoke(this, rgxArgs); 
                     }
                 }
             }
@@ -277,6 +280,8 @@ namespace PersikSharp
             {
                 if (match.Success)
                 {
+                    Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
+
                     string command = message.Text;
                     string text = "";
                     if(message.Text.IndexOf(' ') != -1)
@@ -287,7 +292,6 @@ namespace PersikSharp
 
                     CommandEventArgs cmdargs = new CommandEventArgs(message, command, text);
                     commandsCallbacks[match.Groups["command"].Value]?.Invoke(this, cmdargs);
-                    Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
                 }
             }catch(KeyNotFoundException)
             {
