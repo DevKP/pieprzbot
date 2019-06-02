@@ -205,6 +205,10 @@ namespace PersikSharp
             switch (e.Message.Type)
             {
                 case MessageType.Text:
+                    MessageArgs message_args = new MessageArgs(message);
+                    this.onTextCommandsParsing(this, message_args);
+                    this.RegEx_OnMessage(this, message_args);
+
                     message_str = message.Text;
                     onTextMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
@@ -241,11 +245,6 @@ namespace PersikSharp
             }
 
             Logger.Log(LogType.Info, $"{message_type_str}: {message_str}");
-
-
-            MessageArgs message_args = new MessageArgs(message);
-            this.onTextCommandsParsing(this, message_args);
-            this.RegEx_OnMessage(this, message_args);
         }
 
         private void RegEx_OnMessage(object sender, MessageArgs e)

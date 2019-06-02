@@ -281,7 +281,8 @@ namespace PersikSharp
                 return;
             }
 
-            perchik.ParseMessage(message);
+            if(message.ReplyToMessage?.From.Id != Bot.GetMeAsync().Result.Id)
+                perchik.ParseMessage(message);
         }
 
         private static void onPerchikReplyTrigger(object sender, MessageArgs e)
@@ -292,7 +293,7 @@ namespace PersikSharp
                 return;
 
             if (e.Message.ReplyToMessage.From.Id == Bot.GetMeAsync().Result.Id)
-                onPersikCommand(e.Message);
+                perchik.ParseMessage(e.Message);
         }
 
         private static void onWeather(object sender, RegExArgs a)//Переделать под другой АПИ
