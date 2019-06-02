@@ -18,6 +18,7 @@ using System.Net;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Net.Http;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace PersikSharp
 {
@@ -34,20 +35,13 @@ namespace PersikSharp
         private static CancellationToken exit_token = exitTokenSource.Token;
 
         private const long offtopia_id = -1001125742098;
+        private static string ApplicationFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
         static void Main(string[] args)
         {
 
             Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
-
-            Process current = Process.GetCurrentProcess();
-            foreach (Process process in Process.GetProcessesByName(current.ProcessName))
-            {
-                if (process.Id != current.Id)
-                {
-                    process.Kill();
-                }
-            }
+            CloseAnotherInstance();
 
             CommandLine.Inst().onSubmitAction += PrintString;
             CommandLine.Inst().StartUpdating();
@@ -78,42 +72,7 @@ namespace PersikSharp
                 return;
             }
 
-            perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
-            perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
-            perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
-            perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
-            perchik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
-            perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
-            perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
-            perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
-            perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            perchik.onNoneMatched += onNoneCommandMatched;
-
-            botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => perchik.ParseMessage(e.Message));
-            botcallbacks.RegisterRegEx("420", (_, e) => 
-            {
-                Bot.SendStickerAsync(e.Message.Chat.Id,
-                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
-                    replyToMessageId: e.Message.MessageId);
-            });
-
-            botcallbacks.onTextMessage += onTextMessage;
-            botcallbacks.onTextMessage += onPerchikReplyTrigger;
-            botcallbacks.onPhotoMessage += onPhotoMessage;
-            botcallbacks.onStickerMessage += onStickerMessage;
-            botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
-            botcallbacks.onDocumentMessage += onDocumentMessage;
-            botcallbacks.onTextEdited += onTextEdited;
-            
-            botcallbacks.RegisterCommand("start", onStartCommand);
-            botcallbacks.RegisterCommand("info", onInfoCommand);
-            botcallbacks.RegisterCommand("rate", onRateCommand);
-            botcallbacks.RegisterCommand("me", onMeCommand);
-            botcallbacks.RegisterCommand("upal_otjalsa", onUpalOtjalsaCommand);
-            botcallbacks.RegisterCommand("version", onVersionCommand);
-            botcallbacks.RegisterCommand("pickle", onPickleCommand);
-            botcallbacks.RegisterCommand("stk", onStickerCommand);
-            botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
+            Init();
 
             //Update Message to group and me
             if (args.Length > 0)
@@ -186,6 +145,67 @@ namespace PersikSharp
                 Console.ReadKey();
                 Environment.Exit(1);
             }
+        }
+
+        private static void CloseAnotherInstance()
+        {
+            try
+            {
+                Process current = Process.GetCurrentProcess();
+                foreach (Process process in Process.GetProcessesByName(current.ProcessName))
+                {
+                    if (process.Id != current.Id)
+                    {
+                        process.Kill();
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                Logger.Log(LogType.Error, $"Unable to terminate another instance. Make it manualy.");
+            }
+        }
+
+        private static void Init()
+        {
+
+            perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
+            perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
+            perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
+            perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
+            perchik.AddCommandRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);//беларуссия
+            perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
+            perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
+            perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
+            perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
+            perchik.onNoneMatched += onNoneCommandMatched;
+
+
+            botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => perchik.ParseMessage(e.Message));
+            botcallbacks.RegisterRegEx("420", (_, e) =>
+            {
+                Bot.SendStickerAsync(e.Message.Chat.Id,
+                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
+                    replyToMessageId: e.Message.MessageId);
+            });
+
+            botcallbacks.onTextMessage += onTextMessage;
+            botcallbacks.onTextMessage += onPerchikReplyTrigger;
+            botcallbacks.onPhotoMessage += onPhotoMessage;
+            botcallbacks.onStickerMessage += onStickerMessage;
+            botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
+            botcallbacks.onDocumentMessage += onDocumentMessage;
+            botcallbacks.onTextEdited += onTextEdited;
+
+            botcallbacks.RegisterCommand("start", onStartCommand);
+            botcallbacks.RegisterCommand("info", onInfoCommand);
+            botcallbacks.RegisterCommand("rate", onRateCommand);
+            botcallbacks.RegisterCommand("me", onMeCommand);
+            botcallbacks.RegisterCommand("upal_otjalsa", onUpalOtjalsaCommand);
+            botcallbacks.RegisterCommand("version", onVersionCommand);
+            botcallbacks.RegisterCommand("pickle", onPickleCommand);
+            botcallbacks.RegisterCommand("stk", onStickerCommand);
+            botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
         }
 
         public static async void PrintString(object sender, CommandLineEventArgs e)
