@@ -25,17 +25,19 @@ namespace PersikSharp
     class Program
     {
         public static TelegramBotClient Bot;
-        private static Perchik perchik;
-        private static ClarifaiClient clarifai;
-        private static BotCallBacks botcallbacks;
-        private static StringManager strManager = new StringManager();
-        private static StringManager tokens = new StringManager();
+        static Perchik perchik;
+        static ClarifaiClient clarifai;
+        static BotCallBacks botcallbacks;
+        static StringManager strManager = new StringManager();
+        static StringManager tokens = new StringManager();
 
-        private static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
-        private static CancellationToken exit_token = exitTokenSource.Token;
+        static DataBaseHelper databasehelper = new DataBaseHelper();
 
-        private const long offtopia_id = -1001125742098;
-        private static string ApplicationFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+        static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
+        static CancellationToken exit_token = exitTokenSource.Token;
+
+        const long offtopia_id = -1001125742098;
+        static string ApplicationFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
         static void Main(string[] args)
         {
@@ -187,6 +189,10 @@ namespace PersikSharp
                     "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
                     replyToMessageId: e.Message.MessageId);
             });
+
+            //Test
+            Bot.OnMessage += (_, a) => databasehelper.AddUserIfNotExist(a.Message.From);
+            //Test
 
             botcallbacks.onTextMessage += onTextMessage;
             botcallbacks.onTextMessage += onPerchikReplyTrigger;
