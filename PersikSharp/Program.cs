@@ -471,7 +471,7 @@ namespace PersikSharp
                     {
                         await FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
-                                userId: message.ReplyToMessage.From.Id,
+                                userId: message.From.Id,
                                 forSeconds: seconds);
 
                         await Bot.SendTextMessageAsync(
@@ -483,7 +483,7 @@ namespace PersikSharp
                     {
                         await FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
-                                userId: message.ReplyToMessage.From.Id);
+                                userId: message.From.Id);
 
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
@@ -605,7 +605,7 @@ namespace PersikSharp
 
                     await FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
-                                userId: message.ReplyToMessage.From.Id,
+                                userId: message.From.Id,
                                 forSeconds: 120);
 
                     await Bot.SendTextMessageAsync(
