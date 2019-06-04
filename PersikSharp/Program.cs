@@ -31,7 +31,7 @@ namespace PersikSharp
         static StringManager strManager = new StringManager();
         static StringManager tokens = new StringManager();
 
-        static DataBaseHelper databasehelper = new DataBaseHelper();
+        static SQLiteDb database = new SQLiteDb("database.db");
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -191,7 +191,7 @@ namespace PersikSharp
             });
 
             //Test
-            Bot.OnMessage += (_, a) => databasehelper.AddUserIfNotExist(a.Message.From);
+            Bot.OnMessage += (_, a) => database.InsertUserIfNotExist(a.Message.From);
             //Test
 
             botcallbacks.onTextMessage += onTextMessage;
