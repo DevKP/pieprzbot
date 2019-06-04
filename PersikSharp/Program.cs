@@ -49,6 +49,7 @@ namespace PersikSharp
             CommandLine.Inst().StartUpdating();
 
             Console.OutputEncoding = Encoding.UTF8;
+            database.Create();
             LoadDictionary();
             Init();
 
@@ -191,7 +192,20 @@ namespace PersikSharp
             });
 
             //Test
-            Bot.OnMessage += (_, a) => database.InsertUserIfNotExist(a.Message.From);
+            Bot.OnMessage += (_, a) =>
+            {
+                DateTime myDateTime = DateTime.Now;
+                string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+                database.UpdateUser(new Users()
+                {
+                    Id = a.Message.From.Id,
+                    FirstName = a.Message.From.FirstName,
+                    LastName = a.Message.From.LastName,
+                    Username = a.Message.From.Username,
+                    LastMessage = sqlFormattedDate,
+                    Restricted = false
+                });
+            };
             //Test
 
             botcallbacks.onTextMessage += onTextMessage;
@@ -497,6 +511,16 @@ namespace PersikSharp
                             parseMode: ParseMode.Markdown);
                     }
                 }
+
+                database.UpdateUser(new Users()
+                {
+                    Id = e.Message.From.Id,
+                    FirstName = e.Message.From.FirstName,
+                    LastName = e.Message.From.LastName,
+                    Username = e.Message.From.Username,
+                    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Restricted = true
+                });
             }
             catch (Exception exp)
             {

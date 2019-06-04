@@ -28,24 +28,46 @@ namespace PersikSharp
             return db.CreateCommand($"select * from Users where Id={Id}").ExecuteQuery<Users>();
         }
 
-        public void InsertUser(User user)
-        {
-            db.Insert(new Users()
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Username = user.Username
-            });
-        }
-
-        public void InsertUserIfNotExist(User user)
+        public bool isUserExist(Users user)
         {
             var users = GetUsersById(user.Id);
             if (users.Count > 0)
-                return;
+                return true;
+            else
+                return false;
+        }
 
-            InsertUser(user);
+        public void InsertUser(Users user)
+        {
+            db.Insert(user);
+        }
+
+        public void UpdateUser(Users user)
+        {
+            if (isUserExist(user))
+            {
+                db.Update(user);
+            }
+            else
+            {
+                InsertUser(user);
+            }
+        }
+
+        public void UpdateUserIfExist(Users user)
+        {
+            if (isUserExist(user))
+            {
+                UpdateUser(user);
+            }
+        }
+
+        public void InsertUserIfNotExist(Users user)
+        {
+            if (!isUserExist(user))
+            {
+                InsertUser(user);
+            } 
         }
         public void RemoveUser(int Id)
         {
@@ -79,6 +101,11 @@ namespace PersikSharp
         
         [MaxLength(30)]
         public String Username { get; set; }
+
+        [MaxLength(30)]
+        public String LastMessage { get; set; }
+
+        public Boolean Restricted { get; set; }
     }
     
 }
