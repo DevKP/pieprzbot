@@ -11,7 +11,7 @@ Remove-Item "C:\Projects\PersikSharp\Builds\*.dll"
 Write-Host "Renaming PersikSharp.exe to PersikSharpRelease.exe..."
 Rename-Item ".\PersikSharp\bin\Release\PersikSharp.exe" "PersikSharpRelease.exe"
 Write-Host "Copying files to build folder..."
-xcopy /y ".\PersikSharp\bin\Release\*.*" "C:\Projects\PersikSharp\Builds\"
+Get-ChildItem .\PersikSharp\bin\Release\ | Copy -Destination C:\Projects\PersikSharp\Builds\ -Recurse -Force
 Write-Host "Copying configs..."
 xcopy /y ".\PersikSharp\Configs\*" "C:\Projects\PersikSharp\Builds\Configs\"
 xcopy /y ".\PersikSharp\Resources\*" "C:\Projects\PersikSharp\Builds\"
