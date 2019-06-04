@@ -194,6 +194,14 @@ namespace PersikSharp
             //Test
             Bot.OnMessage += (_, a) =>
             {
+                int? messages_count = 0;
+                var user = database.GetUsersById(a.Message.From.Id);
+                if(user.Count != 0)
+                {
+                    messages_count = user[0].MessagesCount + 1;
+                }
+
+
                 DateTime myDateTime = DateTime.Now;
                 string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
                 database.UpdateUser(new Users()
@@ -203,6 +211,7 @@ namespace PersikSharp
                     LastName = a.Message.From.LastName,
                     Username = a.Message.From.Username,
                     LastMessage = sqlFormattedDate,
+                    MessagesCount = messages_count,
                     Restricted = false
                 });
             };

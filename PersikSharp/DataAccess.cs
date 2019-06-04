@@ -83,9 +83,9 @@ namespace PersikSharp
         public String name { get; set; }
         
     }
-    
+
     public partial class Users
-    {
+    { 
         [PrimaryKey]
         public Int32 Id { get; set; }
         
@@ -101,7 +101,9 @@ namespace PersikSharp
         [MaxLength(30)]
         public String LastMessage { get; set; }
 
-        public Boolean Restricted { get; set; }
+        public Int32? MessagesCount { get; set; } = 0;
+
+        public Boolean Restricted { get; set; } = false;
     }
     
 }
