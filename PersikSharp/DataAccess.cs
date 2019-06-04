@@ -1,6 +1,8 @@
+//using SQLite;
 using SQLite;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace PersikSharp
 {
@@ -15,80 +17,79 @@ namespace PersikSharp
         
          public void Create()
         {
-            db.CreateTable<SampleTable>();
-            db.CreateTable<Users>();
+            db.CreateTable<DbUser>();
+            db.CreateTable<DbMessage>();
+
         }
 
-        public List<Users> GetUsersById(int Id)
+        public T GetRowByFilter<T>(Expression<Func<T, bool>> filter) where T : new()
         {
-            return db.CreateCommand($"select * from Users where Id={Id}").ExecuteQuery<Users>();
+            return db.Table<T>().FirstOrDefault(filter);
         }
 
-        public bool isUserExist(Users user)
+        public T GetRowById<T>(int Id, string table, string column) where T : new()
         {
-            var users = GetUsersById(user.Id);
-            if (users.Count > 0)
-                return true;
+            var objects = db.CreateCommand($"select * from {table} where {column}={Id}").ExecuteQuery<T>();
+            if (objects != null)
+                return objects[0];
             else
-                return false;
+                return default(T);
         }
 
-        public void InsertUser(Users user)
+        public List<T> GetRows<T>() where T : new()
         {
-            db.Insert(user);
+            return db.Table<T>().ToList();
         }
 
-        public void UpdateUser(Users user)
+        public bool isUserExist(DbUser user)
+        {
+            return GetRowById<DbUser>(user.Id, "Users", "UserId") != null;
+        }
+
+        public void InsertRow(object user)
+        {
+            db.InsertOrReplace(user);
+        }
+
+        public void UpdateUserIfExist(DbUser user)
         {
             if (isUserExist(user))
-            {
-                db.Update(user);
-            }
-            else
-            {
-                InsertUser(user);
-            }
+                InsertRow(user);
         }
 
-        public void UpdateUserIfExist(Users user)
-        {
-            if (isUserExist(user))
-            {
-                UpdateUser(user);
-            }
-        }
-
-        public void InsertUserIfNotExist(Users user)
-        {
-            if (!isUserExist(user))
-            {
-                InsertUser(user);
-            } 
-        }
         public void RemoveUser(int Id)
         {
-            var users = GetUsersById(Id);
-            foreach(var user in users)
-                db.Delete(user);
+            var user = GetRowById<DbUser>(Id, "Users", "UserId");
+            db.Delete(user);
         }
     }
 
-    public partial class SampleTable
+    public interface ITable
     {
-        [PrimaryKey]
-        [MaxLength(10)]
-        public String ID { get; set; }
-        
-        [MaxLength(30)]
-        public String name { get; set; }
-        
+        Int32 Id { get; set; }
     }
 
-    public partial class Users
-    { 
-        [PrimaryKey]
+    [Table("Messages")]
+    public partial class DbMessage : ITable
+    {
+        [PrimaryKey, Column("MessageId")]
         public Int32 Id { get; set; }
-        
+
+        public Int32 UserId { get; set; }
+
+        [MaxLength(4096)]
+        public String Text { get; set; }
+
+        [MaxLength(30)]
+        public String DateTime { get; set; }
+    }
+
+    [Table("Users")]
+    public partial class DbUser : ITable
+    {
+        [PrimaryKey, Column("UserId")]
+        public Int32 Id { get; set; }
+
         [MaxLength(30)]
         public String FirstName { get; set; }
         

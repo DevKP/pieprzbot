@@ -32,6 +32,7 @@ namespace PersikSharp
         static StringManager tokens = new StringManager();
 
         static SQLiteDb database = new SQLiteDb("database.db");
+        static Random rand = new Random(Guid.NewGuid().GetHashCode());
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -184,7 +185,7 @@ namespace PersikSharp
 
             botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => onPersikCommand(e.Message));
             botcallbacks.RegisterRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
-            botcallbacks.RegisterRegEx("420", (_, e) =>
+            botcallbacks.RegisterRegEx("420|трав(к)?а|шишки|марихуана", (_, e) =>
             {
                 Bot.SendStickerAsync(e.Message.Chat.Id,
                     "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
@@ -194,17 +195,14 @@ namespace PersikSharp
             //Test
             Bot.OnMessage += (_, a) =>
             {
-                int? messages_count = 0;
-                var user = database.GetUsersById(a.Message.From.Id);
-                if(user.Count != 0)
-                {
-                    messages_count = user[0].MessagesCount + 1;
-                }
-
+                int? messages_count = 1;
+                var user = database.GetRowById<DbUser>(a.Message.From.Id, "Users", "UserId");
+                if (user != null)
+                    messages_count = user.MessagesCount + 1;
 
                 DateTime myDateTime = DateTime.Now;
                 string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-                database.UpdateUser(new Users()
+                database.InsertRow(new DbUser()
                 {
                     Id = a.Message.From.Id,
                     FirstName = a.Message.From.FirstName,
@@ -213,6 +211,14 @@ namespace PersikSharp
                     LastMessage = sqlFormattedDate,
                     MessagesCount = messages_count,
                     Restricted = false
+                });
+
+                database.InsertRow(new DbMessage()
+                {
+                    Id = a.Message.MessageId,
+                    UserId = a.Message.From.Id,
+                    Text = a.Message.Text,
+                    DateTime = sqlFormattedDate
                 });
             };
             //Test
@@ -233,6 +239,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("version", onVersionCommand);
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCommand("stk", onStickerCommand);
+            botcallbacks.RegisterCommand("randommessage", onRandomMessageCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
         }
 
@@ -521,7 +528,7 @@ namespace PersikSharp
                     }
                 }
 
-                database.UpdateUser(new Users()
+                database.InsertRow(new DbUser()
                 {
                     Id = e.Message.From.Id,
                     FirstName = e.Message.From.FirstName,
@@ -1182,7 +1189,17 @@ namespace PersikSharp
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
         }
+        private static void onRandomMessageCommand(object sender, CommandEventArgs e)
+        {
+            List<DbMessage> messages = database.GetRows<DbMessage>();
+            var message = messages[rand.Next(messages.Count)];
+            var user = database.GetRowById<DbUser>(message.UserId, "Users", "UserId");
+            _ = Bot.SendTextMessageAsync(
+                            chatId: e.Message.Chat.Id,
+                            text: $"From: {user.FirstName} {user.LastName}\nDateTime: {message.DateTime}\n\n{message.Text}",
+                            parseMode: ParseMode.Markdown);
+        }
 
-        //==========================
+            //==========================
     }
 }
