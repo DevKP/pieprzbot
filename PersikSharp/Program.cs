@@ -25,17 +25,19 @@ namespace PersikSharp
     class Program
     {
         public static TelegramBotClient Bot;
-        private static Perchik perchik;
-        private static ClarifaiClient clarifai;
-        private static BotCallBacks botcallbacks;
-        private static StringManager strManager = new StringManager();
-        private static StringManager tokens = new StringManager();
+        static Perchik perchik;
+        static ClarifaiClient clarifai;
+        static BotCallBacks botcallbacks;
+        static StringManager strManager = new StringManager();
+        static StringManager tokens = new StringManager();
 
-        private static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
-        private static CancellationToken exit_token = exitTokenSource.Token;
+        static SQLiteDb database = new SQLiteDb("database.db");
 
-        private const long offtopia_id = -1001125742098;
-        private static string ApplicationFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+        static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
+        static CancellationToken exit_token = exitTokenSource.Token;
+
+        const long offtopia_id = -1001125742098;
+        static string ApplicationFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
         static void Main(string[] args)
         {
@@ -47,6 +49,7 @@ namespace PersikSharp
             CommandLine.Inst().StartUpdating();
 
             Console.OutputEncoding = Encoding.UTF8;
+            database.Create();
             LoadDictionary();
             Init();
 
@@ -187,6 +190,23 @@ namespace PersikSharp
                     "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
                     replyToMessageId: e.Message.MessageId);
             });
+
+            //Test
+            Bot.OnMessage += (_, a) =>
+            {
+                DateTime myDateTime = DateTime.Now;
+                string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+                database.UpdateUser(new Users()
+                {
+                    Id = a.Message.From.Id,
+                    FirstName = a.Message.From.FirstName,
+                    LastName = a.Message.From.LastName,
+                    Username = a.Message.From.Username,
+                    LastMessage = sqlFormattedDate,
+                    Restricted = false
+                });
+            };
+            //Test
 
             botcallbacks.onTextMessage += onTextMessage;
             botcallbacks.onTextMessage += onPerchikReplyTrigger;
@@ -491,6 +511,16 @@ namespace PersikSharp
                             parseMode: ParseMode.Markdown);
                     }
                 }
+
+                database.UpdateUser(new Users()
+                {
+                    Id = e.Message.From.Id,
+                    FirstName = e.Message.From.FirstName,
+                    LastName = e.Message.From.LastName,
+                    Username = e.Message.From.Username,
+                    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Restricted = true
+                });
             }
             catch (Exception exp)
             {
