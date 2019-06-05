@@ -1,107 +1,127 @@
 using SQLite;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace PersikSharp
 {
-    public class SQLiteDb
+    public class SQLiteDbAsync
     {
-        SQLiteConnection db;
+        SQLiteAsyncConnection db;
 
-        public SQLiteDb(string path)
+        public SQLiteDbAsync(string path)
         {
-            this.db = new SQLiteConnection(path);
-        }
-        
-         public void Create()
-        {
-            db.CreateTable<SampleTable>();
-            db.CreateTable<Users>();
+            this.db = new SQLiteAsyncConnection(path);
         }
 
-        public List<Users> GetUsersById(int Id)
+        public void Create()
         {
-            return db.CreateCommand($"select * from Users where Id={Id}").ExecuteQuery<Users>();
+            db.CreateTableAsync<DbUser>();
+            db.CreateTableAsync<DbMessage>();
         }
 
-        public bool isUserExist(Users user)
+        public Task<List<T>> GetRowsByFilterAsync<T>(Expression<Func<T, bool>> filter) where T : class, ITable, new()
         {
-            var users = GetUsersById(user.Id);
-            if (users.Count > 0)
-                return true;
-            else
-                return false;
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.Table<T>().Where(filter).ToListAsync();
         }
 
-        public void InsertUser(Users user)
+        public Task<T> GetRowsByIdAsync<T>(int Id, string table) where T : class, ITable, new()
         {
-            db.Insert(user);
+            if (db == null)
+                throw new NullReferenceException();
+
+            return Task.Run(async () =>
+            {
+                var objects = await db.QueryAsync<T>($"select * from {table} where Id={Id}");
+                if (objects != null)
+                    return objects.Capacity != 0 ? objects[0] : null;
+                else
+                    return null;
+            });
         }
 
-        public void UpdateUser(Users user)
+        public List<T> GetRows<T>() where T : ITable, new()
         {
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.Table<T>().ToListAsync().Result;
+        }
+
+        public bool isUserExist(DbUser user)
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
+            return GetRowsByFilterAsync<DbUser>(a => a.Id == user.Id).Result.Count != 0;
+        }
+
+        public Task InsertRowAsync(object user)
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.InsertOrReplaceAsync(user);
+        }
+
+        public Task<int> UpdateColumnByIdAsync(int Id, object value, string table, string coulumn)
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.ExecuteAsync($"update {table} set {coulumn}={value} where Id={Id}");
+        }
+
+        public Task<int> ExecuteAsync(string command, params object[] ps)
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.ExecuteAsync(command, ps);
+        }
+
+        public Task<List<T>> ExecuteQueryAsync<T>(string command, params object[] ps) where T: ITable, new()
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.QueryAsync<T>(command, ps);
+        }
+
+        public Task<T> ExecuteScalarAsync<T>(string command, params object[] ps) where T : ITable
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.ExecuteScalarAsync<T>(command, ps);
+        }
+
+        public void InsertUserIfExist(DbUser user)
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
             if (isUserExist(user))
-            {
-                db.Update(user);
-            }
-            else
-            {
-                InsertUser(user);
-            }
+                InsertRowAsync(user);
         }
 
-        public void UpdateUserIfExist(Users user)
+        public Task RemoveRowByIdAsync<T>(int Id) where T: class, ITable, new()
         {
-            if (isUserExist(user))
+            if (db == null)
+                throw new NullReferenceException();
+
+            return Task.Run(async () =>
             {
-                UpdateUser(user);
-            }
+                var users = await GetRowsByFilterAsync<T>(a => a.Id == Id);
+                if (users.Count == 0)
+                    throw new KeyNotFoundException();
+
+                await db.DeleteAsync(users[0]);
+            });
         }
-
-        public void InsertUserIfNotExist(Users user)
-        {
-            if (!isUserExist(user))
-            {
-                InsertUser(user);
-            } 
-        }
-        public void RemoveUser(int Id)
-        {
-            var users = GetUsersById(Id);
-            foreach(var user in users)
-                db.Delete(user);
-        }
-    }
-
-    public partial class SampleTable
-    {
-        [PrimaryKey]
-        [MaxLength(10)]
-        public String ID { get; set; }
-        
-        [MaxLength(30)]
-        public String name { get; set; }
-        
-    }
-    
-    public partial class Users
-    {
-        [PrimaryKey]
-        public Int32 Id { get; set; }
-        
-        [MaxLength(30)]
-        public String FirstName { get; set; }
-        
-        [MaxLength(30)]
-        public String LastName { get; set; }
-        
-        [MaxLength(30)]
-        public String Username { get; set; }
-
-        [MaxLength(30)]
-        public String LastMessage { get; set; }
-
-        public Boolean Restricted { get; set; }
-    }
-    
+    } 
 }
