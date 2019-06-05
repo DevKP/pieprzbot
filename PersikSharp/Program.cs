@@ -195,25 +195,19 @@ namespace PersikSharp
             //Test
             Bot.OnMessage += (_, a) =>
             {
-                int? messages_count = 1;
-                var user = database.GetRowById<DbUser>(a.Message.From.Id, "Users", "UserId");
-                if (user != null)
-                    messages_count = user.MessagesCount + 1;
-
                 DateTime myDateTime = DateTime.Now;
                 string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-                database.InsertRow(new DbUser()
+               _ = database.InsertRowAsync(new DbUser()
                 {
                     Id = a.Message.From.Id,
                     FirstName = a.Message.From.FirstName,
                     LastName = a.Message.From.LastName,
                     Username = a.Message.From.Username,
                     LastMessage = sqlFormattedDate,
-                    MessagesCount = messages_count,
                     Restricted = false
                 });
 
-                database.InsertRow(new DbMessage()
+                _ = database.InsertRowAsync(new DbMessage()
                 {
                     Id = a.Message.MessageId,
                     UserId = a.Message.From.Id,
@@ -239,7 +233,8 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("version", onVersionCommand);
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCommand("stk", onStickerCommand);
-            botcallbacks.RegisterCommand("randommessage", onRandomMessageCommand);
+            botcallbacks.RegisterCommand("getmessage", ongetmessageCommand);
+            //botcallbacks.RegisterCommand("getuser", onRandomMessageCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
         }
 
@@ -528,7 +523,7 @@ namespace PersikSharp
                     }
                 }
 
-                database.InsertRow(new DbUser()
+                _ = database.InsertRowAsync(new DbUser()
                 {
                     Id = e.Message.From.Id,
                     FirstName = e.Message.From.FirstName,
@@ -1189,14 +1184,13 @@ namespace PersikSharp
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
         }
-        private static void onRandomMessageCommand(object sender, CommandEventArgs e)
+        private static void ongetmessageCommand(object sender, CommandEventArgs e)
         {
-            List<DbMessage> messages = database.GetRows<DbMessage>();
-            var message = messages[rand.Next(messages.Count)];
-            var user = database.GetRowById<DbUser>(message.UserId, "Users", "UserId");
+
+            var message = database.ExecuteQueryAsync<DbMessage>("SELECT * FROM Messages ORDER BY Id DESC LIMIT 1").Result[0];   
             _ = Bot.SendTextMessageAsync(
                             chatId: e.Message.Chat.Id,
-                            text: $"From: {user.FirstName} {user.LastName}\nDateTime: {message.DateTime}\n\n{message.Text}",
+                            text: $"DateTime: {message.DateTime}\n\n{message.Text}",
                             parseMode: ParseMode.Markdown);
         }
 

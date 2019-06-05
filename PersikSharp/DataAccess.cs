@@ -3,6 +3,7 @@ using SQLite;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace PersikSharp
 {
@@ -14,96 +15,127 @@ namespace PersikSharp
         {
             this.db = new SQLiteConnection(path);
         }
-        
-         public void Create()
+
+        public void Create()
         {
             db.CreateTable<DbUser>();
             db.CreateTable<DbMessage>();
 
         }
 
-        public T GetRowByFilter<T>(Expression<Func<T, bool>> filter) where T : new()
+        public Task<T> GetRowByFilterAsync<T>(Expression<Func<T, bool>> filter) where T : class, ITable, new()
         {
-            return db.Table<T>().FirstOrDefault(filter);
+            return Task.Run(() => db.Table<T>().FirstOrDefault(filter));
         }
 
-        public T GetRowById<T>(int Id, string table, string column) where T : new()
+        public Task<T> GetRowByIdAsync<T>(int Id, string table) where T : class, ITable
         {
-            var objects = db.CreateCommand($"select * from {table} where {column}={Id}").ExecuteQuery<T>();
-            if (objects != null)
-                return objects[0];
-            else
-                return default(T);
+            return Task.Run(() =>
+            {
+                var objects = db.CreateCommand($"select * from {table} where Id={Id}").ExecuteQuery<T>();
+                if (objects != null)
+                    return objects.Capacity != 0 ? objects[0] : null;
+                else
+                    return null;
+            });
         }
 
-        public List<T> GetRows<T>() where T : new()
+        public List<T> GetRows<T>() where T : ITable, new()
         {
             return db.Table<T>().ToList();
         }
 
         public bool isUserExist(DbUser user)
         {
-            return GetRowById<DbUser>(user.Id, "Users", "UserId") != null;
+            return GetRowByIdAsync<DbUser>(user.Id, "Users") != null;
         }
 
-        public void InsertRow(object user)
+        public Task InsertRowAsync(object user)
         {
-            db.InsertOrReplace(user);
+            return Task.Run(() => db.InsertOrReplace(user));
         }
 
-        public void UpdateUserIfExist(DbUser user)
+        public Task UpdateColumnByIdAsync(int Id, object value, string table, string coulumn)
+        {
+            return Task.Run(() => db.CreateCommand($"update {table} set {coulumn}={value} where Id={Id}").ExecuteNonQuery());
+        }
+
+        public Task ExecuteNonQueryAsync(string command, params object[] ps)
+        {
+            return Task.Run(() => db.CreateCommand(command, ps).ExecuteNonQuery());
+        }
+
+        public Task<List<T>> ExecuteQueryAsync<T>(string command, params object[] ps) where T: ITable
+        {
+            return Task.Run(() => db.CreateCommand(command, ps).ExecuteQuery<T>());
+        }
+
+        public void InsertUserIfExist(DbUser user)
         {
             if (isUserExist(user))
-                InsertRow(user);
+                InsertRowAsync(user);
         }
 
-        public void RemoveUser(int Id)
+        public Task RemoveRowByIdAsync<T>(int Id) where T: class, ITable
         {
-            var user = GetRowById<DbUser>(Id, "Users", "UserId");
-            db.Delete(user);
+            return Task.Run(() =>
+            {
+                var user = GetRowByIdAsync<T>(Id, "Users").Result;
+                db.Delete(user);
+            });
+        }
+
+        public Task RemoveUserAsync(int Id)
+        {
+            return Task.Run(() =>
+            {
+                var user = GetRowByIdAsync<DbUser>(Id, "Users").Result;
+                db.Delete(user);
+            });
         }
     }
 
     public interface ITable
     {
+        [PrimaryKey, Column("Id")]
         Int32 Id { get; set; }
     }
 
     [Table("Messages")]
     public partial class DbMessage : ITable
     {
-        [PrimaryKey, Column("MessageId")]
+        [PrimaryKey, Column("Id")]
         public Int32 Id { get; set; }
 
+        [Column("UserId")]
         public Int32 UserId { get; set; }
 
-        [MaxLength(4096)]
+        [Column("Text"), MaxLength(4096)]
         public String Text { get; set; }
 
-        [MaxLength(30)]
+        [Column("DateTime"), MaxLength(30)]
         public String DateTime { get; set; }
     }
 
     [Table("Users")]
     public partial class DbUser : ITable
     {
-        [PrimaryKey, Column("UserId")]
+        [PrimaryKey, Column("Id")]
         public Int32 Id { get; set; }
 
-        [MaxLength(30)]
+        [Column("FirstName"), MaxLength(30)]
         public String FirstName { get; set; }
-        
-        [MaxLength(30)]
+
+        [Column("LastName"), MaxLength(30)]
         public String LastName { get; set; }
-        
-        [MaxLength(30)]
+
+        [Column("Username"), MaxLength(30)]
         public String Username { get; set; }
 
-        [MaxLength(30)]
+        [Column("LastMessage"), MaxLength(30)]
         public String LastMessage { get; set; }
 
-        public Int32? MessagesCount { get; set; } = 0;
-
+        [Column("Restricted")]
         public Boolean Restricted { get; set; } = false;
     }
     
