@@ -19,6 +19,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Net.Http;
 using System.Diagnostics;
 using System.Reflection;
+using Telegram.Bot.Args;
 
 namespace PersikSharp
 {
@@ -192,31 +193,7 @@ namespace PersikSharp
                     replyToMessageId: e.Message.MessageId);
             });
 
-            //Test
-            Bot.OnMessage += (_, a) =>
-            {
-                DateTime myDateTime = DateTime.Now;
-                string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-               _ = database.InsertRowAsync(new DbUser()
-                {
-                    Id = a.Message.From.Id,
-                    FirstName = a.Message.From.FirstName,
-                    LastName = a.Message.From.LastName,
-                    Username = a.Message.From.Username,
-                    LastMessage = sqlFormattedDate,
-                    Restricted = false
-                });
-
-                _ = database.InsertRowAsync(new DbMessage()
-                {
-                    Id = a.Message.MessageId,
-                    UserId = a.Message.From.Id,
-                    Text = a.Message.Text,
-                    DateTime = sqlFormattedDate
-                });
-            };
-            //Test
-
+            Bot.OnMessage += DatabaseUpdate;
             botcallbacks.onTextMessage += onTextMessage;
             botcallbacks.onTextMessage += onPerchikReplyTrigger;
             botcallbacks.onPhotoMessage += onPhotoMessage;
@@ -233,8 +210,6 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("version", onVersionCommand);
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCommand("stk", onStickerCommand);
-            botcallbacks.RegisterCommand("getuser", ongetmessageCommand);
-            //botcallbacks.RegisterCommand("getuser", onRandomMessageCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
         }
 
@@ -495,6 +470,16 @@ namespace PersikSharp
                             text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
+
+                    _ = database.InsertRowAsync(new DbUser()
+                    {
+                        Id = e.Message.ReplyToMessage.From.Id,
+                        FirstName = e.Message.ReplyToMessage.From.FirstName,
+                        LastName = e.Message.ReplyToMessage.From.LastName,
+                        Username = e.Message.ReplyToMessage.From.Username,
+                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        Restricted = true
+                    });
                 }
                 else
                 {
@@ -521,17 +506,17 @@ namespace PersikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word),
                             parseMode: ParseMode.Markdown);
                     }
-                }
 
-                _ = database.InsertRowAsync(new DbUser()
-                {
-                    Id = e.Message.From.Id,
-                    FirstName = e.Message.From.FirstName,
-                    LastName = e.Message.From.LastName,
-                    Username = e.Message.From.Username,
-                    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    Restricted = true
-                });
+                    _ = database.InsertRowAsync(new DbUser()
+                    {
+                        Id = e.Message.From.Id,
+                        FirstName = e.Message.From.FirstName,
+                        LastName = e.Message.From.LastName,
+                        Username = e.Message.From.Username,
+                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        Restricted = true
+                    });
+                }
             }
             catch (Exception exp)
             {
@@ -860,6 +845,29 @@ namespace PersikSharp
             }
         }
 
+        private static void DatabaseUpdate(object s, MessageEventArgs e)
+        {
+            DateTime myDateTime = DateTime.Now;
+            string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+            _ = database.InsertRowAsync(new DbUser()
+            {
+                Id = e.Message.From.Id,
+                FirstName = e.Message.From.FirstName,
+                LastName = e.Message.From.LastName,
+                Username = e.Message.From.Username,
+                LastMessage = sqlFormattedDate,
+                Restricted = false
+            });
+
+            _ = database.InsertRowAsync(new DbMessage()
+            {
+                Id = e.Message.MessageId,
+                UserId = e.Message.From.Id,
+                Text = e.Message.Text,
+                DateTime = sqlFormattedDate
+            });
+        }
+
         private static void onTextEdited(object sender, MessageArgs message_args)
         {
             Message message = message_args.Message;
@@ -1184,29 +1192,6 @@ namespace PersikSharp
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
         }
-        private static void ongetmessageCommand(object sender, CommandEventArgs e)
-        {
-            if (e.Text == string.Empty)
-                return;
-
-            int id = int.Parse(e.Text);
-            var user = database.GetRowsByFilterAsync<DbUser>(a => a.Id == id).Result;
-            if(user.Count == 0)
-            {
-                _ = Bot.SendTextMessageAsync(
-                            chatId: e.Message.Chat.Id,
-                            text: $"No such user!",
-                            parseMode: ParseMode.Markdown);
-                return;
-            }
-
-            var messages = database.GetRowsByFilterAsync<DbMessage>(a => a.UserId == id).Result;
-            _ = Bot.SendTextMessageAsync(
-                            chatId: e.Message.Chat.Id,
-                            text: $"User: {user[0].FirstName} {user[0].LastName}\n\nMessages: {messages.Count}",
-                            parseMode: ParseMode.Markdown);
-        }
-
-            //==========================
+        //==========================
     }
 }
