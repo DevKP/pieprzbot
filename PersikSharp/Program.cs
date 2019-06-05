@@ -31,7 +31,7 @@ namespace PersikSharp
         static StringManager strManager = new StringManager();
         static StringManager tokens = new StringManager();
 
-        static SQLiteDb database = new SQLiteDb("database.db");
+        static SQLiteDbAsync database = new SQLiteDbAsync("database.db");
         static Random rand = new Random(Guid.NewGuid().GetHashCode());
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
@@ -233,7 +233,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("version", onVersionCommand);
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCommand("stk", onStickerCommand);
-            botcallbacks.RegisterCommand("getmessage", ongetmessageCommand);
+            botcallbacks.RegisterCommand("getuser", ongetmessageCommand);
             //botcallbacks.RegisterCommand("getuser", onRandomMessageCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
         }
@@ -1186,11 +1186,24 @@ namespace PersikSharp
         }
         private static void ongetmessageCommand(object sender, CommandEventArgs e)
         {
+            if (e.Text == string.Empty)
+                return;
 
-            var message = database.ExecuteQueryAsync<DbMessage>("SELECT * FROM Messages ORDER BY Id DESC LIMIT 1").Result[0];   
+            int id = int.Parse(e.Text);
+            var user = database.GetRowsByFilterAsync<DbUser>(a => a.Id == id).Result;
+            if(user.Count == 0)
+            {
+                _ = Bot.SendTextMessageAsync(
+                            chatId: e.Message.Chat.Id,
+                            text: $"No such user!",
+                            parseMode: ParseMode.Markdown);
+                return;
+            }
+
+            var messages = database.GetRowsByFilterAsync<DbMessage>(a => a.UserId == id).Result;
             _ = Bot.SendTextMessageAsync(
                             chatId: e.Message.Chat.Id,
-                            text: $"DateTime: {message.DateTime}\n\n{message.Text}",
+                            text: $"User: {user[0].FirstName} {user[0].LastName}\n\nMessages: {messages.Count}",
                             parseMode: ParseMode.Markdown);
         }
 

@@ -1,4 +1,3 @@
-//using SQLite;
 using SQLite;
 using System;
 using System.Collections.Generic;
@@ -7,32 +6,37 @@ using System.Threading.Tasks;
 
 namespace PersikSharp
 {
-    public class SQLiteDb
+    public class SQLiteDbAsync
     {
-        SQLiteConnection db;
+        SQLiteAsyncConnection db;
 
-        public SQLiteDb(string path)
+        public SQLiteDbAsync(string path)
         {
-            this.db = new SQLiteConnection(path);
+            this.db = new SQLiteAsyncConnection(path);
         }
 
         public void Create()
         {
-            db.CreateTable<DbUser>();
-            db.CreateTable<DbMessage>();
-
+            db.CreateTableAsync<DbUser>();
+            db.CreateTableAsync<DbMessage>();
         }
 
-        public Task<T> GetRowByFilterAsync<T>(Expression<Func<T, bool>> filter) where T : class, ITable, new()
+        public Task<List<T>> GetRowsByFilterAsync<T>(Expression<Func<T, bool>> filter) where T : class, ITable, new()
         {
-            return Task.Run(() => db.Table<T>().FirstOrDefault(filter));
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.Table<T>().Where(filter).ToListAsync();
         }
 
-        public Task<T> GetRowByIdAsync<T>(int Id, string table) where T : class, ITable
+        public Task<T> GetRowsByIdAsync<T>(int Id, string table) where T : class, ITable, new()
         {
-            return Task.Run(() =>
+            if (db == null)
+                throw new NullReferenceException();
+
+            return Task.Run(async () =>
             {
-                var objects = db.CreateCommand($"select * from {table} where Id={Id}").ExecuteQuery<T>();
+                var objects = await db.QueryAsync<T>($"select * from {table} where Id={Id}");
                 if (objects != null)
                     return objects.Capacity != 0 ? objects[0] : null;
                 else
@@ -42,101 +46,82 @@ namespace PersikSharp
 
         public List<T> GetRows<T>() where T : ITable, new()
         {
-            return db.Table<T>().ToList();
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.Table<T>().ToListAsync().Result;
         }
 
         public bool isUserExist(DbUser user)
         {
-            return GetRowByIdAsync<DbUser>(user.Id, "Users") != null;
+            if (db == null)
+                throw new NullReferenceException();
+
+            return GetRowsByFilterAsync<DbUser>(a => a.Id == user.Id).Result.Count != 0;
         }
 
         public Task InsertRowAsync(object user)
         {
-            return Task.Run(() => db.InsertOrReplace(user));
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.InsertOrReplaceAsync(user);
         }
 
-        public Task UpdateColumnByIdAsync(int Id, object value, string table, string coulumn)
+        public Task<int> UpdateColumnByIdAsync(int Id, object value, string table, string coulumn)
         {
-            return Task.Run(() => db.CreateCommand($"update {table} set {coulumn}={value} where Id={Id}").ExecuteNonQuery());
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.ExecuteAsync($"update {table} set {coulumn}={value} where Id={Id}");
         }
 
-        public Task ExecuteNonQueryAsync(string command, params object[] ps)
+        public Task<int> ExecuteAsync(string command, params object[] ps)
         {
-            return Task.Run(() => db.CreateCommand(command, ps).ExecuteNonQuery());
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.ExecuteAsync(command, ps);
         }
 
-        public Task<List<T>> ExecuteQueryAsync<T>(string command, params object[] ps) where T: ITable
+        public Task<List<T>> ExecuteQueryAsync<T>(string command, params object[] ps) where T: ITable, new()
         {
-            return Task.Run(() => db.CreateCommand(command, ps).ExecuteQuery<T>());
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.QueryAsync<T>(command, ps);
+        }
+
+        public Task<T> ExecuteScalarAsync<T>(string command, params object[] ps) where T : ITable
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
+            return db.ExecuteScalarAsync<T>(command, ps);
         }
 
         public void InsertUserIfExist(DbUser user)
         {
+            if (db == null)
+                throw new NullReferenceException();
+
             if (isUserExist(user))
                 InsertRowAsync(user);
         }
 
-        public Task RemoveRowByIdAsync<T>(int Id) where T: class, ITable
+        public Task RemoveRowByIdAsync<T>(int Id) where T: class, ITable, new()
         {
-            return Task.Run(() =>
+            if (db == null)
+                throw new NullReferenceException();
+
+            return Task.Run(async () =>
             {
-                var user = GetRowByIdAsync<T>(Id, "Users").Result;
-                db.Delete(user);
+                var users = await GetRowsByFilterAsync<T>(a => a.Id == Id);
+                if (users.Count == 0)
+                    throw new KeyNotFoundException();
+
+                await db.DeleteAsync(users[0]);
             });
         }
-
-        public Task RemoveUserAsync(int Id)
-        {
-            return Task.Run(() =>
-            {
-                var user = GetRowByIdAsync<DbUser>(Id, "Users").Result;
-                db.Delete(user);
-            });
-        }
-    }
-
-    public interface ITable
-    {
-        [PrimaryKey, Column("Id")]
-        Int32 Id { get; set; }
-    }
-
-    [Table("Messages")]
-    public partial class DbMessage : ITable
-    {
-        [PrimaryKey, Column("Id")]
-        public Int32 Id { get; set; }
-
-        [Column("UserId")]
-        public Int32 UserId { get; set; }
-
-        [Column("Text"), MaxLength(4096)]
-        public String Text { get; set; }
-
-        [Column("DateTime"), MaxLength(30)]
-        public String DateTime { get; set; }
-    }
-
-    [Table("Users")]
-    public partial class DbUser : ITable
-    {
-        [PrimaryKey, Column("Id")]
-        public Int32 Id { get; set; }
-
-        [Column("FirstName"), MaxLength(30)]
-        public String FirstName { get; set; }
-
-        [Column("LastName"), MaxLength(30)]
-        public String LastName { get; set; }
-
-        [Column("Username"), MaxLength(30)]
-        public String Username { get; set; }
-
-        [Column("LastMessage"), MaxLength(30)]
-        public String LastMessage { get; set; }
-
-        [Column("Restricted")]
-        public Boolean Restricted { get; set; } = false;
-    }
-    
+    } 
 }
