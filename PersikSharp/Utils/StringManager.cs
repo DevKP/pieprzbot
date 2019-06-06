@@ -9,7 +9,7 @@ namespace PersikSharp
 {
     class StringManager
     {
-        private readonly Random rand = new Random(DateTime.Now.Second);
+        private readonly Random rand = new Random(Guid.NewGuid().GetHashCode());
         private Dictionary<string, List<string>> dict = null;
 
         /// <summary>

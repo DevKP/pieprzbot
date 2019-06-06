@@ -1,7 +1,7 @@
 ﻿using SQLite;
 using System;
 
-namespace PersikSharp
+namespace PersikSharp.Tables
 {
     [Table("Users")]
     public partial class DbUser : ITable
@@ -21,7 +21,7 @@ namespace PersikSharp
         [Column("LastMessage"), MaxLength(30)]
         public String LastMessage { get; set; }
 
-        [Column("Restricted")]
-        public Boolean Restricted { get; set; } = false;
+        [Column("RestrictionId")]
+        public Int32? RestrictionId { get; set; }
     }
 }

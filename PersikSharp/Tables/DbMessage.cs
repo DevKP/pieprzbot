@@ -1,7 +1,7 @@
 ﻿using SQLite;
 using System;
 
-namespace PersikSharp
+namespace PersikSharp.Tables
 {
     [Table("Messages")]
     public partial class DbMessage : ITable
