@@ -251,6 +251,7 @@
     <Compile Include="DataAccess.cs" />
     <Compile Include="CommandLine.cs" />
     <Compile Include="Tables\DbMessage.cs" />
+    <Compile Include="Tables\DbRestriction.cs" />
     <Compile Include="Tables\DbUser.cs" />
     <Compile Include="Tables\ITable.cs" />
     <Compile Include="Utils\ConsoleWindow.cs" />

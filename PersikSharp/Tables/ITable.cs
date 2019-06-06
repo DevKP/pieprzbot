@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PersikSharp
+namespace PersikSharp.Tables
 {
     public interface ITable
     {

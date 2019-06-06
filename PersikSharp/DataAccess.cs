@@ -1,3 +1,4 @@
+using PersikSharp.Tables;
 using SQLite;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ namespace PersikSharp
 {
     public class SQLiteDbAsync
     {
-        SQLiteAsyncConnection db;
+        SQLiteAsyncConnection db = null;
 
         public SQLiteDbAsync(string path)
         {
@@ -19,6 +20,7 @@ namespace PersikSharp
         {
             db.CreateTableAsync<DbUser>();
             db.CreateTableAsync<DbMessage>();
+            db.CreateTableAsync<DbRestriction>();
         }
 
         public Task<List<T>> GetRowsByFilterAsync<T>(Expression<Func<T, bool>> filter) where T : class, ITable, new()
@@ -65,6 +67,14 @@ namespace PersikSharp
             if (db == null)
                 throw new NullReferenceException();
 
+            return db.InsertAsync(user);
+        }
+
+        public Task InsertOrReplaceRowAsync(object user)
+        {
+            if (db == null)
+                throw new NullReferenceException();
+
             return db.InsertOrReplaceAsync(user);
         }
 
@@ -92,7 +102,7 @@ namespace PersikSharp
             return db.QueryAsync<T>(command, ps);
         }
 
-        public Task<T> ExecuteScalarAsync<T>(string command, params object[] ps) where T : ITable
+        public Task<T> ExecuteScalarAsync<T>(string command, params object[] ps)
         {
             if (db == null)
                 throw new NullReferenceException();

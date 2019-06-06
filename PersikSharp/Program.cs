@@ -20,6 +20,7 @@ using System.Net.Http;
 using System.Diagnostics;
 using System.Reflection;
 using Telegram.Bot.Args;
+using PersikSharp.Tables;
 
 namespace PersikSharp
 {
@@ -33,7 +34,7 @@ namespace PersikSharp
         static StringManager tokens = new StringManager();
 
         static SQLiteDbAsync database = new SQLiteDbAsync("database.db");
-        static Random rand = new Random(Guid.NewGuid().GetHashCode());
+        static Timer DBProcess;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -51,8 +52,8 @@ namespace PersikSharp
             CommandLine.Inst().StartUpdating();
 
             Console.OutputEncoding = Encoding.UTF8;
-            database.Create();
             LoadDictionary();
+            database.Create();
             Init();
 
             //Update Message to group and me
@@ -95,6 +96,7 @@ namespace PersikSharp
             }
 
             ConsoleWindow.StartTrayAsync();
+            StartDatabaseCheck();
             while (!exit_token.IsCancellationRequested)
                 Thread.Sleep(1000);
 
@@ -211,6 +213,48 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCommand("stk", onStickerCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
+        }
+
+        static void StartDatabaseCheck()
+        {
+            DBProcess = new Timer(s =>
+            {
+                try
+                {
+                    var users = database.GetRowsByFilterAsync<DbUser>(u => u.RestrictionId != null).Result;
+                    if (users.Count != 0)
+                    {
+                        foreach (DbUser user in users)
+                        {
+                            var restrictions = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
+                            if (restrictions.Count != 0)
+                            {
+                                DbRestriction restriction = restrictions[0];
+                                DateTime to = DateTime.Parse(restriction.DateTimeTo);
+
+                                if (DateTime.Now > to)
+                                {
+                                    user.RestrictionId = null;
+                                    _ = database.InsertOrReplaceRowAsync(user);
+                                    _ = Bot.SendTextMessageAsync(
+                                        chatId: restriction.ChatId,
+                                        text: string.Format(strManager["UNBANNED"], $"[{user.FirstName}](tg://user?id={user.Id})"),
+                                        parseMode: ParseMode.Markdown);
+                                }
+                            }
+                            else
+                            {
+                                user.RestrictionId = null;
+                                _ = database.InsertOrReplaceRowAsync(user);
+                            }
+                        }
+                    }
+                }
+                catch (Exception exp)
+                {
+                    Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                }
+            }, null, 0, 5000);
         }
 
         public static async void PrintString(object sender, CommandLineEventArgs e)
@@ -465,20 +509,31 @@ namespace PersikSharp
                     }
                     else
                     {
+                        seconds = int.MaxValue;
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
                             text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word),
                             parseMode: ParseMode.Markdown);
                     }
 
-                    _ = database.InsertRowAsync(new DbUser()
+                    _ = database.InsertRowAsync(new DbRestriction() {
+                        UserId = e.Message.ReplyToMessage.From.Id,
+                        ChatId = e.Message.Chat.Id.ToString(),
+                        DateTimeFrom = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        DateTimeTo = DateTime.Now.AddSeconds(seconds).ToString("yyyy-MM-dd HH:mm:ss")
+                    });
+
+
+                    int id = database.ExecuteScalarAsync<int>("select seq from sqlite_sequence where name='Restrictions'").Result;
+
+                    _ = database.InsertOrReplaceRowAsync(new DbUser()
                     {
                         Id = e.Message.ReplyToMessage.From.Id,
                         FirstName = e.Message.ReplyToMessage.From.FirstName,
                         LastName = e.Message.ReplyToMessage.From.LastName,
                         Username = e.Message.ReplyToMessage.From.Username,
                         LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        Restricted = true
+                        RestrictionId = id
                     });
                 }
                 else
@@ -507,6 +562,17 @@ namespace PersikSharp
                             parseMode: ParseMode.Markdown);
                     }
 
+                    _ = database.InsertRowAsync(new DbRestriction()
+                    {
+                        UserId = e.Message.From.Id,
+                        ChatId = e.Message.Chat.Id.ToString(),
+                        DateTimeFrom = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        DateTimeTo = DateTime.Now.AddSeconds(seconds).ToString("yyyy-MM-dd HH:mm:ss")
+                    });
+
+
+                    int id = database.ExecuteScalarAsync<int>("select seq from sqlite_sequence where name=Restrictions").Result;
+
                     _ = database.InsertRowAsync(new DbUser()
                     {
                         Id = e.Message.From.Id,
@@ -514,7 +580,7 @@ namespace PersikSharp
                         LastName = e.Message.From.LastName,
                         Username = e.Message.From.Username,
                         LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        Restricted = true
+                        RestrictionId = id
                     });
                 }
             }
@@ -546,6 +612,16 @@ namespace PersikSharp
                     canSendMediaMessages: true,
                     canSendOtherMessages: true,
                     canAddWebPagePreviews: true);
+
+                _ = database.InsertOrReplaceRowAsync(new DbUser()
+                {
+                    Id = e.Message.ReplyToMessage.From.Id,
+                    FirstName = e.Message.ReplyToMessage.From.FirstName,
+                    LastName = e.Message.ReplyToMessage.From.LastName,
+                    Username = e.Message.ReplyToMessage.From.Username,
+                    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    RestrictionId = null
+                });
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
@@ -847,25 +923,32 @@ namespace PersikSharp
 
         private static void DatabaseUpdate(object s, MessageEventArgs e)
         {
-            DateTime myDateTime = DateTime.Now;
-            string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-            _ = database.InsertRowAsync(new DbUser()
+            try
             {
-                Id = e.Message.From.Id,
-                FirstName = e.Message.From.FirstName,
-                LastName = e.Message.From.LastName,
-                Username = e.Message.From.Username,
-                LastMessage = sqlFormattedDate,
-                Restricted = false
-            });
+                DateTime myDateTime = DateTime.Now;
+                string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+                database.InsertOrReplaceRowAsync(new DbUser()
+                {
+                    Id = e.Message.From.Id,
+                    FirstName = e.Message.From.FirstName,
+                    LastName = e.Message.From.LastName,
+                    Username = e.Message.From.Username,
+                    LastMessage = sqlFormattedDate,
+                    RestrictionId = null
+                });
 
-            _ = database.InsertRowAsync(new DbMessage()
+                database.InsertRowAsync(new DbMessage()
+                {
+                    Id = e.Message.MessageId,
+                    UserId = e.Message.From.Id,
+                    Text = e.Message.Text,
+                    DateTime = sqlFormattedDate
+                });
+            }
+            catch (Exception ex)
             {
-                Id = e.Message.MessageId,
-                UserId = e.Message.From.Id,
-                Text = e.Message.Text,
-                DateTime = sqlFormattedDate
-            });
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+            }
         }
 
         private static void onTextEdited(object sender, MessageArgs message_args)
