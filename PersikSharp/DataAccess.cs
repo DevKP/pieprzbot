@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace PersikSharp
 {
-    public class SQLiteDbAsync
+    public class PerschikDB
     {
         SQLiteAsyncConnection db = null;
 
-        public SQLiteDbAsync(string path)
+        public PerschikDB(string path)
         {
             this.db = new SQLiteAsyncConnection(path);
         }
@@ -131,6 +131,24 @@ namespace PersikSharp
                     throw new KeyNotFoundException();
 
                 await db.DeleteAsync(users[0]);
+            });
+        }
+
+        public Task AddRestrictionAsync(DbUser user, long chatId, int forSecond)
+        {
+            return Task.Run(async () =>
+            {
+                await InsertRowAsync(new DbRestriction()
+                {
+                    UserId = user.Id,
+                    ChatId = chatId.ToString(),
+                    DateTimeFrom = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    DateTimeTo = DateTime.Now.AddSeconds(forSecond).ToString("yyyy-MM-dd HH:mm:ss")
+                });
+
+
+                user.RestrictionId = ExecuteScalarAsync<int>("select seq from sqlite_sequence where name='Restrictions'").Result;
+                await InsertOrReplaceRowAsync(user);
             });
         }
     } 
