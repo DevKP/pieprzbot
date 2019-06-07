@@ -185,7 +185,7 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            perchik.AddCommandRegEx(@"инфо\s(?<name>[\w\W]+)", onStatisticsCommand);
+            perchik.AddCommandRegEx(@"инфо\s(?<name>[\w\W\s]+)", onStatisticsCommand);
             perchik.onNoneMatched += onNoneCommandMatched;
 
 
@@ -799,10 +799,11 @@ namespace PersikSharp
             try
             {
                 Message message = e.Message;
-                string name = e.Match.Groups["name"].Value.Replace("@", "");
+                string name = e.Match.Groups["name"].Value;
+                string lower_name = name.ToLower().Replace("@", "");
 
                 var users = database.GetRowsByFilterAsync<DbUser>(
-                    u => u.FirstName == name || u.LastName == name || u.Username == name).Result;
+                    u => u.FirstName.ToLower() == lower_name || u.LastName.ToLower() == lower_name || u.Username.ToLower() == lower_name).Result;
 
                 if (users.Count == 0)
                 {
