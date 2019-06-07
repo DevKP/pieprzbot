@@ -34,7 +34,6 @@ namespace PersikSharp
         static StringManager tokens = new StringManager();
 
         static PerschikDB database = new PerschikDB("database.db");
-        static Timer DBProcess;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -96,11 +95,13 @@ namespace PersikSharp
             }
 
             ConsoleWindow.StartTrayAsync();
-            DBProcess = new Timer(StartDatabaseCheck, null, 0, 5000);
 
             while (!exit_token.IsCancellationRequested)
-                Thread.Sleep(1000);
-
+            {
+                StartDatabaseCheck(null);
+                Thread.Sleep(5000);
+            }
+                
             Bot.StopReceiving();
             CommandLine.Inst().StopUpdating();
         }
@@ -182,8 +183,9 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
             perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
-            perchik.AddCommandRegEx(@"\b(мозг|живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
+            perchik.AddCommandRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
+            perchik.AddCommandRegEx(@"инфо\s(?<name>[\w\W]+)", onStatisticsCommand);
             perchik.onNoneMatched += onNoneCommandMatched;
 
 
@@ -791,6 +793,48 @@ namespace PersikSharp
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
         }
+
+        private static void onStatisticsCommand(object sender, RegExArgs e)
+        {
+            try
+            {
+                Message message = e.Message;
+                string name = e.Match.Groups["name"].Value.Replace("@", "");
+
+                var users = database.GetRowsByFilterAsync<DbUser>(
+                    u => u.FirstName == name || u.LastName == name || u.Username == name).Result;
+
+                if (users.Count == 0)
+                {
+                    _ = Bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: $"*Пользователя \"{name}\" нет в базе.*",
+                            parseMode: ParseMode.Markdown);
+
+                    return;
+                }
+
+                int messages_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Messages WHERE UserId = ?", users[0].Id).Result;
+                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", users[0].Id).Result;
+
+                _ = Bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text:
+                            $"*Имя: {users[0].FirstName} {users[0].LastName}\n" +
+                            $"ID: {users[0].Id}\n" +
+                            $"Ник: {users[0].Username}\n\n" +
+                            $"Сообщений: { messages_count }\n" +
+                            $"Банов: { restrictions_count }\n" +
+                            $"Забанен: { users[0].RestrictionId != null }\n" +
+                            $"*",
+                            parseMode: ParseMode.Markdown).Result;
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+            }
+        }
+
 
         private static async Task<List<string>> PredictImage(PhotoSize ps)
         {
