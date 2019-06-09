@@ -276,7 +276,7 @@ namespace PersikSharp
                             canAddWebPagePreviews: false);
         }
 
-        static void HandleDbRestrictions()
+        static async void HandleDbRestrictions()
         {
             try
             {
@@ -285,7 +285,7 @@ namespace PersikSharp
                 {
                     foreach (DbUser user in users)
                     {
-                        var restrictions = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
+                        var restrictions = await database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId);
                         if (restrictions.Count != 0)
                         {
                             DbRestriction restriction = restrictions[0];
@@ -719,8 +719,8 @@ namespace PersikSharp
             {
                 Random rand = new Random();
                 string result;
-                string first = match.Groups["first"].Value;
-                string second = match.Groups["second"].Value;
+                string first = match.Groups["first"].Value.Replace("?", "");
+                string second = match.Groups["second"].Value.Replace("?", ""); ;
 
                 if (rand.NextDouble() >= 0.5)
                 {
