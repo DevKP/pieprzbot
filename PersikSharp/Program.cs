@@ -276,7 +276,7 @@ namespace PersikSharp
                             canAddWebPagePreviews: false);
         }
 
-        static void HandleDbRestrictions()
+        static async void HandleDbRestrictions()
         {
             try
             {
@@ -285,7 +285,7 @@ namespace PersikSharp
                 {
                     foreach (DbUser user in users)
                     {
-                        var restrictions = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
+                        var restrictions = await database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId);
                         if (restrictions.Count != 0)
                         {
                             DbRestriction restriction = restrictions[0];
@@ -719,8 +719,8 @@ namespace PersikSharp
             {
                 Random rand = new Random();
                 string result;
-                string first = match.Groups["first"].Value;
-                string second = match.Groups["second"].Value;
+                string first = match.Groups["first"].Value.Replace("?", "");
+                string second = match.Groups["second"].Value.Replace("?", ""); ;
 
                 if (rand.NextDouble() >= 0.5)
                 {
@@ -800,10 +800,11 @@ namespace PersikSharp
             {
                 Message message = e.Message;
                 string name = e.Match.Groups["name"].Value;
-                string lower_name = name.ToLower().Replace("@", "");
+                string upper_name = name.ToUpper().Replace("@", "");
 
-                var users = database.GetRowsByFilterAsync<DbUser>(
-                    u => u.FirstName.ToLower() == lower_name || u.LastName.ToLower() == lower_name || u.Username.ToLower() == lower_name).Result;
+
+                var users = database.ExecuteQueryAsync<DbUser>(
+                    $"SELECT * FROM Users WHERE UPPER(FirstName) LIKE '%{upper_name}%' OR UPPER(LastName) LIKE '%{upper_name}%' OR UPPER(Username) LIKE '%{upper_name}%'").Result;
 
                 if (users.Count == 0)
                 {
@@ -814,19 +815,27 @@ namespace PersikSharp
 
                     return;
                 }
+                DbUser user = users[0];
 
-                int messages_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Messages WHERE UserId = ?", users[0].Id).Result;
-                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", users[0].Id).Result;
+                int messages_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Messages WHERE UserId = ?", user.Id).Result;
+                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
+
+                var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id).Result;
+                var messages_lastday = messages.Where(m => DateTime.Now - DateTime.Parse(m.DateTime) < TimeSpan.FromDays(2) &&
+                                                            DateTime.Now - DateTime.Parse(m.DateTime) > TimeSpan.FromDays(1)).Count();
+                var messages_today = messages.Where(m => DateTime.Now - DateTime.Parse(m.DateTime) < TimeSpan.FromDays(1)).Count();
 
                 _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
                             text:
-                            $"*Имя: {users[0].FirstName} {users[0].LastName}\n" +
-                            $"ID: {users[0].Id}\n" +
-                            $"Ник: {users[0].Username}\n\n" +
-                            $"Сообщений: { messages_count }\n" +
+                            $"*Имя: {user.FirstName} {user.LastName}\n" +
+                            $"ID: {user.Id}\n" +
+                            $"Ник: {user.Username}\n\n" +
+                            $"Сообщений сегодня: { messages_today }\n" +
+                            $"Сообщений вчера: { messages_lastday }\n" +
+                            $"Всего сообщений: { messages_count }\n" +
                             $"Банов: { restrictions_count }\n" +
-                            $"Забанен: { users[0].RestrictionId != null }\n" +
+                            $"Забанен: { user.RestrictionId != null }\n" +
                             $"*",
                             parseMode: ParseMode.Markdown).Result;
             }
