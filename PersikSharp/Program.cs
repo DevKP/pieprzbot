@@ -814,9 +814,15 @@ namespace PersikSharp
 
                     return;
                 }
+                DbUser user = users[0];
 
-                int messages_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Messages WHERE UserId = ?", users[0].Id).Result;
-                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", users[0].Id).Result;
+                int messages_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Messages WHERE UserId = ?", user.Id).Result;
+                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
+
+                var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id).Result;
+                var messages_lastday = messages.Where(m => DateTime.Now - DateTime.Parse(m.DateTime) < TimeSpan.FromDays(2) &&
+                                                            DateTime.Now - DateTime.Parse(m.DateTime) > TimeSpan.FromDays(1)).Count();
+                var messages_today = messages.Where(m => DateTime.Now - DateTime.Parse(m.DateTime) < TimeSpan.FromDays(1)).Count();
 
                 _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
@@ -824,7 +830,9 @@ namespace PersikSharp
                             $"*Имя: {users[0].FirstName} {users[0].LastName}\n" +
                             $"ID: {users[0].Id}\n" +
                             $"Ник: {users[0].Username}\n\n" +
-                            $"Сообщений: { messages_count }\n" +
+                            $"Сообщений сегодня: { messages_today }\n" +
+                            $"Сообщений вчера: { messages_lastday }\n" +
+                            $"Всего сообщений: { messages_count }\n" +
                             $"Банов: { restrictions_count }\n" +
                             $"Забанен: { users[0].RestrictionId != null }\n" +
                             $"*",
