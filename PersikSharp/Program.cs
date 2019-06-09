@@ -800,10 +800,11 @@ namespace PersikSharp
             {
                 Message message = e.Message;
                 string name = e.Match.Groups["name"].Value;
-                string lower_name = name.ToLower().Replace("@", "");
+                string upper_name = name.ToUpper().Replace("@", "");
 
-                var users = database.GetRowsByFilterAsync<DbUser>(
-                    u => u.FirstName.ToLower() == lower_name || u.LastName.ToLower() == lower_name || u.Username.ToLower() == lower_name).Result;
+
+                var users = database.ExecuteQueryAsync<DbUser>(
+                    $"SELECT * FROM Users WHERE UPPER(FirstName) LIKE '%{upper_name}%' OR UPPER(LastName) LIKE '%{upper_name}%' OR UPPER(Username) LIKE '%{upper_name}%'").Result;
 
                 if (users.Count == 0)
                 {
@@ -827,14 +828,14 @@ namespace PersikSharp
                 _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
                             text:
-                            $"*Имя: {users[0].FirstName} {users[0].LastName}\n" +
-                            $"ID: {users[0].Id}\n" +
-                            $"Ник: {users[0].Username}\n\n" +
+                            $"*Имя: {user.FirstName} {user.LastName}\n" +
+                            $"ID: {user.Id}\n" +
+                            $"Ник: {user.Username}\n\n" +
                             $"Сообщений сегодня: { messages_today }\n" +
                             $"Сообщений вчера: { messages_lastday }\n" +
                             $"Всего сообщений: { messages_count }\n" +
                             $"Банов: { restrictions_count }\n" +
-                            $"Забанен: { users[0].RestrictionId != null }\n" +
+                            $"Забанен: { user.RestrictionId != null }\n" +
                             $"*",
                             parseMode: ParseMode.Markdown).Result;
             }
