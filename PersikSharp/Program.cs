@@ -803,10 +803,20 @@ namespace PersikSharp
                 string upper_name = name.ToUpper().Replace("@", "");
 
 
-                var users = database.ExecuteQueryAsync<DbUser>(
-                    $"SELECT * FROM Users WHERE UPPER(FirstName) LIKE '%{upper_name}%' OR UPPER(LastName) LIKE '%{upper_name}%' OR UPPER(Username) LIKE '%{upper_name}%'").Result;
+                var all_users = database.GetRows<DbUser>();
+                var users = all_users.Where(u => 
+                {
+                    if (u.FirstName != null)
+                        return u.FirstName.ToUpper().Contains(upper_name);
+                    if (u.LastName != null)
+                        return u.LastName.ToUpper().Contains(upper_name);
+                    if (u.Username != null)
+                        return u.Username.ToUpper().Contains(upper_name);
 
-                if (users.Count == 0)
+                    return false;
+                });
+
+                if (users.Count() == 0)
                 {
                     _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
@@ -815,15 +825,29 @@ namespace PersikSharp
 
                     return;
                 }
-                DbUser user = users[0];
+                DbUser user = users.First();
 
                 int messages_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Messages WHERE UserId = ?", user.Id).Result;
                 int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
 
-                var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id).Result;
-                var messages_lastday = messages.Where(m => DateTime.Now - DateTime.Parse(m.DateTime) < TimeSpan.FromDays(2) &&
-                                                            DateTime.Now - DateTime.Parse(m.DateTime) > TimeSpan.FromDays(1)).Count();
-                var messages_today = messages.Where(m => DateTime.Now - DateTime.Parse(m.DateTime) < TimeSpan.FromDays(1)).Count();
+                var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
+                var msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;   
+
+                var messages_today = messages.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day);
+                var u_messages_today = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day);
+
+                int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count();
+                int u_messages_today_count = u_messages_today.Count();
+
+                int total_text_length = messages_today.Sum(m => m.Text.Length);
+                int user_text_length = u_messages_today.Sum(m => m.Text.Length);
+                double user_activity = (double)user_text_length / (double)total_text_length;
+
+                double average_msg_length = messages_today.Average(m => m.Text.Length);
+                double average_user_msg_length = u_messages_today.Average(m => m.Text.Length);
+                double flood_level =  (average_msg_length / average_user_msg_length) / 6;
+                flood_level = average_user_msg_length > average_msg_length ? 0 : flood_level;
+                flood_level = flood_level < 0 ? 0 : flood_level * 100;
 
                 _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
@@ -831,9 +855,11 @@ namespace PersikSharp
                             $"*Имя: {user.FirstName} {user.LastName}\n" +
                             $"ID: {user.Id}\n" +
                             $"Ник: {user.Username}\n\n" +
-                            $"Сообщений сегодня: { messages_today }\n" +
-                            $"Сообщений вчера: { messages_lastday }\n" +
-                            $"Всего сообщений: { messages_count }\n" +
+                            string.Format("Активность: {0:F2}%\n", user_activity * 100) +
+                            string.Format("Количество флуда: {0:F2}%\n\n", flood_level) +
+                            $"Сообщений сегодня: { u_messages_today_count }\n" +
+                            $"Сообщений вчера: { u_messages_lastday_count }\n" +
+                            $"Всего сообщений: { messages_count }\n\n" +
                             $"Банов: { restrictions_count }\n" +
                             $"Забанен: { user.RestrictionId != null }\n" +
                             $"*",
