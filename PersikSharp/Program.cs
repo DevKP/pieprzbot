@@ -177,7 +177,7 @@ namespace PersikSharp
                 Environment.Exit(1);
             }
 
-            perchik.AddCommandRegEx(@"\b(за)?бань?\b", onPersikBanCommand);                                    //забань
+            perchik.AddCommandRegEx(@"(?<ban>\b(за)?бань?\b)\s?(?<number>\d{1,9})?\s?(?<letter>[смчд](\w+)?)?\s?(?<comment>[\w\W\s]+)?", onPersikBanCommand);                                    //забань
             perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
             perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
@@ -459,16 +459,19 @@ namespace PersikSharp
             int seconds = default_second;
             int number = default_second;
             string word = "сек.";
+            string comment = "...";
 
-            var match = Regex.Match(message.Text, @"(?<number>\d{1,9})\W?(?<letter>[смчд])?", RegexOptions.IgnoreCase);
-            if (match.Success)
+            if (e.Match.Success)
             {
-                number = int.Parse(match.Groups["number"].Value);
-                seconds = number;
-
-                if (match.Groups["letter"].Length > 0)
+                if (e.Match.Groups["number"].Value != string.Empty)
                 {
-                    switch (match.Groups["letter"].Value.First())
+                    number = int.Parse(e.Match.Groups["number"].Value);
+                    seconds = number;
+                }
+
+                if (e.Match.Groups["letter"].Value != string.Empty)
+                {
+                    switch (e.Match.Groups["letter"].Value.First())
                     {
                         case 'с':
                             seconds = number;
@@ -487,6 +490,11 @@ namespace PersikSharp
                             seconds *= 86400;
                             break;
                     }
+                }
+
+                if (e.Match.Groups["comment"].Value != string.Empty)
+                {
+                    comment = e.Match.Groups["comment"].Value;
                 }
             }
 
@@ -509,7 +517,7 @@ namespace PersikSharp
                     {
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: string.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word),
+                            text: string.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
                     }
                     else
@@ -517,7 +525,7 @@ namespace PersikSharp
                         seconds = int.MaxValue;
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word),
+                            text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
                     }
 
@@ -529,6 +537,8 @@ namespace PersikSharp
                         Username = e.Message.ReplyToMessage.From.Username,
                         LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
                     }, e.Message.Chat.Id, seconds);
+
+                    _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
                 else
                 {
@@ -541,7 +551,7 @@ namespace PersikSharp
 
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word),
+                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
                     }
                     else
@@ -552,7 +562,7 @@ namespace PersikSharp
 
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word),
+                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
                     }
 
@@ -564,6 +574,8 @@ namespace PersikSharp
                         Username = e.Message.From.Username,
                         LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     }, e.Message.Chat.Id, seconds);
+
+                    _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
             }
             catch (Exception exp)
