@@ -846,7 +846,7 @@ namespace PersikSharp
 
                 int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count();
                 int u_messages_today_count = u_messages_today.Count();
-                int messages_count = messages.Count();
+                int u_messages_count = msgs_from_user.Count();
                 int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
 
                 double user_activity = 0;
@@ -866,7 +866,7 @@ namespace PersikSharp
                             string.Format("Активность: {0:F2}%\n", user_activity * 100) +
                             $"Сообщений сегодня: { u_messages_today_count }\n" +
                             $"Сообщений вчера: { u_messages_lastday_count }\n" +
-                            $"Всего сообщений: { messages_count }\n\n" +
+                            $"Всего сообщений: { u_messages_count }\n\n" +
                             $"Банов: { restrictions_count }\n" +
                             $"Забанен: { user.RestrictionId != null }\n" +
                             $"*",
