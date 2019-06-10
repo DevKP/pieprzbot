@@ -101,7 +101,7 @@ namespace PersikSharp
                 StartDatabaseCheck(null);
                 Thread.Sleep(5000);
             }
-                
+
             Bot.StopReceiving();
             CommandLine.Inst().StopUpdating();
         }
@@ -263,7 +263,7 @@ namespace PersikSharp
                 Logger.Log(LogType.Info, $"{str}  <- Syntax Error!");
         }
 
-        private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40) 
+        private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.Now.AddSeconds(forSeconds);
             return Bot.RestrictChatMemberAsync(
@@ -336,7 +336,7 @@ namespace PersikSharp
                 return;
             }
 
-            if(message.ReplyToMessage?.From.Id != Bot.GetMeAsync().Result.Id)
+            if (message.ReplyToMessage?.From.Id != Bot.GetMeAsync().Result.Id)
                 perchik.ParseMessage(message);
         }
 
@@ -712,7 +712,7 @@ namespace PersikSharp
             Message message = e.Message;
 
             Regex regx = new Regex(strManager["BOT_REGX"], RegexOptions.IgnoreCase);
-            string without_perchik = regx.Replace(message.Text,string.Empty, 1);
+            string without_perchik = regx.Replace(message.Text, string.Empty, 1);
 
             var match = Regex.Match(without_perchik, e.Pattern, RegexOptions.IgnoreCase);
             if (match.Success)
@@ -802,16 +802,15 @@ namespace PersikSharp
                 string name = e.Match.Groups["name"].Value;
                 string upper_name = name.ToUpper().Replace("@", "");
 
-
                 var all_users = database.GetRows<DbUser>();
-                var users = all_users.Where(u => 
+                var users = all_users.Where(u =>
                 {
-                    if (u.FirstName != null)
-                        return u.FirstName.ToUpper().Contains(upper_name);
-                    if (u.LastName != null)
-                        return u.LastName.ToUpper().Contains(upper_name);
-                    if (u.Username != null)
-                        return u.Username.ToUpper().Contains(upper_name);
+                    if (u.FirstName != null && u.FirstName.ToUpper().Contains(upper_name))
+                        return true;
+                    if (u.LastName != null && u.LastName.ToUpper().Contains(upper_name))
+                        return true;
+                    if (u.Username != null && u.Username.ToUpper().Contains(upper_name))
+                        return true;
 
                     return false;
                 });
@@ -827,27 +826,24 @@ namespace PersikSharp
                 }
                 DbUser user = users.First();
 
-                int messages_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Messages WHERE UserId = ?", user.Id).Result;
-                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
-
                 var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
-                var msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;   
+                var msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
 
                 var messages_today = messages.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day);
                 var u_messages_today = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day);
 
                 int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count();
                 int u_messages_today_count = u_messages_today.Count();
+                int messages_count = messages.Count();
+                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
 
-                int total_text_length = messages_today.Sum(m => m.Text.Length);
-                int user_text_length = u_messages_today.Sum(m => m.Text.Length);
-                double user_activity = (double)user_text_length / (double)total_text_length;
-
-                double average_msg_length = messages_today.Average(m => m.Text.Length);
-                double average_user_msg_length = u_messages_today.Average(m => m.Text.Length);
-                double flood_level =  (average_msg_length / average_user_msg_length) / 6;
-                flood_level = average_user_msg_length > average_msg_length ? 0 : flood_level;
-                flood_level = flood_level < 0 ? 0 : flood_level * 100;
+                double user_activity = 0;
+                if (u_messages_today_count != 0)
+                {
+                    int total_text_length = messages_today.Sum(m => m.Text.Length);
+                    int user_text_length = u_messages_today.Sum(m => m.Text.Length);
+                    user_activity = (double)user_text_length / total_text_length;
+                }
 
                 _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
@@ -856,7 +852,6 @@ namespace PersikSharp
                             $"ID: {user.Id}\n" +
                             $"Ник: {user.Username}\n\n" +
                             string.Format("Активность: {0:F2}%\n", user_activity * 100) +
-                            string.Format("Количество флуда: {0:F2}%\n\n", flood_level) +
                             $"Сообщений сегодня: { u_messages_today_count }\n" +
                             $"Сообщений вчера: { u_messages_lastday_count }\n" +
                             $"Всего сообщений: { messages_count }\n\n" +
