@@ -216,7 +216,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCommand("stk", onStickerCommand);
             botcallbacks.RegisterCommand("topbans", onTopBansCommand);
-            botcallbacks.RegisterCommand("top", onTopBansCommand);
+            botcallbacks.RegisterCommand("top", onTopCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
         }
 
@@ -880,7 +880,7 @@ namespace PersikSharp
             }
         }
 
-        private static void onTopBansCommand(object sender, CommandEventArgs e)
+        private static void onTopCommand(object sender, CommandEventArgs e)
         {
             Message message = e.Message;
 
@@ -913,10 +913,12 @@ namespace PersikSharp
             for(int i = 0; i < 10 && i < user_bans_ordered.Count; i++)
             {
                 int dict_index = user_bans_ordered.Count - 1 - i;
-                string first_name = user_bans_ordered.ElementAt(dict_index).Key.FirstName;
-                string last_name = user_bans_ordered.ElementAt(dict_index).Key.LastName;
+                DbUser user = user_bans_ordered.ElementAt(dict_index).Key;
+                string first_name = user.FirstName?.Replace('[', '{').Replace(']', '}');
+                string last_name = user.LastName?.Replace('[', '{').Replace(']', '}');
+                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
                 double activity = user_bans_ordered.ElementAt(dict_index).Value;
-                msg_string += string.Format("{0}. {1} {2} -- {3:F2}%\n", i + 1, first_name, last_name, activity * 100);
+                msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, activity * 100);
             }
 
             _ = Bot.SendTextMessageAsync(
@@ -925,7 +927,7 @@ namespace PersikSharp
                             parseMode: ParseMode.Markdown).Result;
         }
 
-        private static void onTopCommand(object sender, CommandEventArgs e)
+        private static void onTopBansCommand(object sender, CommandEventArgs e)
         {
             Message message = e.Message;
 
@@ -941,10 +943,12 @@ namespace PersikSharp
             for (int i = 0; i < 10 && i < user_bans_ordered.Count; i++)
             {
                 int dict_index = user_bans_ordered.Count - 1 - i;
-                string first_name = user_bans_ordered.ElementAt(dict_index).Key.FirstName;
-                string last_name = user_bans_ordered.ElementAt(dict_index).Key.LastName;
+                DbUser user = user_bans_ordered.ElementAt(dict_index).Key;
+                string first_name = user.FirstName?.Replace('[', '{').Replace(']', '}');
+                string last_name = user.LastName?.Replace('[', '{').Replace(']', '}');
+                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
                 int bans = user_bans_ordered.ElementAt(dict_index).Value;
-                msg_string += $"{i + 1}. {first_name} {last_name} -- {bans}\n";
+                msg_string += $"{i + 1}. {full_name} -- {bans}\n";
             }
 
             _ = Bot.SendTextMessageAsync(
