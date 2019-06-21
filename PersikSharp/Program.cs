@@ -215,6 +215,8 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("version", onVersionCommand);
             botcallbacks.RegisterCommand("pickle", onPickleCommand);
             botcallbacks.RegisterCommand("stk", onStickerCommand);
+            botcallbacks.RegisterCommand("topbans", onTopBansCommand);
+            botcallbacks.RegisterCommand("top", onTopBansCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
         }
 
@@ -876,6 +878,79 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {exp.Message}");
             }
+        }
+
+        private static void onTopBansCommand(object sender, CommandEventArgs e)
+        {
+            Message message = e.Message;
+
+            var users = database.GetRows<DbUser>();
+            Dictionary<DbUser, double> users_activity = new Dictionary<DbUser, double>();
+
+            var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
+            var messages_today = messages.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day);
+
+            List<DbMessage> msgs_from_user;
+            List<DbMessage> u_messages_today;
+
+            foreach (var user in users)
+            {
+                msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
+                u_messages_today = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day).ToList();
+                int u_messages_today_count = u_messages_today.Count();
+
+                double user_activity = 0;
+                if (u_messages_today_count != 0)
+                {
+                    int total_text_length = messages_today.Sum(m => m.Text.Length);
+                    int user_text_length = u_messages_today.Sum(m => m.Text.Length);
+                    user_activity = (double)user_text_length / total_text_length;
+                }
+                users_activity.Add(user, user_activity);
+            }
+            var user_bans_ordered = users_activity.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+            string msg_string = "*Топ 10 по активности за сегодня:*\n";
+            for(int i = 0; i < 10 && i < user_bans_ordered.Count; i++)
+            {
+                int dict_index = user_bans_ordered.Count - 1 - i;
+                string first_name = user_bans_ordered.ElementAt(dict_index).Key.FirstName;
+                string last_name = user_bans_ordered.ElementAt(dict_index).Key.LastName;
+                double activity = user_bans_ordered.ElementAt(dict_index).Value;
+                msg_string += string.Format("{0}. {1} {2} -- {3:F2}%\n", i + 1, first_name, last_name, activity * 100);
+            }
+
+            _ = Bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: msg_string,
+                            parseMode: ParseMode.Markdown).Result;
+        }
+
+        private static void onTopCommand(object sender, CommandEventArgs e)
+        {
+            Message message = e.Message;
+
+            var users = database.GetRows<DbUser>();
+            Dictionary<DbUser, int> users_bans = new Dictionary<DbUser, int>();
+            foreach (var user in users)
+            {
+                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
+                users_bans.Add(user, restrictions_count);
+            }
+            var user_bans_ordered = users_bans.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+            string msg_string = "*Топ 10 по банам:*\n";
+            for (int i = 0; i < 10 && i < user_bans_ordered.Count; i++)
+            {
+                int dict_index = user_bans_ordered.Count - 1 - i;
+                string first_name = user_bans_ordered.ElementAt(dict_index).Key.FirstName;
+                string last_name = user_bans_ordered.ElementAt(dict_index).Key.LastName;
+                int bans = user_bans_ordered.ElementAt(dict_index).Value;
+                msg_string += $"{i + 1}. {first_name} {last_name} -- {bans}\n";
+            }
+
+            _ = Bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: msg_string,
+                            parseMode: ParseMode.Markdown).Result;
         }
 
 
