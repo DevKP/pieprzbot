@@ -54,14 +54,14 @@ namespace PersikSharp
                     AtLeastOneMatch = true;
 
                     RegExArgs args = new RegExArgs(msg, command_match, command.Key);
-                    command.Value?.Invoke(this, args);
+                    _ = Task.Run(() => command.Value?.Invoke(this, args) );
                 }
             }
 
             if (!AtLeastOneMatch)
             {
                 RegExArgs args = new RegExArgs(msg, null, null);
-                onNoneMatched?.Invoke(this, args);
+                _ = Task.Run(() => onNoneMatched?.Invoke(this, args) );
             }
         }
 
@@ -123,7 +123,7 @@ namespace PersikSharp
         {
             try
             {
-                return string.Format("[{0}](tg://user?id={1})", user.FirstName, user.Id);
+                return string.Format("[{0}](tg://user?id={1})", user.FirstName.Replace('[',' ').Replace(']', ' '), user.Id);
             }
             catch (NullReferenceException)//If FirstName is null using id as name
             {
