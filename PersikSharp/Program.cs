@@ -982,7 +982,7 @@ namespace PersikSharp
 
         private static async void NSFWDetect(Message message)//Упростить
         {
-            const bool ENABLE_FILTER = false;
+            const bool ENABLE_FILTER = true;
 
             try
             {
