@@ -80,13 +80,13 @@ namespace PersikSharp
                 }
             }
 
-            var me = Bot.GetMeAsync().Result;
-            Console.Title = me.FirstName;
+
+            Console.Title = botcallbacks.Me.FirstName;
 
             try
             {
                 Bot.StartReceiving(Array.Empty<UpdateType>());
-                Logger.Log(LogType.Info, $"Start listening for @{me.Username}");
+                Logger.Log(LogType.Info, $"Start listening for @{botcallbacks.Me.Username}");
             }
             catch (Exception e)
             {
@@ -189,7 +189,7 @@ namespace PersikSharp
             perchik.onNoneMatched += onNoneCommandMatched;
 
 
-            botcallbacks.RegisterRegEx(strManager["BOT_REGX"], (_, e) => onPersikCommand(e.Message));
+            botcallbacks.RegisterRegEx(strManager["BOT_REGX"], onPersikCommand);
             botcallbacks.RegisterRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
             botcallbacks.RegisterRegEx("420|трав(к)?а|шишки|марихуана", (_, e) =>
             {
@@ -205,7 +205,6 @@ namespace PersikSharp
             botcallbacks.onStickerMessage += onStickerMessage;
             botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
             botcallbacks.onDocumentMessage += onDocumentMessage;
-            botcallbacks.onTextEdited += onTextEdited;
 
             botcallbacks.RegisterCommand("start", onStartCommand);
             botcallbacks.RegisterCommand("info", onInfoCommand);
@@ -247,7 +246,7 @@ namespace PersikSharp
                 }
                 catch (Exception exp)
                 {
-                    Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                    Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
                 }
 
                 Logger.Log(LogType.Info, $"User {match.Groups[1].Value} - RESTRICTED!");
@@ -313,13 +312,14 @@ namespace PersikSharp
             }
             catch (Exception exp)
             {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
             }
         }
 
         //=====Persik Commands======
-        private static async void onPersikCommand(Message message)
+        private static async void onPersikCommand(object s, RegExArgs e)
         {
+            Message message = e.Message;
             if (message.ReplyToMessage?.Type == MessageType.Photo)
             {
                 Logger.Log(LogType.Info,
@@ -338,8 +338,8 @@ namespace PersikSharp
                 return;
             }
 
-            if (message.ReplyToMessage?.From.Id != Bot.GetMeAsync().Result.Id)
-                perchik.ParseMessage(message);
+            if (message.ReplyToMessage?.From.Id != botcallbacks.Me.Id)
+                 perchik.ParseMessage(message);
         }
 
         private static void onPerchikReplyTrigger(object sender, MessageArgs e)
@@ -350,7 +350,7 @@ namespace PersikSharp
                 return;
 
             if (e.Message.ReplyToMessage.From.Id == Bot.GetMeAsync().Result.Id)
-                perchik.ParseMessage(e.Message);
+               perchik.ParseMessage(e.Message);
         }
 
         private static void onWeather(object sender, RegExArgs a)//Переделать под другой АПИ
@@ -405,7 +405,7 @@ namespace PersikSharp
             }
             catch (ArgumentOutOfRangeException exp)
             {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
 
                 _ = Bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
@@ -436,7 +436,7 @@ namespace PersikSharp
             }
             catch (Exception e)
             {
-                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                Logger.Log(LogType.Error, $"Exception: {e.Message}\nTrace:{e.StackTrace}");
             }
         }
 
@@ -582,7 +582,7 @@ namespace PersikSharp
             }
             catch (Exception exp)
             {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
             }
         }
 
@@ -626,7 +626,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
 
@@ -654,7 +654,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
 
@@ -679,7 +679,7 @@ namespace PersikSharp
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                    Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
                 }
             }
         }
@@ -716,7 +716,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
 
         }
@@ -804,7 +804,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
 
@@ -876,7 +876,7 @@ namespace PersikSharp
             }
             catch (Exception exp)
             {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
             }
         }
 
@@ -1029,7 +1029,7 @@ namespace PersikSharp
             }
             catch (Exception exp)
             {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
             }
         }
 
@@ -1045,7 +1045,7 @@ namespace PersikSharp
             }
             catch (Exception exp)
             {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
             }
         }
 
@@ -1093,16 +1093,8 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
-        }
-
-        private static void onTextEdited(object sender, MessageArgs message_args)
-        {
-            Message message = message_args.Message;
-
-            Logger.Log(LogType.Info, $"[EDITED MESSAGE] ({message.From.FirstName}:{message.From.Id}): {message.Text}");
-            onTextMessage(sender, message_args);
         }
 
         private static void onPhotoMessage(object sender, MessageArgs message_args)
@@ -1185,7 +1177,7 @@ namespace PersikSharp
             }
             catch (Exception e)
             {
-                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                Logger.Log(LogType.Error, $"Exception: {e.Message}\nTrace:{e.StackTrace}");
             }
 
 
@@ -1240,7 +1232,7 @@ namespace PersikSharp
             }
             catch (Exception exp)
             {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}");
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
             }
         }
 
@@ -1256,7 +1248,7 @@ namespace PersikSharp
             }
             catch (Exception e)
             {
-                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                Logger.Log(LogType.Error, $"Exception: {e.Message}\nTrace:{e.StackTrace}");
             }
         }
 
@@ -1298,7 +1290,7 @@ namespace PersikSharp
             }
             catch (Exception e)
             {
-                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                Logger.Log(LogType.Error, $"Exception: {e.Message}\nTrace:{e.StackTrace}");
             }
         }
 
@@ -1318,7 +1310,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
 
@@ -1336,7 +1328,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
 
@@ -1351,7 +1343,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
 
@@ -1374,7 +1366,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
 
@@ -1418,7 +1410,7 @@ namespace PersikSharp
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
         //==========================
