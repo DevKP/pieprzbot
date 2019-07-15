@@ -6,6 +6,7 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace PersikSharp
 {
@@ -69,18 +70,20 @@ namespace PersikSharp
         public Dictionary<string, EventHandler<RegExArgs>> regexCallbacks =
             new Dictionary<string, EventHandler<RegExArgs>>();
 
+        public User Me { get; }
         private string bot_username;
 
         public BotCallBacks() { }
         public BotCallBacks(TelegramBotClient bot)
         {
-            bot.OnMessage += Bot_OnMessage;
+            bot.OnMessage += Bot_OnMessageAsync;
             bot.OnMessageEdited += Bot_OnMessageEdited;
             bot.OnCallbackQuery += Bot_OnCallbackQuery;
 
             try
             {
-                bot_username = bot.GetMeAsync().Result.Username;
+                this.Me = bot.GetMeAsync().Result;
+                bot_username = this.Me.Username;
             }
             catch (Exception exc)
             {
@@ -175,6 +178,11 @@ namespace PersikSharp
             }
         }
 
+        private void Bot_OnMessageAsync(object sender, MessageEventArgs e)
+        {
+            _ = Task.Run(() => Bot_OnMessage(this, e));
+        }
+
         private void Bot_OnMessage(object sender, MessageEventArgs e)
         {
             var message = e.Message;
@@ -207,7 +215,7 @@ namespace PersikSharp
                 case MessageType.Text:
                     MessageArgs message_args = new MessageArgs(message);
                     this.onTextCommandsParsing(this, message_args);
-                    this.RegEx_OnMessage(this, message_args);
+                    this.RegEx_OnMessageAsync(this, message_args);
 
                     message_str = message.Text;
                     onTextMessage?.Invoke(this, new MessageArgs(e.Message));
@@ -247,6 +255,10 @@ namespace PersikSharp
             Logger.Log(LogType.Info, $"{message_type_str}: {message_str}");
         }
 
+        private void RegEx_OnMessageAsync(object sender, MessageArgs e)
+        {
+            _ = Task.Run(() => RegEx_OnMessage(sender, e));
+        }
         private void RegEx_OnMessage(object sender, MessageArgs e)
         {
             Message message = e.Message;

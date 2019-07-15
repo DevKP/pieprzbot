@@ -39,6 +39,16 @@ namespace PersikSharp
         /// expressions and sends callbacks.
         /// </summary>
         /// <param name="msg">Message object from API</param>
+        public void ParseMessageAsync(Message msg)
+        {
+            _ = Task.Run(() => ParseMessage(msg));
+        }
+
+        /// <summary>
+        /// Checks the message for a match with each of the regular
+        /// expressions and sends callbacks.
+        /// </summary>
+        /// <param name="msg">Message object from API</param>
         public void ParseMessage(Message msg)
         {
             string text = msg.Text;
@@ -54,14 +64,16 @@ namespace PersikSharp
                     AtLeastOneMatch = true;
 
                     RegExArgs args = new RegExArgs(msg, command_match, command.Key);
-                    _ = Task.Run(() => command.Value?.Invoke(this, args) );
+                    //_ = Task.Run(() => command.Value?.Invoke(this, args));
+                    command.Value?.Invoke(this, args);
                 }
             }
 
             if (!AtLeastOneMatch)
             {
                 RegExArgs args = new RegExArgs(msg, null, null);
-                _ = Task.Run(() => onNoneMatched?.Invoke(this, args) );
+                //_ = Task.Run(() => onNoneMatched?.Invoke(this, args));
+                onNoneMatched?.Invoke(this, args);
             }
         }
 
