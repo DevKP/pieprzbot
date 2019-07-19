@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Telegram.Bot.Args;
 using PersikSharp.Tables;
+using System.Globalization;
 
 namespace PersikSharp
 {
@@ -843,10 +844,12 @@ namespace PersikSharp
                 var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
                 var msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
 
-                var messages_today = messages.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day);
-                var u_messages_today = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day);
+                var date = DateTime.Now.ToString("yyyy-MM-dd");
 
-                int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count();
+                var messages_today = messages.Where(m => m.DateTime.Substring(0, 10) == date);
+                var u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date);
+
+                int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count(); //TODO: FIX
                 int u_messages_today_count = u_messages_today.Count();
                 int u_messages_count = msgs_from_user.Count();
                 int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
@@ -892,7 +895,8 @@ namespace PersikSharp
             Dictionary<DbUser, double> users_activity = new Dictionary<DbUser, double>();
 
             var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
-            var messages_today = messages.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day);
+            var date = DateTime.Now.ToString("yyyy-MM-dd");
+            var messages_today = messages.Where(m => m.DateTime.Substring(0,10) == date).ToList();
 
             List<DbMessage> msgs_from_user;
             List<DbMessage> u_messages_today;
@@ -900,7 +904,7 @@ namespace PersikSharp
             foreach (var user in users)
             {
                 msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
-                u_messages_today = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day).ToList();
+                u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date).ToList();
                 int u_messages_today_count = u_messages_today.Count();
 
                 double user_activity = 0;
@@ -909,19 +913,19 @@ namespace PersikSharp
                     int total_text_length = messages_today.Sum(m => m.Text.Length);
                     int user_text_length = u_messages_today.Sum(m => m.Text.Length);
                     user_activity = (double)user_text_length / total_text_length;
+                    users_activity.Add(user, user_activity);
                 }
-                users_activity.Add(user, user_activity);
             }
-            var user_bans_ordered = users_activity.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+            var user_ordered = users_activity.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
             string msg_string = "*Топ 10 по активности за сегодня:*\n";
-            for(int i = 0; i < 10 && i < user_bans_ordered.Count; i++)
+            for(int i = 0; i < 10 && i < user_ordered.Count; i++)
             {
-                int dict_index = user_bans_ordered.Count - 1 - i;
-                DbUser user = user_bans_ordered.ElementAt(dict_index).Key;
+                int dict_index = user_ordered.Count - 1 - i;
+                DbUser user = user_ordered.ElementAt(dict_index).Key;
                 string first_name = user.FirstName?.Replace('[', '{').Replace(']', '}');
                 string last_name = user.LastName?.Replace('[', '{').Replace(']', '}');
                 string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
-                double activity = user_bans_ordered.ElementAt(dict_index).Value;
+                double activity = user_ordered.ElementAt(dict_index).Value;
                 msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, activity * 100);
             }
 
