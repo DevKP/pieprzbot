@@ -882,6 +882,10 @@ namespace PersikSharp
 
         private static void onTopCommand(object sender, CommandEventArgs e)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+
             Message message = e.Message;
 
             var users = database.GetRows<DbUser>();
@@ -921,14 +925,19 @@ namespace PersikSharp
                 msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, activity * 100);
             }
 
+            stopwatch.Stop();
+
             _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: msg_string,
+                            text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
                             parseMode: ParseMode.Markdown).Result;
         }
 
         private static void onTopBansCommand(object sender, CommandEventArgs e)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             Message message = e.Message;
 
             var users = database.GetRows<DbUser>();
@@ -951,9 +960,11 @@ namespace PersikSharp
                 msg_string += $"{i + 1}. {full_name} -- {bans}\n";
             }
 
+            stopwatch.Stop();
+
             _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: msg_string,
+                            text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
                             parseMode: ParseMode.Markdown).Result;
         }
 
