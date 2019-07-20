@@ -888,34 +888,50 @@ namespace PersikSharp
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-
             Message message = e.Message;
 
             var users = database.GetRows<DbUser>();
             Dictionary<DbUser, double> users_activity = new Dictionary<DbUser, double>();
 
-            var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
             var date = DateTime.Now.ToString("yyyy-MM-dd");
-            var messages_today = messages.Where(m => m.DateTime.Substring(0,10) == date).ToList();
+            var messages_today = database.GetRowsByFilterAsync<DbMessage>(m => m.DateTime.Contains(date)).Result;
 
-            List<DbMessage> msgs_from_user;
-            List<DbMessage> u_messages_today;
+            IEnumerable<DbMessage> u_messages_today;
+            int total_symbols = 0;
 
             foreach (var user in users)
             {
-                msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
-                u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date).ToList();
+                //msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
+                u_messages_today = messages_today.Where(m => m.UserId == user.Id && m.DateTime.Substring(0, 10) == date);
+               // u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date);
+
                 int u_messages_today_count = u_messages_today.Count();
 
                 double user_activity = 0;
                 if (u_messages_today_count != 0)
                 {
-                    int total_text_length = messages_today.Sum(m => m.Text.Length);
-                    int user_text_length = u_messages_today.Sum(m => m.Text.Length);
+                    int total_text_length = messages_today.Sum(m =>
+                    {
+                        if (m.Text != null)
+                            return m.Text.Length;
+                        else
+                            return 0;
+                    });
+                    total_symbols += total_text_length;
+
+                    int user_text_length = u_messages_today.Sum(m =>
+                    {
+                        if (m.Text != null)
+                            return m.Text.Length;
+                        else
+                            return 0;
+                    });
+
                     user_activity = (double)user_text_length / total_text_length;
                     users_activity.Add(user, user_activity);
                 }
             }
+
             var user_ordered = users_activity.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
             string msg_string = "*Топ 10 по активности за сегодня:*\n";
             for(int i = 0; i < 10 && i < user_ordered.Count; i++)
@@ -933,7 +949,7 @@ namespace PersikSharp
 
             _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
+                            text: $"{msg_string}\n`Всего символов:{total_symbols}\n{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
                             parseMode: ParseMode.Markdown).Result;
         }
 
