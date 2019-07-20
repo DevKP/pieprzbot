@@ -897,6 +897,7 @@ namespace PersikSharp
             var messages_today = database.GetRowsByFilterAsync<DbMessage>(m => m.DateTime.Contains(date)).Result;
 
             IEnumerable<DbMessage> u_messages_today;
+            int total_symbols = 0;
 
             foreach (var user in users)
             {
@@ -915,7 +916,8 @@ namespace PersikSharp
                             return m.Text.Length;
                         else
                             return 0;
-                    } );
+                    });
+                    total_symbols += total_text_length;
 
                     int user_text_length = u_messages_today.Sum(m =>
                     {
@@ -947,7 +949,7 @@ namespace PersikSharp
 
             _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
+                            text: $"{msg_string}\n`Всего символов:{total_symbols}\n{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
                             parseMode: ParseMode.Markdown).Result;
         }
 
