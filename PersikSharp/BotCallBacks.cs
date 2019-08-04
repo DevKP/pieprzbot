@@ -25,12 +25,16 @@ namespace PersikSharp
     }
     public class CallbackQueryArgs : EventArgs
     {
-        public CallbackQueryArgs(CallbackQuery m) { Callback = m; }
-        public CallbackQueryArgs(Message m) {
+        public CallbackQueryArgs(CallbackQuery m, int userid = 0)
+        { Callback = m; UserId = userid; }
+        public CallbackQueryArgs(Message m, int userid = 0)
+        {
             Callback = new CallbackQuery();
             Callback.Message = m;
+            UserId = userid;
         }
         public CallbackQuery Callback { get; }
+        public int UserId { get; }
     }
     public class NextstepArgs : EventArgs
     {
@@ -48,6 +52,14 @@ namespace PersikSharp
         public Message Message { get; }
     }
 
+    class InlineButton
+    {
+        public InlineButton(string data, int userid = 0)
+        { Data = data; UserId = userid; }
+        public string Data { get; }
+        public  int UserId { get; }
+    }
+
     class BotCallBacks
     {
         public event EventHandler<MessageArgs> onTextMessage;
@@ -63,8 +75,8 @@ namespace PersikSharp
 
         public Dictionary<string, EventHandler<CommandEventArgs>> commandsCallbacks =
             new Dictionary<string, EventHandler<CommandEventArgs>>();
-        public Dictionary<string, EventHandler<CallbackQueryArgs>> queryCallbacks =
-            new Dictionary<string, EventHandler<CallbackQueryArgs>>();
+        public Dictionary<InlineButton, EventHandler<CallbackQueryArgs>> queryCallbacks =
+            new Dictionary<InlineButton, EventHandler<CallbackQueryArgs>>();
         public List<BotCallBackUnit> nextstepCallbacks =
             new List<BotCallBackUnit>();
         public Dictionary<string, EventHandler<RegExArgs>> regexCallbacks =
@@ -120,8 +132,29 @@ namespace PersikSharp
         /// <param name="c">Method to be called.</param>
         public void RegisterCallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
         {
-            queryCallbacks.Add(data, c);
+            queryCallbacks.Add(new InlineButton(data), c);
         }
+
+        /// <summary>
+        /// Registers a сallback query for chat event. Pressing the button, etc.
+        /// </summary>
+        /// <param name="data">Callback data, see. Telegram API</param>
+        /// <param name="c">Method to be called.</param>
+        public void RegisterCallbackQuery(string data, int userid, EventHandler<CallbackQueryArgs> c)
+        {
+            queryCallbacks.Add(new InlineButton(data, userid), c);
+        }
+
+        /// <summary>
+        /// Removes a сallback query for chat event. Pressing the button, etc.
+        /// </summary>
+        /// <param name="data">Callback data, see. Telegram API</param>
+        public void RemoveCallbackQuery(string data)
+        {
+            var button = queryCallbacks.FirstOrDefault(o => o.Key.Data == data).Key;
+            queryCallbacks.Remove(button);
+        }
+
 
         public void RegisterNextstep(EventHandler<NextstepArgs> callback, Message message, bool fromAnyUser = false, object arg = null)
         {
@@ -158,11 +191,24 @@ namespace PersikSharp
 
         private void Bot_OnCallbackQuery(object sender, CallbackQueryEventArgs a)
         {
-            try {
+            try
+            {
                 Logger.Log(LogType.Info, $"<{this.GetType().Name}> InlineCallback \"{a.CallbackQuery.Data}\" from user ({a.CallbackQuery.From.FirstName}:{a.CallbackQuery.From.Id}).");
-                queryCallbacks[a.CallbackQuery.Data].Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
+
+                var buttonEventPair = queryCallbacks.First(o => o.Key.Data == a.CallbackQuery.Data);
+
+                if (buttonEventPair.Key.UserId != 0)
+                {
+                    if (buttonEventPair.Key.UserId == a.CallbackQuery.From.Id)
+                        buttonEventPair.Value.Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
+                }
+                else
+                {
+                    buttonEventPair.Value.Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
+                }
+
             }
-            catch (KeyNotFoundException)
+            catch (Exception)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> CallbackQuery with Data: \"{a.CallbackQuery.Data}\" isn't registered!!");
             }
