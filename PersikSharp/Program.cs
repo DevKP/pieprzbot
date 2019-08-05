@@ -1136,80 +1136,66 @@ namespace PersikSharp
 
         private static void onChatMembersAddedMessage(object sender, MessageArgs message_args)
         {
-            Message message = message_args.Message;
+            try
+            {
+                if (message_args.Message.From.IsBot)
+                    return;
 
-            string username = "Ноунейм";
-            string firstName = "";
-            string lastName = "";
-            if (message.From.Username != null)
-            {
-                username = $"@{message.From.Username}";
-            }
-            else
-            {
-                if (message.From.FirstName != null)
+                Message message = message_args.Message;
+
+                string username = "Ноунейм";
+                string firstName = "";
+                string lastName = "";
+                if (message.From.Username != null)
                 {
-                    username = message.From.FirstName;
-                    firstName = message.From.FirstName;
+                    username = $"@{message.From.Username}";
                 }
-                if (message.From.LastName != null)
+                else
                 {
-                    lastName = message.From.LastName;
+                    if (message.From.FirstName != null)
+                    {
+                        username = message.From.FirstName;
+                        firstName = message.From.FirstName;
+                    }
+                    if (message.From.LastName != null)
+                    {
+                        lastName = message.From.LastName;
+                    }
                 }
-            }
 
-
-            ///Spam Bot detection
-            if (Regex.IsMatch(firstName, @"\b[bб6][оo][т7t]\b", RegexOptions.IgnoreCase) ||
-               Regex.IsMatch(lastName, @"\b[bб6][оo][т7t]\b", RegexOptions.IgnoreCase))
-            {
-                _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
-                _ = Bot.SendTextMessageAsync(message.Chat.Id, String.Format(strManager.GetSingle("BOT_DETECTED"), username));
-
-                var until = DateTime.Now.AddSeconds(1);
-                _ = Bot.RestrictChatMemberAsync(
-                            chatId: message.Chat.Id,
-                            userId: message.From.Id,
-                            untilDate: until,
-                            canSendMessages: false,
-                            canSendMediaMessages: false,
-                            canSendOtherMessages: false,
-                            canAddWebPagePreviews: false);
-            }
-
-            var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == message.From.Id).Result;
-            if (user.Count > 0)
-            {
-                DateTime myDateTime = DateTime.Now;
-                string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-                database.InsertOrReplaceRowAsync(new DbUser()
+                var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == message.From.Id).Result;
+                if (user.Count == 0)
                 {
-                    Id = message.From.Id,
-                    FirstName = message.From.FirstName,
-                    LastName = message.From.LastName,
-                    Username = message.From.Username,
-                    LastMessage = sqlFormattedDate,
-                    RestrictionId = null
-                });
+                    database.InsertOrReplaceRowAsync(new DbUser()
+                    {
+                        Id = message.From.Id,
+                        FirstName = message.From.FirstName,
+                        LastName = message.From.LastName,
+                        Username = message.From.Username,
+                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        RestrictionId = null
+                    });
+                }
 
-                _ = Bot.RestrictChatMemberAsync(
-                        chatId: message.Chat.Id,
-                        userId: message.From.Id,
-                        untilDate: DateTime.Now.AddYears(420),
-                        canSendMessages: false,
-                        canSendMediaMessages: false,
-                        canSendOtherMessages: false,
-                        canAddWebPagePreviews: false);
-                
+                Bot.RestrictChatMemberAsync(
+                  chatId: message.Chat.Id,
+                  userId: message.From.Id,
+                  untilDate: DateTime.Now.AddYears(420),
+                  canSendMessages: false,
+                  canSendMediaMessages: false,
+                  canSendOtherMessages: false,
+                  canAddWebPagePreviews: false);
+
+
                 var human_button = new InlineKeyboardButton();
                 human_button.CallbackData = Path.GetRandomFileName();
-                human_button.Text = strManager["CAPTCHA_HUMAN"];
+                human_button.Text = strManager["CAPTCHA_HUMAN_BTN"];
 
                 var bot_button = new InlineKeyboardButton();
                 bot_button.CallbackData = Path.GetRandomFileName();
-                bot_button.Text = strManager["CAPTCHA_BOT"];
+                bot_button.Text = strManager["CAPTCHA_BOT_BTN"];
 
-                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { human_button, bot_button }});
+                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { human_button, bot_button } });
 
                 Bot.SendTextMessageAsync(
                      chatId: message_args.Message.Chat.Id,
@@ -1220,74 +1206,99 @@ namespace PersikSharp
                 botcallbacks.RegisterCallbackQuery(human_button.CallbackData, message.From.Id, onBotCheckButtonNoBot);
                 botcallbacks.RegisterCallbackQuery(bot_button.CallbackData, message.From.Id, onBotCheckButtonBot);
             }
-            else
+            catch (Exception ex)
             {
-                string msg_string = String.Format(strManager.GetRandom("NEW_MEMBERS"), username);
-                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
         }
+
         private static void onBotCheckButtonNoBot(object sender, CallbackQueryArgs c)
         {
-            //Bot.UnbanChatMemberAsync(
-            //    chatId: c.Callback.Message.Chat.Id,
-            //    userId: c.Callback.From.Id);
+            try
+            {
+                Message message = c.Callback.Message;
 
-            _ = Bot.RestrictChatMemberAsync(
-                        chatId: c.Callback.Message.Chat.Id,
+                Bot.DeleteMessageAsync(
+                chatId: message.Chat.Id,
+                messageId: message.MessageId);
+
+                var users = database.GetRowsByFilterAsync<DbUser>(u => u.Id == c.Callback.From.Id).Result;
+                if (users.Count != 0 && users.First().RestrictionId != null)
+                {
+                    DbUser user = users.First();
+                    var restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
+                    var until = DateTime.Parse(restriction.First().DateTimeTo);
+                    Bot.RestrictChatMemberAsync(
+                        chatId: message.Chat.Id,
                         userId: c.Callback.From.Id,
-                        untilDate: DateTime.Now.AddSeconds(1),
-                        canSendMessages: true,
-                        canSendMediaMessages: true,
-                        canSendOtherMessages: true,
-                        canAddWebPagePreviews: true);
-
-            Bot.DeleteMessageAsync(
-                chatId: c.Callback.Message.Chat.Id,
-                messageId: c.Callback.Message.MessageId);
-
-            string username = "Ноунейм";
-            string firstName = "";
-            string lastName = "";
-            if (c.Callback.Message.From.Username != null)
-            {
-                username = $"@{c.Callback.Message.From.Username}";
-            }
-            else
-            {
-                if (c.Callback.Message.From.FirstName != null)
-                {
-                    username = c.Callback.Message.From.FirstName;
-                    firstName = c.Callback.Message.From.FirstName;
+                        untilDate: until,
+                        canSendMessages: false,
+                        canSendMediaMessages: false,
+                        canSendOtherMessages: false,
+                        canAddWebPagePreviews: false);
                 }
-                if (c.Callback.Message.From.LastName != null)
+                else
                 {
-                    lastName = c.Callback.Message.From.LastName;
+                    Bot.RestrictChatMemberAsync(
+                            chatId: message.Chat.Id,
+                            userId: c.Callback.From.Id,
+                            untilDate: DateTime.Now.AddSeconds(1),
+                            canSendMessages: true,
+                            canSendMediaMessages: true,
+                            canSendOtherMessages: true,
+                            canAddWebPagePreviews: true);
                 }
+
+                string username = "Ноунейм";
+                string firstName = "";
+                string lastName = "";
+                if (message.From.Username != null)
+                {
+                    username = $"@{message.From.Username}";
+                }
+                else
+                {
+                    if (message.From.FirstName != null)
+                    {
+                        username = message.From.FirstName;
+                        firstName = message.From.FirstName;
+                    }
+                    if (message.From.LastName != null)
+                    {
+                        lastName = message.From.LastName;
+                    }
+                }
+
+                string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
+                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
+
+                botcallbacks.RemoveCallbackQuery(c.Callback.Data);
             }
-
-            string msg_string = String.Format(strManager.GetRandom("NEW_MEMBERS"), username);
-            _ = Bot.SendTextMessageAsync(c.Callback.Message.Chat.Id, msg_string);
-
-            botcallbacks.RemoveCallbackQuery(c.Callback.Data);
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
+            }
         }
 
         private static void onBotCheckButtonBot(object sender, CallbackQueryArgs c)
         {
+            Message message = c.Callback.Message;
+
             Bot.DeleteMessageAsync(
-                chatId: c.Callback.Message.Chat.Id,
-                messageId: c.Callback.Message.MessageId);
+                chatId: message.Chat.Id,
+                messageId: message.MessageId);
 
             Bot.KickChatMemberAsync(
-                chatId: c.Callback.Message.Chat.Id,
+                chatId: message.Chat.Id,
                 userId: c.Callback.From.Id);
 
             Bot.UnbanChatMemberAsync(
-                chatId: c.Callback.Message.Chat.Id,
+                chatId: message.Chat.Id,
                 userId: c.Callback.From.Id);
 
             Bot.SendTextMessageAsync(
-                  chatId: c.Callback.Message.Chat.Id,
-                  text: $"{ Perchik.MakeUserLink(c.Callback.Message.From)} сказал что бот и ушел из чата!",
+                  chatId: message.Chat.Id,
+                  text: string.Format(strManager["CAPTCHA_HUMAN"], Perchik.MakeUserLink(message.From)),
                   parseMode: ParseMode.Markdown);
 
             botcallbacks.RemoveCallbackQuery(c.Callback.Data);
