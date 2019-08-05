@@ -7,6 +7,7 @@ using Telegram.Bot.Types;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace PersikSharp
 {
@@ -303,7 +304,8 @@ namespace PersikSharp
 
         private void RegEx_OnMessageAsync(object sender, MessageArgs e)
         {
-            _ = Task.Run(() => RegEx_OnMessage(sender, e));
+            Thread thread = new Thread(() => RegEx_OnMessage(sender, e));
+            thread.Start();
         }
         private void RegEx_OnMessage(object sender, MessageArgs e)
         {
@@ -319,7 +321,8 @@ namespace PersikSharp
                         Logger.Log(LogType.Info, $"<{this.GetType().Name}:RegEx>({message.From.FirstName}:{message.From.Id}) -> {pattern}");
 
                         RegExArgs rgxArgs = new RegExArgs(message, match, pattern);
-                        regex.Value?.Invoke(this, rgxArgs); 
+                        //_ = Task.Run(() => regex.Value?.Invoke(this, rgxArgs)); 
+                        regex.Value?.Invoke(this, rgxArgs);
                     }
                 }
             }

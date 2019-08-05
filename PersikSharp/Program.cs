@@ -1197,14 +1197,22 @@ namespace PersikSharp
 
                 var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { human_button, bot_button } });
 
-                Bot.SendTextMessageAsync(
+                var captcha_msg = Bot.SendTextMessageAsync(
                      chatId: message_args.Message.Chat.Id,
                      replyMarkup: inlineKeyboard,
                      text: string.Format(strManager["CAPTCHA"], Perchik.MakeUserLink(message.From)),
-                     parseMode: ParseMode.Markdown);
+                     parseMode: ParseMode.Markdown).Result;
 
                 botcallbacks.RegisterCallbackQuery(human_button.CallbackData, message.From.Id, onBotCheckButtonNoBot);
                 botcallbacks.RegisterCallbackQuery(bot_button.CallbackData, message.From.Id, onBotCheckButtonBot);
+
+                Thread.Sleep(1000 * 60);
+
+                CallbackQuery fake_button_callback = new CallbackQuery();
+                fake_button_callback.From = message.From;
+                fake_button_callback.Message = message;
+
+                onBotCheckButtonBot(sender, new CallbackQueryArgs(fake_button_callback, message.From.Id));
             }
             catch (Exception ex)
             {
