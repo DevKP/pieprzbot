@@ -340,7 +340,7 @@ namespace PersikSharp
             }
 
             if (message.ReplyToMessage?.From.Id != botcallbacks.Me.Id)
-                 perchik.ParseMessage(message);
+                perchik.ParseMessage(message);
         }
 
         private static void onPerchikReplyTrigger(object sender, MessageArgs e)
@@ -351,7 +351,7 @@ namespace PersikSharp
                 return;
 
             if (e.Message.ReplyToMessage.From.Id == Bot.GetMeAsync().Result.Id)
-               perchik.ParseMessage(e.Message);
+                perchik.ParseMessage(e.Message);
         }
 
         private static void onWeather(object sender, RegExArgs a)//Переделать под другой АПИ
@@ -901,47 +901,47 @@ namespace PersikSharp
 
             foreach (var user in users)
             {
-                //msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
                 u_messages_today = messages_today.Where(m => m.UserId == user.Id && m.DateTime.Substring(0, 10) == date);
-               // u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date);
 
-                int u_messages_today_count = u_messages_today.Count();
+                if (u_messages_today.Count() == 0)
+                {
+                    continue;
+                }
 
                 double user_activity = 0;
-                if (u_messages_today_count != 0)
+                int total_text_length = messages_today.Sum(m =>
                 {
-                    int total_text_length = messages_today.Sum(m =>
-                    {
-                        if (m.Text != null)
-                            return m.Text.Length;
-                        else
-                            return 0;
-                    });
-                    total_symbols += total_text_length;
+                    if (m.Text != null)
+                        return m.Text.Length;
+                    else
+                        return 0;
+                });
+                total_symbols += total_text_length;
 
-                    int user_text_length = u_messages_today.Sum(m =>
-                    {
-                        if (m.Text != null)
-                            return m.Text.Length;
-                        else
-                            return 0;
-                    });
+                int user_text_length = u_messages_today.Sum(m =>
+                {
+                    if (m.Text != null)
+                        return m.Text.Length;
+                    else
+                        return 0;
+                });
 
-                    user_activity = (double)user_text_length / total_text_length;
-                    users_activity.Add(user, user_activity);
-                }
+                user_activity = (double)user_text_length / total_text_length;
+                users_activity.Add(user, user_activity);
             }
 
-            var user_ordered = users_activity.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+            var users_inorder = users_activity.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
             string msg_string = "*Топ 10 по активности за сегодня:*\n";
-            for(int i = 0; i < 10 && i < user_ordered.Count; i++)
+            for (int i = 0; i < 10 && i < users_inorder.Count; i++)
             {
-                int dict_index = user_ordered.Count - 1 - i;
-                DbUser user = user_ordered.ElementAt(dict_index).Key;
+                int dict_index = users_inorder.Count - 1 - i;
+
+                DbUser user = users_inorder.ElementAt(dict_index).Key;
                 string first_name = user.FirstName?.Replace('[', '{').Replace(']', '}');
                 string last_name = user.LastName?.Replace('[', '{').Replace(']', '}');
                 string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
-                double activity = user_ordered.ElementAt(dict_index).Value;
+                double activity = users_inorder.ElementAt(dict_index).Value;
+
                 msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, activity * 100);
             }
 
@@ -1104,15 +1104,6 @@ namespace PersikSharp
             {
                 DateTime myDateTime = DateTime.Now;
                 string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-                database.InsertOrReplaceRowAsync(new DbUser()
-                {
-                    Id = e.Message.From.Id,
-                    FirstName = e.Message.From.FirstName,
-                    LastName = e.Message.From.LastName,
-                    Username = e.Message.From.Username,
-                    LastMessage = sqlFormattedDate,
-                    RestrictionId = null
-                });
 
                 database.InsertRowAsync(new DbMessage()
                 {
@@ -1143,49 +1134,188 @@ namespace PersikSharp
 
         private static void onChatMembersAddedMessage(object sender, MessageArgs message_args)
         {
-            Message message = message_args.Message;
+            try
+            {
+                if (message_args.Message.From.IsBot)
+                    return;
 
-            string username = "Ноунейм";
-            string firstName = "";
-            string lastName = "";
-            if (message.From.Username != null)
-            {
-                username = $"@{message.From.Username}";
-            }
-            else
-            {
-                if (message.From.FirstName != null)
+                Message message = message_args.Message;
+
+                string username = "Ноунейм";
+                string firstName = "";
+                string lastName = "";
+                if (message.From.Username != null)
                 {
-                    username = message.From.FirstName;
-                    firstName = message.From.FirstName;
+                    username = $"@{message.From.Username}";
                 }
-                if (message.From.LastName != null)
+                else
                 {
-                    lastName = message.From.LastName;
+                    if (message.From.FirstName != null)
+                    {
+                        username = message.From.FirstName;
+                        firstName = message.From.FirstName;
+                    }
+                    if (message.From.LastName != null)
+                    {
+                        lastName = message.From.LastName;
+                    }
                 }
+
+                string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
+                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
+
+
+                //remove to enable
+                return;
+
+
+                var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == message.From.Id).Result;
+                if (user.Count == 0)
+                {
+                    database.InsertOrReplaceRowAsync(new DbUser()
+                    {
+                        Id = message.From.Id,
+                        FirstName = message.From.FirstName,
+                        LastName = message.From.LastName,
+                        Username = message.From.Username,
+                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        RestrictionId = null
+                    });
+                }
+
+                Bot.RestrictChatMemberAsync(
+                  chatId: message.Chat.Id,
+                  userId: message.From.Id,
+                  untilDate: DateTime.Now.AddYears(420),
+                  canSendMessages: false,
+                  canSendMediaMessages: false,
+                  canSendOtherMessages: false,
+                  canAddWebPagePreviews: false);
+
+
+                var human_button = new InlineKeyboardButton();
+                human_button.CallbackData = Path.GetRandomFileName();
+                human_button.Text = strManager["CAPTCHA_HUMAN_BTN"];
+
+                var bot_button = new InlineKeyboardButton();
+                bot_button.CallbackData = Path.GetRandomFileName();
+                bot_button.Text = strManager["CAPTCHA_BOT_BTN"];
+
+                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { human_button, bot_button } });
+
+                var captcha_msg = Bot.SendTextMessageAsync(
+                     chatId: message_args.Message.Chat.Id,
+                     replyMarkup: inlineKeyboard,
+                     text: string.Format(strManager["CAPTCHA"], Perchik.MakeUserLink(message.From)),
+                     parseMode: ParseMode.Markdown).Result;
+
+                botcallbacks.RegisterCallbackQuery(human_button.CallbackData, message.From.Id, onBotCheckButtonNoBot);
+                botcallbacks.RegisterCallbackQuery(bot_button.CallbackData, message.From.Id, onBotCheckButtonBot);
+
+                //Thread.Sleep(1000 * 60);
+
+                //CallbackQuery fake_button_callback = new CallbackQuery();
+                //fake_button_callback.From = message.From;
+                //fake_button_callback.Message = message;
+
+                //onBotCheckButtonBot(sender, new CallbackQueryArgs(fake_button_callback, message.From.Id));
             }
-
-
-            ///Spam Bot detection
-            if (Regex.IsMatch(firstName, @"\b[bб6][оo][т7t]\b", RegexOptions.IgnoreCase) ||
-               Regex.IsMatch(lastName, @"\b[bб6][оo][т7t]\b", RegexOptions.IgnoreCase))
+            catch (Exception ex)
             {
-                _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
-                _ = Bot.SendTextMessageAsync(message.Chat.Id, String.Format(strManager.GetSingle("BOT_DETECTED"), username));
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
+            }
+        }
 
-                var until = DateTime.Now.AddSeconds(1);
-                _ = Bot.RestrictChatMemberAsync(
+        private static void onBotCheckButtonNoBot(object sender, CallbackQueryArgs c)
+        {
+            try
+            {
+                Message message = c.Callback.Message;
+
+                Bot.DeleteMessageAsync(
+                chatId: message.Chat.Id,
+                messageId: message.MessageId);
+
+                var users = database.GetRowsByFilterAsync<DbUser>(u => u.Id == c.Callback.From.Id).Result;
+                if (users.Count != 0 && users.First().RestrictionId != null)
+                {
+                    DbUser user = users.First();
+                    var restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
+                    var until = DateTime.Parse(restriction.First().DateTimeTo);
+                    Bot.RestrictChatMemberAsync(
+                        chatId: message.Chat.Id,
+                        userId: c.Callback.From.Id,
+                        untilDate: until,
+                        canSendMessages: false,
+                        canSendMediaMessages: false,
+                        canSendOtherMessages: false,
+                        canAddWebPagePreviews: false);
+                }
+                else
+                {
+                    Bot.RestrictChatMemberAsync(
                             chatId: message.Chat.Id,
-                            userId: message.From.Id,
-                            untilDate: until,
-                            canSendMessages: false,
-                            canSendMediaMessages: false,
-                            canSendOtherMessages: false,
-                            canAddWebPagePreviews: false);
-            }
+                            userId: c.Callback.From.Id,
+                            untilDate: DateTime.Now.AddSeconds(1),
+                            canSendMessages: true,
+                            canSendMediaMessages: true,
+                            canSendOtherMessages: true,
+                            canAddWebPagePreviews: true);
+                }
 
-            string msg_string = String.Format(strManager.GetRandom("NEW_MEMBERS"), username);
-            _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
+                string username = "Ноунейм";
+                string firstName = "";
+                string lastName = "";
+                if (c.Callback.From.Username != null)
+                {
+                    username = $"@{c.Callback.From.Username}";
+                }
+                else
+                {
+                    if (c.Callback.From.FirstName != null)
+                    {
+                        username = c.Callback.From.FirstName;
+                        firstName = c.Callback.From.FirstName;
+                    }
+                    if (c.Callback.From.LastName != null)
+                    {
+                        lastName = c.Callback.From.LastName;
+                    }
+                }
+
+                string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
+                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
+
+                botcallbacks.RemoveCallbackQuery(c.Callback.Data);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
+            }
+        }
+
+        private static void onBotCheckButtonBot(object sender, CallbackQueryArgs c)
+        {
+            Message message = c.Callback.Message;
+
+            Bot.DeleteMessageAsync(
+                chatId: message.Chat.Id,
+                messageId: message.MessageId);
+
+            Bot.KickChatMemberAsync(
+                chatId: message.Chat.Id,
+                userId: c.Callback.From.Id);
+
+            Bot.UnbanChatMemberAsync(
+                chatId: message.Chat.Id,
+                userId: c.Callback.From.Id);
+
+            Bot.SendTextMessageAsync(
+                  chatId: message.Chat.Id,
+                  text: string.Format(strManager["CAPTCHA_HUMAN"], Perchik.MakeUserLink(message.From)),
+                  parseMode: ParseMode.Markdown);
+
+            botcallbacks.RemoveCallbackQuery(c.Callback.Data);
         }
 
         //=======Bot commands========
