@@ -218,8 +218,6 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("topbans", onTopBansCommand);
             botcallbacks.RegisterCommand("top", onTopCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
-
-            botcallbacks.RegisterCommand("button", onTestCommand);
         }
 
         static void StartDatabaseCheck(object s)
@@ -1163,6 +1161,14 @@ namespace PersikSharp
                     }
                 }
 
+                string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
+                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
+
+
+                //remove to enable
+                return;
+
+
                 var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == message.From.Id).Result;
                 if (user.Count == 0)
                 {
@@ -1206,13 +1212,13 @@ namespace PersikSharp
                 botcallbacks.RegisterCallbackQuery(human_button.CallbackData, message.From.Id, onBotCheckButtonNoBot);
                 botcallbacks.RegisterCallbackQuery(bot_button.CallbackData, message.From.Id, onBotCheckButtonBot);
 
-                Thread.Sleep(1000 * 60);
+                //Thread.Sleep(1000 * 60);
 
-                CallbackQuery fake_button_callback = new CallbackQuery();
-                fake_button_callback.From = message.From;
-                fake_button_callback.Message = message;
+                //CallbackQuery fake_button_callback = new CallbackQuery();
+                //fake_button_callback.From = message.From;
+                //fake_button_callback.Message = message;
 
-                onBotCheckButtonBot(sender, new CallbackQueryArgs(fake_button_callback, message.From.Id));
+                //onBotCheckButtonBot(sender, new CallbackQueryArgs(fake_button_callback, message.From.Id));
             }
             catch (Exception ex)
             {
@@ -1260,20 +1266,20 @@ namespace PersikSharp
                 string username = "Ноунейм";
                 string firstName = "";
                 string lastName = "";
-                if (message.From.Username != null)
+                if (c.Callback.From.Username != null)
                 {
-                    username = $"@{message.From.Username}";
+                    username = $"@{c.Callback.From.Username}";
                 }
                 else
                 {
-                    if (message.From.FirstName != null)
+                    if (c.Callback.From.FirstName != null)
                     {
-                        username = message.From.FirstName;
-                        firstName = message.From.FirstName;
+                        username = c.Callback.From.FirstName;
+                        firstName = c.Callback.From.FirstName;
                     }
-                    if (message.From.LastName != null)
+                    if (c.Callback.From.LastName != null)
                     {
-                        lastName = message.From.LastName;
+                        lastName = c.Callback.From.LastName;
                     }
                 }
 
@@ -1567,32 +1573,6 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
-        }
-        private static void onTestCommand(object sender, CommandEventArgs message_args)
-        {
-            var button = new InlineKeyboardButton();
-            button.CallbackData = Path.GetRandomFileName();
-            button.Text = "TEST BUTTON";
-            var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-
-            _ = Bot.SendTextMessageAsync(
-                 chatId: message_args.Message.Chat.Id,
-                 replyMarkup: inlineKeyboard,
-                 text: "TestMessage").Result;
-
-            botcallbacks.RegisterCallbackQuery(button.CallbackData, message_args.Message.From.Id, onTestButtonPress);
-        }
-        private static void onTestButtonPress(object sender, CallbackQueryArgs c)
-        {
-            Bot.DeleteMessageAsync(
-                chatId: c.Callback.Message.Chat.Id,
-                messageId: c.Callback.Message.MessageId);
-
-           Bot.SendTextMessageAsync(
-                 chatId: c.Callback.Message.Chat.Id,
-                 text: $"Message from right user. Button data: {c.Callback.Data}");
-
-            botcallbacks.RemoveCallbackQuery(c.Callback.Data);
         }
         //==========================
     }

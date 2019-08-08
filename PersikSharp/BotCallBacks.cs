@@ -227,7 +227,8 @@ namespace PersikSharp
 
         private void Bot_OnMessageAsync(object sender, MessageEventArgs e)
         {
-            _ = Task.Run(() => Bot_OnMessage(this, e));
+            Thread thread = new Thread(() => Bot_OnMessage(sender, e));
+            thread.Start();
         }
 
         private void Bot_OnMessage(object sender, MessageEventArgs e)
