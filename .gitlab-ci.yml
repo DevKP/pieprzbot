@@ -15,7 +15,7 @@ build:
   stage: build
   script:
     - powershell -Command '"C:\Nuget\nuget.exe" restore'
-    - D:\Microsoft Visual Studio\2019\Preview\MSBuild\Current\Bin\msbuild.exe /p:Configuration=Release
+    - start-process "D:\Microsoft Visual Studio\2019\Preview\MSBuild\Current\Bin\msbuild.exe" "/p:Configuration=Release"
   artifacts:
     expire_in: 1 week
     paths:
