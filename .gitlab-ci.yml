@@ -14,7 +14,7 @@ stages:
 build:
   stage: build
   script:
-    - '"C:\Nuget\nuget.exe" restore'
+    - '& "C:\Nuget\nuget.exe" restore'
     - '& "D:\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\msbuild.exe" /p:Configuration=Release'
   artifacts:
     expire_in: 1 week
