@@ -144,6 +144,41 @@ namespace PersikSharp
 
         }
 
+        /// <summary>
+        /// Resctricts user.
+        /// </summary>
+        /// <param name="chatid">Chat id.</param>
+        /// <param name="userid">User id.</param>
+        /// <param name="until">Rescrict until.</param>
+        /// <param name="userid">Can write messages or not.</param>
+        public static Task RestrictUser(long chatid, int userid, DateTime until, bool canWriteMessages = false)
+        {
+            try
+            {
+                ChatPermissions permissions = new ChatPermissions();
+                permissions.CanAddWebPagePreviews = canWriteMessages;
+                permissions.CanChangeInfo = canWriteMessages;
+                permissions.CanInviteUsers = canWriteMessages;
+                permissions.CanPinMessages = canWriteMessages;
+                permissions.CanSendMediaMessages = canWriteMessages;
+                permissions.CanSendMessages = canWriteMessages;
+                permissions.CanSendOtherMessages = canWriteMessages;
+                permissions.CanSendPolls = canWriteMessages;
+
+                return Program.Bot.RestrictChatMemberAsync(
+                    chatId: chatid,
+                    userId: userid,
+                    untilDate: until,
+                    permissions: permissions);
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
+                return null;
+            }
+
+        }
+
         public static Task SaveFileAsync(string fileId, string folder, string fileName = null)
         {
             return Task.Run(() => SaveFile(fileId, folder, fileName));

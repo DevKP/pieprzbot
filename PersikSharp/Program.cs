@@ -48,8 +48,8 @@ namespace PersikSharp
             Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
             CloseAnotherInstance();
 
-            CommandLine.Inst().onSubmitAction += PrintString;
-            CommandLine.Inst().StartUpdating();
+            //CommandLine.Inst().onSubmitAction += PrintString;
+            //CommandLine.Inst().StartUpdating();
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
@@ -236,14 +236,7 @@ namespace PersikSharp
                 try
                 {
                     var until = DateTime.Now.AddSeconds(int.Parse(match.Groups[2].Value));
-                    await Bot.RestrictChatMemberAsync(
-                        chatId: offtopia_id,
-                        userId: int.Parse(match.Groups[1].Value),
-                        untilDate: until,
-                        canSendMessages: false,
-                        canSendMediaMessages: false,
-                        canSendOtherMessages: false,
-                        canAddWebPagePreviews: false);
+                    Perchik.RestrictUser(offtopia_id, int.Parse(match.Groups[1].Value), until);
                 }
                 catch (Exception exp)
                 {
@@ -268,14 +261,7 @@ namespace PersikSharp
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.Now.AddSeconds(forSeconds);
-            return Bot.RestrictChatMemberAsync(
-                            chatId: chatId,
-                            userId: userId,
-                            untilDate: until,
-                            canSendMessages: false,
-                            canSendMediaMessages: false,
-                            canSendOtherMessages: false,
-                            canAddWebPagePreviews: false);
+            return Perchik.RestrictUser(chatId.Identifier, userId, until);
         }
 
         static async void HandleDbRestrictions()
@@ -601,14 +587,7 @@ namespace PersikSharp
             try
             {
                 var until = DateTime.Now.AddSeconds(1);
-                _ = Bot.RestrictChatMemberAsync(
-                    chatId: message.Chat.Id,
-                    userId: message.ReplyToMessage.From.Id,
-                    untilDate: until,
-                    canSendMessages: true,
-                    canSendMediaMessages: true,
-                    canSendOtherMessages: true,
-                    canAddWebPagePreviews: true);
+                Perchik.RestrictUser(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
                 _ = database.InsertOrReplaceRowAsync(new DbUser()
                 {
@@ -772,14 +751,8 @@ namespace PersikSharp
                 if (random_number == 3)
                 {
                     var until = DateTime.Now.AddSeconds(10 * 60); //10 minutes
-                    _ = Bot.RestrictChatMemberAsync(
-                            chatId: message.Chat.Id,
-                            userId: message.From.Id,
-                            untilDate: until,
-                            canSendMessages: false,
-                            canSendMediaMessages: false,
-                            canSendOtherMessages: false,
-                            canAddWebPagePreviews: false);
+                    Perchik.RestrictUser(message.Chat.Id, message.From.Id, until);
+
 
                     _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
@@ -1037,14 +1010,7 @@ namespace PersikSharp
                         if (message.Chat.Type != ChatType.Private)
                         {
                             var until = DateTime.Now.AddSeconds(120);
-                            await Bot.RestrictChatMemberAsync(
-                                chatId: message.Chat.Id,
-                                userId: message.From.Id,
-                                untilDate: until,
-                                canSendMessages: false,
-                                canSendMediaMessages: false,
-                                canSendOtherMessages: false,
-                                canAddWebPagePreviews: false);
+                            _ = Perchik.RestrictUser(message.Chat.Id, message.From.Id, until);
 
                             await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
@@ -1183,14 +1149,7 @@ namespace PersikSharp
                     });
                 }
 
-                Bot.RestrictChatMemberAsync(
-                  chatId: message.Chat.Id,
-                  userId: message.From.Id,
-                  untilDate: DateTime.Now.AddYears(420),
-                  canSendMessages: false,
-                  canSendMediaMessages: false,
-                  canSendOtherMessages: false,
-                  canAddWebPagePreviews: false);
+                Perchik.RestrictUser(message.Chat.Id, message.From.Id, DateTime.Now.AddYears(420));
 
 
                 var human_button = new InlineKeyboardButton();
@@ -1242,25 +1201,12 @@ namespace PersikSharp
                     DbUser user = users.First();
                     var restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
                     var until = DateTime.Parse(restriction.First().DateTimeTo);
-                    Bot.RestrictChatMemberAsync(
-                        chatId: message.Chat.Id,
-                        userId: c.Callback.From.Id,
-                        untilDate: until,
-                        canSendMessages: false,
-                        canSendMediaMessages: false,
-                        canSendOtherMessages: false,
-                        canAddWebPagePreviews: false);
+                    Perchik.RestrictUser(message.Chat.Id, c.Callback.From.Id, until);
+
                 }
                 else
                 {
-                    Bot.RestrictChatMemberAsync(
-                            chatId: message.Chat.Id,
-                            userId: c.Callback.From.Id,
-                            untilDate: DateTime.Now.AddSeconds(1),
-                            canSendMessages: true,
-                            canSendMediaMessages: true,
-                            canSendOtherMessages: true,
-                            canAddWebPagePreviews: true);
+                    Perchik.RestrictUser(message.Chat.Id, c.Callback.From.Id, DateTime.Now.AddSeconds(1), canWriteMessages: true);
                 }
 
                 string username = "Ноунейм";
