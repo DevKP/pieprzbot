@@ -199,9 +199,8 @@ namespace PersikSharp
                     replyToMessageId: e.Message.MessageId);
             });
 
-            Bot.OnMessage += DatabaseUpdate;
             botcallbacks.onTextMessage += onTextMessage;
-            botcallbacks.onTextMessage += onPerchikReplyTrigger;
+            //botcallbacks.onTextMessage += ;
             botcallbacks.onPhotoMessage += onPhotoMessage;
             botcallbacks.onStickerMessage += onStickerMessage;
             botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
@@ -542,6 +541,15 @@ namespace PersikSharp
                             chatId: message.Chat.Id,
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
+
+                        _ = database.AddRestrictionAsync(new DbUser()
+                        {
+                            Id = e.Message.From.Id,
+                            FirstName = e.Message.From.FirstName,
+                            LastName = e.Message.From.LastName,
+                            Username = e.Message.From.Username,
+                            LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        }, e.Message.Chat.Id, seconds);
                     }
                     else
                     {
@@ -553,16 +561,16 @@ namespace PersikSharp
                             chatId: message.Chat.Id,
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
-                    }
 
-                    _ = database.AddRestrictionAsync(new DbUser()
-                    {
-                        Id = e.Message.From.Id,
-                        FirstName = e.Message.From.FirstName,
-                        LastName = e.Message.From.LastName,
-                        Username = e.Message.From.Username,
-                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    }, e.Message.Chat.Id, seconds);
+                        _ = database.AddRestrictionAsync(new DbUser()
+                        {
+                            Id = e.Message.From.Id,
+                            FirstName = e.Message.From.FirstName,
+                            LastName = e.Message.From.LastName,
+                            Username = e.Message.From.Username,
+                            LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                        }, e.Message.Chat.Id, 40);
+                    }
 
                     _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
@@ -1054,7 +1062,7 @@ namespace PersikSharp
             //Message to superchat from privat Example: !Hello World
             if (m.Chat.Type == ChatType.Private && m.Text[0] == '!')
             {
-                if (Perchik.isUserAdmin(-1001125742098, m.From.Id))
+                if (Perchik.isUserAdmin(offtopia_id, m.From.Id))
                 {
                     string msg = m.Text.Substring(1, m.Text.Length - 1);
                     _ = Bot.SendTextMessageAsync(offtopia_id, $"*{msg}*", ParseMode.Markdown);
@@ -1062,9 +1070,12 @@ namespace PersikSharp
                     Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id})(DM): {msg}");
                 }
             }
+
+            onPerchikReplyTrigger(sender, message_args);
+            DatabaseUpdate(sender, message_args.Message);
         }
 
-        private static void DatabaseUpdate(object s, MessageEventArgs e)
+        private static void DatabaseUpdate(object s, Message e)
         {
             try
             {
@@ -1073,9 +1084,9 @@ namespace PersikSharp
 
                 database.InsertRowAsync(new DbMessage()
                 {
-                    Id = e.Message.MessageId,
-                    UserId = e.Message.From.Id,
-                    Text = e.Message.Text,
+                    Id = e.MessageId,
+                    UserId = e.From.Id,
+                    Text = e.Text,
                     DateTime = sqlFormattedDate
                 });
             }

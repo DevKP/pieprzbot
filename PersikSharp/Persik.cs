@@ -39,16 +39,6 @@ namespace PersikSharp
         /// expressions and sends callbacks.
         /// </summary>
         /// <param name="msg">Message object from API</param>
-        public void ParseMessageAsync(Message msg)
-        {
-            _ = Task.Run(() => ParseMessage(msg));
-        }
-
-        /// <summary>
-        /// Checks the message for a match with each of the regular
-        /// expressions and sends callbacks.
-        /// </summary>
-        /// <param name="msg">Message object from API</param>
         public void ParseMessage(Message msg)
         {
             string text = msg.Text;
