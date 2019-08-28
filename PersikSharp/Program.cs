@@ -235,7 +235,7 @@ namespace PersikSharp
                 try
                 {
                     var until = DateTime.Now.AddSeconds(420);
-                    Perchik.RestrictUser(offtopia_id, int.Parse(match.Groups[1].Value), until, true);
+                    _ = Perchik.RestrictUser(offtopia_id, int.Parse(match.Groups[1].Value), until, true);
                 }
                 catch (Exception exp)
                 {
