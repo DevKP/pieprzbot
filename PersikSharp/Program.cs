@@ -48,8 +48,8 @@ namespace PersikSharp
             Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
             CloseAnotherInstance();
 
-            //CommandLine.Inst().onSubmitAction += PrintString;
-            //CommandLine.Inst().StartUpdating();
+            CommandLine.Inst().onSubmitAction += PrintString;
+            CommandLine.Inst().StartUpdating();
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
@@ -229,20 +229,20 @@ namespace PersikSharp
             CommandLine.Text = string.Empty;
             string str = e.Text;
 
-            var match = Regex.Match(str, @"ban:(.*):(.*):", RegexOptions.IgnoreCase);
+            var match = Regex.Match(str, @"unban:(.*):", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 try
                 {
-                    var until = DateTime.Now.AddSeconds(int.Parse(match.Groups[2].Value));
-                    Perchik.RestrictUser(offtopia_id, int.Parse(match.Groups[1].Value), until);
+                    var until = DateTime.Now.AddSeconds(420);
+                    Perchik.RestrictUser(offtopia_id, int.Parse(match.Groups[1].Value), until, true);
                 }
                 catch (Exception exp)
                 {
                     Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
                 }
 
-                Logger.Log(LogType.Info, $"User {match.Groups[1].Value} - RESTRICTED!");
+                Logger.Log(LogType.Info, $"User {match.Groups[1].Value} - UNBANNED!");
                 return;
             }
             if (str[0] == '!')
