@@ -7,6 +7,7 @@
 
   <PropertyGroup>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ApplicationIcon>perchik.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

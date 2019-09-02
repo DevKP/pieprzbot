@@ -15,11 +15,10 @@ build:
   stage: build
   script:
     - '& "C:\Nuget\nuget.exe" restore'
-    - '& "D:\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\msbuild.exe" /p:Configuration=Release'
+    - 'dotnet build'
   artifacts:
     expire_in: 1 week
     paths:
-      - PersikSharp\bin\Release\PersikSharp.exe
       - PersikSharp\bin\Release\*.dll
   only:
     - master
