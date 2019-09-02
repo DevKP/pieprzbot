@@ -14,12 +14,12 @@ stages:
 build:
   stage: build
   script:
-    - '& "C:\Nuget\nuget.exe" restore'
+    - 'dotnet restore'
     - 'dotnet build'
   artifacts:
     expire_in: 1 week
     paths:
-      - PersikSharp\bin\Release\*.dll
+      - PersikSharp\bin\Debug\netcoreapp2.1\*.dll
   only:
     - master
   tags:
