@@ -19,7 +19,7 @@ build:
   artifacts:
     expire_in: 1 week
     paths:
-      - PersikSharp\bin\Debug\netcoreapp2.1\*.dll
+      - PerchikSharp\bin\Debug\netcoreapp2.1\*.dll
   only:
     - master
   tags:
