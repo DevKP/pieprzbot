@@ -6,11 +6,6 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("PersikSharp")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("PersikSharp")]
 [assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -33,7 +28,6 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: log4net.Config.XmlConfigurator(ConfigFile = "./Configs/log4net.config", Watch = true)]
 [assembly: NeutralResourcesLanguage("ru")]
 [assembly: AssemblyVersion(ThisAssembly.Git.SemVer.Major+ "." + ThisAssembly.Git.SemVer.Minor)]
 [assembly: AssemblyInformationalVersion("0.8." +

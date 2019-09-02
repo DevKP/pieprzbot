@@ -48,8 +48,8 @@ namespace PersikSharp
             Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
             CloseAnotherInstance();
 
-            CommandLine.Inst().onSubmitAction += PrintString;
-            CommandLine.Inst().StartUpdating();
+           // CommandLine.Inst().onSubmitAction += PrintString;
+            //CommandLine.Inst().StartUpdating();
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
@@ -95,7 +95,7 @@ namespace PersikSharp
                 Console.ReadKey();
             }
 
-            ConsoleWindow.StartTrayAsync();
+            //ConsoleWindow.StartTrayAsync();
 
             while (!exit_token.IsCancellationRequested)
             {
