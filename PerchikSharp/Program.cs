@@ -658,7 +658,7 @@ namespace PersikSharp
                     await FullyRestrictUserAsync(
                             chatId: message.Chat.Id,
                             userId: message.From.Id,
-                            forSeconds: 60 * 5);
+                            forSeconds: 60);
 
                     _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
