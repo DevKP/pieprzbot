@@ -407,7 +407,7 @@ namespace PersikSharp
                 {
                     _ = Bot.SendTextMessageAsync(
                            chatId: message.Chat.Id,
-                           text: $"*Количество запросов превышено, лол!*",//SMOKE WEED EVERYDAY
+                           text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
                            parseMode: ParseMode.Markdown,
                            replyToMessageId: message.MessageId);
                     return;
@@ -505,7 +505,7 @@ namespace PersikSharp
                     {
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: string.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
+                            text: string.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment, Perchik.MakeUserLink(message.From)),
                             parseMode: ParseMode.Markdown);
                     }
                     else
