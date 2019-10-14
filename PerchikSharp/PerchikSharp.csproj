@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(ProjectDir)Resources\* $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)Configs\* $(ProjectDir)$(OutDir)\Configs\" />
+    <Exec Command="copy $(ProjectDir)Resources\* $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)Configs\* $(ProjectDir)$(OutDir)Configs\" />
   </Target>
 
 </Project>
