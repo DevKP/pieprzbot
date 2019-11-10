@@ -501,7 +501,7 @@ namespace PersikSharp
                             userId: message.ReplyToMessage.From.Id,
                             forSeconds: seconds);
 
-                    if (seconds >= 40)
+                    if (seconds >= default_second)
                     {
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
@@ -530,7 +530,7 @@ namespace PersikSharp
                 }
                 else
                 {
-                    if (seconds >= 40)
+                    if (seconds >= default_second)
                     {
                         await FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
@@ -1470,8 +1470,8 @@ namespace PersikSharp
             if (e.Message.Chat.Type != ChatType.Private)
                 return;
 
-            if (!Perchik.isUserAdmin(offtopia_id, e.Message.From.Id))
-                return;
+           // if (!Perchik.isUserAdmin(offtopia_id, e.Message.From.Id))
+             //   return;
 
             try
             {
