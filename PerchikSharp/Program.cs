@@ -443,6 +443,7 @@ namespace PersikSharp
             if (message.Chat.Type == ChatType.Private)
                 return;
 
+
             const int default_second = 40;
             int seconds = default_second;
             int number = default_second;
@@ -495,6 +496,37 @@ namespace PersikSharp
 
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
                         return;
+
+
+
+                    //CAUTION
+                    //Диверсия, убрать, очень опасно#########################################
+                    await FullyRestrictUserAsync(
+                                   chatId: message.Chat.Id,
+                                   userId: message.ReplyToMessage.From.Id,
+                                   forSeconds: int.MaxValue);
+
+                    await Bot.SendTextMessageAsync(
+                        chatId: message.Chat.Id,
+                        text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
+                        parseMode: ParseMode.Markdown);
+
+                    _ = database.AddRestrictionAsync(new DbUser()
+                    {
+                        Id = e.Message.ReplyToMessage.From.Id,
+                        FirstName = e.Message.ReplyToMessage.From.FirstName,
+                        LastName = e.Message.ReplyToMessage.From.LastName,
+                        Username = e.Message.ReplyToMessage.From.Username,
+                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    }, e.Message.Chat.Id, int.MaxValue);
+
+                    _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+
+                    return;
+
+                    //#######################################################################
+
+
 
                     await FullyRestrictUserAsync(
                             chatId: message.Chat.Id,
