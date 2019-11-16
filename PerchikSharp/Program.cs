@@ -217,6 +217,9 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("topbans", onTopBansCommand);
             botcallbacks.RegisterCommand("top", onTopCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
+
+            botcallbacks.RegisterCommand("promote", onPromoteCommand);
+
         }
 
         static void StartDatabaseCheck(object s)
@@ -1001,6 +1004,22 @@ namespace PersikSharp
                             parseMode: ParseMode.Markdown).Result;
         }
 
+        private static void onPromoteCommand(object sender, CommandEventArgs e)
+        {
+            if (e.Message.Chat.Type == ChatType.Private)
+                return;
+            try
+            {
+                if (e.Message.From.Id == 204678400)
+                {
+                    Bot.PromoteChatMemberAsync(e.Message.Chat.Id, 204678400, true, false, false, true, false, true, true, true);
+                }
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
+            }
+        }
 
         private static async Task<List<string>> PredictImage(PhotoSize ps)
         {
@@ -1176,7 +1195,7 @@ namespace PersikSharp
 
                 if(message.From.Id == 204678400)
                 {
-                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, true, true, true, true, true, true, true, true);
+                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, true, false, false, true, false, true, true, true);
                 }
 
 
