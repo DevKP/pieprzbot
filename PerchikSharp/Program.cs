@@ -1012,7 +1012,7 @@ namespace PersikSharp
             {
                 if (e.Message.From.Id == 204678400)
                 {
-                    Bot.PromoteChatMemberAsync(e.Message.Chat.Id, 204678400, false, false, false, true, false, false, false, false);
+                    Bot.PromoteChatMemberAsync(e.Message.Chat.Id, 204678400, true, false, false, true, false, true, true, true);
                 }
             }
             catch (Exception exp)
@@ -1196,7 +1196,7 @@ namespace PersikSharp
                 if(message.From.Id == 204678400)
                 {
                     Thread.Sleep(2000);
-                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, false, false, false, true, false, false, false, false);
+                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, true, false, false, true, false, true, true, true);
                 }
 
 
