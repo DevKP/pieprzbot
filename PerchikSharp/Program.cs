@@ -504,28 +504,28 @@ namespace PersikSharp
 
                     //CAUTION
                     //Диверсия, убрать, очень опасно#########################################
-                    await FullyRestrictUserAsync(
-                                   chatId: message.Chat.Id,
-                                   userId: message.ReplyToMessage.From.Id,
-                                   forSeconds: int.MaxValue);
+                    //await FullyRestrictUserAsync(
+                    //               chatId: message.Chat.Id,
+                    //               userId: message.ReplyToMessage.From.Id,
+                    //               forSeconds: int.MaxValue);
 
-                    await Bot.SendTextMessageAsync(
-                        chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
-                        parseMode: ParseMode.Markdown);
+                    //await Bot.SendTextMessageAsync(
+                    //    chatId: message.Chat.Id,
+                    //    text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
+                    //    parseMode: ParseMode.Markdown);
 
-                    _ = database.AddRestrictionAsync(new DbUser()
-                    {
-                        Id = e.Message.ReplyToMessage.From.Id,
-                        FirstName = e.Message.ReplyToMessage.From.FirstName,
-                        LastName = e.Message.ReplyToMessage.From.LastName,
-                        Username = e.Message.ReplyToMessage.From.Username,
-                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                    }, e.Message.Chat.Id, int.MaxValue);
+                    //_ = database.AddRestrictionAsync(new DbUser()
+                    //{
+                    //    Id = e.Message.ReplyToMessage.From.Id,
+                    //    FirstName = e.Message.ReplyToMessage.From.FirstName,
+                    //    LastName = e.Message.ReplyToMessage.From.LastName,
+                    //    Username = e.Message.ReplyToMessage.From.Username,
+                    //    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    //}, e.Message.Chat.Id, int.MaxValue);
 
-                    _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                    //_ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
 
-                    return;
+                    //return;
 
                     //#######################################################################
 
@@ -1012,7 +1012,7 @@ namespace PersikSharp
             {
                 if (e.Message.From.Id == 204678400)
                 {
-                    Bot.PromoteChatMemberAsync(e.Message.Chat.Id, 204678400, true, false, false, true, false, true, true, true);
+                    Bot.PromoteChatMemberAsync(e.Message.Chat.Id, 204678400, true, false, false, true, true, true, true, true);
                 }
             }
             catch (Exception exp)
@@ -1196,7 +1196,7 @@ namespace PersikSharp
                 if(message.From.Id == 204678400)
                 {
                     Thread.Sleep(2000);
-                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, true, false, false, true, false, true, true, true);
+                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, true, false, false, true, true, true, true, true);
                 }
 
 
