@@ -348,7 +348,7 @@ namespace PersikSharp
             Match weather_match = a.Match;
 
             string search_url = Uri.EscapeUriString(
-                $"http://dataservice.accuweather.com/locations/v1/cities/search?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru");
+                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru-ru");
             int location_code = 0;
             dynamic location_json;
             dynamic weather_json;
@@ -365,7 +365,7 @@ namespace PersikSharp
                 {
                     _ = Bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
-                         text: $"*Количество запросов превышено, лол!*",
+                         text: $"*Количество запросов превышено!*",
                          parseMode: ParseMode.Markdown,
                          replyToMessageId: message.MessageId);
                     return;
@@ -375,7 +375,7 @@ namespace PersikSharp
 
                 location_code = location_json[0].Key;
 
-                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru";
+                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru-ru&details=true";
 
                 request = (HttpWebRequest)WebRequest.Create(current_url);
                 response = (HttpWebResponse)request.GetResponse();
@@ -388,7 +388,7 @@ namespace PersikSharp
 
                 _ = Bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
-                          text: $"*{location_json[0].LocalizedName}, {location_json[0].Country.LocalizedName}\n\n{weather_json[0].WeatherText}\nТемпература: {weather_json[0].Temperature.Metric.Value}°C*",
+                          text: $"*{location_json[0].LocalizedName}, {location_json[0].Country.LocalizedName}\n\n{weather_json[0].WeatherText}\nТемпература: {weather_json[0].Temperature.Metric.Value}°C\nЧувствуется как: {weather_json[0].RealFeelTemperature.Metric.Value}°C\nНаправление/скорость ветра: {weather_json[0].Wind.Direction.Localized}/{weather_json[0].Wind.Speed.Metric.Value} км/ч*",
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
             }
@@ -404,24 +404,33 @@ namespace PersikSharp
             }
             catch (WebException w)
             {
-                Stream resStream = w.Response.GetResponseStream();
-                StreamReader reader = new StreamReader(resStream);
-                if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
-                {
-                    _ = Bot.SendTextMessageAsync(
-                           chatId: message.Chat.Id,
-                           text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
-                           parseMode: ParseMode.Markdown,
-                           replyToMessageId: message.MessageId);
-                    return;
-                }
-
-                Logger.Log(LogType.Error, $"Exception: {w.Message}");
                 _ = Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: w.Message,
-                            parseMode: ParseMode.Markdown,
-                            replyToMessageId: message.MessageId);
+                              chatId: message.Chat.Id,
+                              text: $"*{w.Message}*",
+                              parseMode: ParseMode.Markdown,
+                              replyToMessageId: message.MessageId);
+
+                if (w.Response != null)
+                {
+                    Stream resStream = w.Response.GetResponseStream();
+                    StreamReader reader = new StreamReader(resStream);
+                    if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
+                    {
+                        _ = Bot.SendTextMessageAsync(
+                               chatId: message.Chat.Id,
+                               text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
+                               parseMode: ParseMode.Markdown,
+                               replyToMessageId: message.MessageId);
+                        return;
+                    }
+
+                    Logger.Log(LogType.Error, $"Exception: {w.Message}");
+                    _ = Bot.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: w.Message,
+                                parseMode: ParseMode.Markdown,
+                                replyToMessageId: message.MessageId);
+                }
             }
             catch (Exception e)
             {
