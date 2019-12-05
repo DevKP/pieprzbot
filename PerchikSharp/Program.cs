@@ -388,7 +388,10 @@ namespace PersikSharp
 
                 _ = Bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
-                          text: $"*{location_json[0].LocalizedName}, {location_json[0].Country.LocalizedName}\n\n{weather_json[0].WeatherText}\nТемпература: {weather_json[0].Temperature.Metric.Value}°C\nЧувствуется как: {weather_json[0].RealFeelTemperature.Metric.Value}°C\nНаправление/скорость ветра: {weather_json[0].Wind.Direction.Localized}/{weather_json[0].Wind.Speed.Metric.Value} км/ч*",
+                          text:
+                          string.Format(strManager["WEATHER_MESSAGE"],
+                          location_json[0].LocalizedName, location_json[0].Country.LocalizedName, weather_json[0].WeatherText, weather_json[0].Temperature.Metric.Value,
+                          weather_json[0].RealFeelTemperature.Metric.Value, weather_json[0].RelativeHumidity, weather_json[0].Wind.Direction.Localized, weather_json[0].Wind.Speed.Metric.Value),
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
             }
