@@ -186,7 +186,7 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            perchik.AddCommandRegEx(@"инфо?\s?(?<name>[\w\W\s]+)", onStatisticsCommand);
+            perchik.AddCommandRegEx(@"инфо\s?(?<name>[\w\W\s]+)?", onStatisticsCommand);
             perchik.onNoneMatched += onNoneCommandMatched;
 
 
