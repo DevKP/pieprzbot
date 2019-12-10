@@ -1152,6 +1152,16 @@ namespace PersikSharp
                     Text = e.Text,
                     DateTime = sqlFormattedDate
                 });
+
+                database.InsertOrReplaceRowAsync(new DbUser()
+                {
+                    Id = e.From.Id,
+                    FirstName = e.From.FirstName,
+                    LastName = e.From.LastName,
+                    Username = e.From.Username,
+                    LastMessage = sqlFormattedDate,
+                    RestrictionId = null
+                });
             }
             catch (Exception ex)
             {
