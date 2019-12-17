@@ -182,7 +182,8 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
             perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
-            perchik.AddCommandRegEx(@"погода\s([\w\s-]+)", onWeather);                                          //погода ГОРОД
+            perchik.AddCommandRegEx(@"погода\s([\w\s-]+)", onWeather);   //погода ГОРОД
+            perchik.AddCommandRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast); 
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
@@ -441,7 +442,108 @@ namespace PersikSharp
             }
         }
 
-        private static void onNoneCommandMatched(object sender, RegExArgs e)
+        private static void onWeatherForecast(object sender, RegExArgs a)//Переделать под другой АПИ
+        {
+            Message message = a.Message;
+            Match weather_match = a.Match;
+
+            string search_url = Uri.EscapeUriString(
+                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru-ru");
+            int location_code = 0;
+            dynamic location_json;
+            dynamic weather_json;
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(search_url);
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                Stream resStream = response.GetResponseStream();
+
+                StreamReader reader = new StreamReader(resStream);
+                string respone_str = reader.ReadToEnd();
+
+                if (respone_str.Contains("The allowed number of requests has been exceeded."))
+                {
+                    _ = Bot.SendTextMessageAsync(
+                         chatId: message.Chat.Id,
+                         text: $"*Количество запросов превышено!*",
+                         parseMode: ParseMode.Markdown,
+                         replyToMessageId: message.MessageId);
+                    return;
+                }
+
+                location_json = JsonConvert.DeserializeObject(respone_str);
+
+                location_code = location_json[0].Key;
+
+                string current_url = $"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru-ru&metric=true&details=true";
+
+                request = (HttpWebRequest)WebRequest.Create(current_url);
+                response = (HttpWebResponse)request.GetResponse();
+                resStream = response.GetResponseStream();
+
+                reader = new StreamReader(resStream);
+                respone_str = reader.ReadToEnd();
+
+                weather_json = JsonConvert.DeserializeObject(respone_str);
+
+                _ = Bot.SendTextMessageAsync(
+                          chatId: message.Chat.Id,
+                          text:
+                          string.Format(strManager["WEATHER_FORECAST_MESSAGE"],
+                          location_json[0].LocalizedName, location_json[0].Country.LocalizedName, weather_json.DailyForecasts[0].Day.LongPhrase,
+                          weather_json.DailyForecasts[0].Temperature.Minimum.Value, weather_json.DailyForecasts[0].Temperature.Maximum.Value,
+                          weather_json.DailyForecasts[0].Day.RainProbability, weather_json.DailyForecasts[0].Day.Wind.Speed.Value,
+                          weather_json.DailyForecasts[0].Day.Wind.Direction.Localized),
+                          parseMode: ParseMode.Markdown,
+                          replyToMessageId: message.MessageId);
+            }
+            catch (ArgumentOutOfRangeException exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
+
+                _ = Bot.SendTextMessageAsync(
+                          chatId: message.Chat.Id,
+                          text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
+                          parseMode: ParseMode.Markdown,
+                          replyToMessageId: message.MessageId);
+            }
+            catch (WebException w)
+            {
+                _ = Bot.SendTextMessageAsync(
+                              chatId: message.Chat.Id,
+                              text: $"*{w.Message}*",
+                              parseMode: ParseMode.Markdown,
+                              replyToMessageId: message.MessageId);
+
+                if (w.Response != null)
+                {
+                    Stream resStream = w.Response.GetResponseStream();
+                    StreamReader reader = new StreamReader(resStream);
+                    if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
+                    {
+                        _ = Bot.SendTextMessageAsync(
+                               chatId: message.Chat.Id,
+                               text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
+                               parseMode: ParseMode.Markdown,
+                               replyToMessageId: message.MessageId);
+                        return;
+                    }
+
+                    Logger.Log(LogType.Error, $"Exception: {w.Message}");
+                    _ = Bot.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: w.Message,
+                                parseMode: ParseMode.Markdown,
+                                replyToMessageId: message.MessageId);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}\nTrace:{e.StackTrace}");
+            }
+        }
+
+            private static void onNoneCommandMatched(object sender, RegExArgs e)
         {
             Logger.Log(LogType.Info, $"<Perchik>({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
             _ = Bot.SendTextMessageAsync(
