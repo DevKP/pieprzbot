@@ -192,7 +192,9 @@ namespace PersikSharp
 
             botcallbacks.RegisterRegEx(strManager["BOT_REGX"], onPersikCommand);
             botcallbacks.RegisterRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
-            botcallbacks.RegisterRegEx("420|трав(к)?а|шишки|марихуана", (_, e) =>
+            botcallbacks.RegisterRegEx(@"#оффтоп", onEveryoneCommand);
+
+            botcallbacks.RegisterRegEx("\b(420|трав(к)?а|шишки|марихуана)\b", (_, e) =>
             {
                 Bot.SendStickerAsync(e.Message.Chat.Id,
                     "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
@@ -671,6 +673,46 @@ namespace PersikSharp
                 }
             }
         }
+
+        private static void onEveryoneCommand(object sender, RegExArgs e)
+        {
+            try
+            {
+                Message message = e.Message;
+                var users = database.GetRows<DbUser>();
+                string message_str = string.Empty;
+
+                int max_users_in_message = 10;
+                List<Message> sended_messages = new List<Message>();
+
+                for (int i = 0; i < users.Count; i++)
+                {
+                    string firstname = users[i].FirstName.Replace('[', '<').Replace(']', '>');
+                    message_str += $"[{firstname}](tg://user?id={users[i].Id})\n";
+                    if (i % max_users_in_message == 0 || i == users.Count - 1)
+                    {
+                        var msg = Bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: message_str,
+                            parseMode: ParseMode.Markdown).Result;
+                        sended_messages.Add(msg);
+                        message_str = string.Empty;
+                    }
+                }
+
+                Thread.Sleep(5000);
+                foreach (var m in sended_messages)
+                {
+                    Bot.DeleteMessageAsync(
+                           chatId: message.Chat.Id,
+                           messageId: m.MessageId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
+            }
+}
 
         private static void onBotPraise(object sender, RegExArgs e)
         {
