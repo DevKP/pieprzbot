@@ -25,4 +25,6 @@
     <Exec Command="copy $(ProjectDir)Resources\* $(ProjectDir)$(OutDir)" />
   </Target>
 
+  <ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
+
 </Project>

