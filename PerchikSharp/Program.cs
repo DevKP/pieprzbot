@@ -828,6 +828,19 @@ namespace PersikSharp
             try
             {
                 Message message = e.Message;
+
+                if (message.Chat.Type == ChatType.Private)
+                    return;
+                if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
+                    return;
+
+
+                int[] users_whitelist = { 204678400
+                                         /*тут огурец*/ };
+                if (!users_whitelist.Any((id) => id == message.From.Id))
+                    return;
+
+
                 var users = database.GetRows<DbUser>();
                 string message_str = string.Empty;
 
