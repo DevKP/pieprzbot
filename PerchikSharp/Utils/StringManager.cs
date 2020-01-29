@@ -21,14 +21,14 @@ namespace PersikSharp
         /// <param name="s">Key for the string in the dictionary.</param>
         public string this[string s]
         {
-            get { return GetRandom(s); }
+            get { return this.GetRandom(s); }
         }
 
         private List<string> get_value(string key)
         {
             try
             {
-                return dict[key];
+                return this.dict[key];
             }
             catch (KeyNotFoundException)
             {
@@ -147,7 +147,7 @@ namespace PersikSharp
             if (key == null)
                 throw new ArgumentNullException();
 
-            if (dict == null)
+            if (this.dict == null)
                 throw new NullReferenceException();
 
             List<string> strings = get_value(key);
@@ -169,7 +169,7 @@ namespace PersikSharp
             if (key == null)
                 throw new ArgumentNullException();
 
-            if (dict == null)
+            if (this.dict == null)
                 throw new NullReferenceException();
 
             return this.get_value(key).First();
@@ -183,10 +183,10 @@ namespace PersikSharp
         /// </returns>
         public List<string> GetAll()
         {
-            if (dict == null)
+            if (this.dict == null)
                 throw new NullReferenceException();
 
-            return dict.Values.SelectMany(x => x).ToList();
+            return this.dict.Values.SelectMany(x => x).ToList();
         }
 
         /// <summary>
@@ -197,10 +197,10 @@ namespace PersikSharp
         /// </returns>
         public List<string> GetKeysList()
         {
-            if (dict == null)
+            if (this.dict == null)
                 throw new NullReferenceException();
 
-            return new List<string>(dict.Keys);
+            return new List<string>(this.dict.Keys);
         }
     }
 }

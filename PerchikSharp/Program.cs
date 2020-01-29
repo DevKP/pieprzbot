@@ -22,6 +22,8 @@ using System.Reflection;
 using Telegram.Bot.Args;
 using PersikSharp.Tables;
 using System.Globalization;
+using System.Net.Http.Headers;
+using System.Web;
 
 namespace PersikSharp
 {
@@ -835,7 +837,7 @@ namespace PersikSharp
                 int[] users_whitelist = { 204678400
                                          /*тут огурец*/ };
                 if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
-                    if (!users_whitelist.Any((id) => id == message.From.Id))
+                    if (!users_whitelist.Any( id => id == message.From.Id))
                         return;
 
 
@@ -926,18 +928,11 @@ namespace PersikSharp
                 string first = match.Groups["first"].Value.Replace("?", "");
                 string second = match.Groups["second"].Value.Replace("?", ""); ;
 
-                if (rand.NextDouble() >= 0.5)
-                {
-                    result = first;
-                }
-                else
-                {
-                    result = second;
-                }
+
+                result = rand.NextDouble() >= 0.5 ? first : second;
+
                 if (first.Equals(second))
-                {
                     result = strManager.GetRandom("CHOICE_EQUAL");
-                }
 
                 _ = Bot.SendTextMessageAsync(
                     chatId: message.Chat.Id,
@@ -957,8 +952,7 @@ namespace PersikSharp
             try
             {
                 Random rand = new Random(DateTime.Now.Millisecond);
-                int random_number = rand.Next(0, 6);
-                if (random_number == 3)
+                if (rand.Next(0, 6) == 3)
                 {
                     var until = DateTime.Now.AddSeconds(10 * 60); //10 minutes
                     Perchik.RestrictUser(message.Chat.Id, message.From.Id, until);
@@ -1131,8 +1125,8 @@ namespace PersikSharp
                 int dict_index = users_inorder.Count - 1 - i;
 
                 DbUser user = users_inorder.ElementAt(dict_index).Key;
-                string first_name = user.FirstName?.Replace('[', '{').Replace(']', '}');
-                string last_name = user.LastName?.Replace('[', '{').Replace(']', '}');
+                string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
+                string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
                 string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
                 double activity = users_inorder.ElementAt(dict_index).Value;
 
@@ -1167,8 +1161,8 @@ namespace PersikSharp
             {
                 int dict_index = user_bans_ordered.Count - 1 - i;
                 DbUser user = user_bans_ordered.ElementAt(dict_index).Key;
-                string first_name = user.FirstName?.Replace('[', '{').Replace(']', '}');
-                string last_name = user.LastName?.Replace('[', '{').Replace(']', '}');
+                string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
+                string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
                 string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
                 int bans = user_bans_ordered.ElementAt(dict_index).Value;
                 msg_string += $"{i + 1}. {full_name} -- {bans}\n";
@@ -1186,6 +1180,7 @@ namespace PersikSharp
         {
             if (e.Message.Chat.Type == ChatType.Private)
                 return;
+
             try
             {
                 if (e.Message.From.Id == 204678400)
@@ -1547,52 +1542,64 @@ namespace PersikSharp
 
         }
 
-        private static void onRateUpdate(object sender, CallbackQueryArgs e)
+        private static  void onRateUpdate(object sender, CallbackQueryArgs e)
         {
             try
             {
-                string url = "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=BTC,ETH,ETC,ZEC,LTC,BCH&tsyms=USD";
+                string url = "https://min-api.cryptocompare.com/data/pricemultifull";
 
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream resStream = response.GetResponseStream();
-
-                StreamReader reader = new StreamReader(resStream);
-                string respone_str = reader.ReadToEnd();
-
-                var json_object = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
-                json_object = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>(respone_str);
-
-
-                string template_str = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
-                string formated_str = "";
-
-                foreach (var curr in json_object["RAW"])
+                using (HttpClient client = new HttpClient())
                 {
-                    string CURRENCY_SYMBOL = curr.Key;
-                    float CHANGEPCT24HOUR = json_object["RAW"][curr.Key]["USD"]["CHANGEPCT24HOUR"];
-                    float PRICE = json_object["RAW"][curr.Key]["USD"]["PRICE"];
+                    client.BaseAddress = new Uri(url);
+                    client.DefaultRequestHeaders.Accept.Clear();
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                    var uriBuilder = new UriBuilder(url);
+                    var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+
+                    query["fsyms"] = "BTC,ETH,ETC,ZEC,LTC,BCH";
+                    query["tsyms"] = "USD";
+
+                    uriBuilder.Query = query.ToString();
+                    url = uriBuilder.ToString();
 
 
-                    string symbol = "💹";
-                    if (CHANGEPCT24HOUR < 0)
-                        symbol = "🔻";
+                    HttpResponseMessage responseMessage = client.GetAsync(url).Result;
+                    var responseJson = responseMessage.Content.ReadAsStringAsync().Result;
 
-                    formated_str += String.Format(template_str, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
+                    var json_object = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
+                    json_object = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>(responseJson);
+
+                    string template_str = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
+                    string formated_str = "";
+
+                    foreach (var curr in json_object["RAW"])
+                    {
+                        string CURRENCY_SYMBOL = curr.Key;
+                        float CHANGEPCT24HOUR = json_object["RAW"][curr.Key]["USD"]["CHANGEPCT24HOUR"];
+                        float PRICE = json_object["RAW"][curr.Key]["USD"]["PRICE"];
+
+
+                        string symbol = "💹";
+                        if (CHANGEPCT24HOUR < 0)
+                            symbol = "🔻";
+
+                        formated_str += String.Format(template_str, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
+                    }
+                    formated_str += $"\nОбновлено {DateTime.Now.ToShortTimeString()}";
+
+
+                    var button = new InlineKeyboardButton();
+                    button.CallbackData = "update_rate";
+                    button.Text = strManager.GetSingle("RATE_UPDATE_BTN");
+                    var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
+
+                    _ = Bot.EditMessageTextAsync(
+                         chatId: e.Callback.Message.Chat.Id,
+                         messageId: e.Callback.Message.MessageId,
+                         replyMarkup: inlineKeyboard,
+                         text: formated_str).Result;
                 }
-                formated_str += $"\nОбновлено {DateTime.Now.ToShortTimeString()}";
-
-
-                var button = new InlineKeyboardButton();
-                button.CallbackData = "update_rate";
-                button.Text = strManager.GetSingle("RATE_UPDATE_BTN");
-                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-
-                _ = Bot.EditMessageTextAsync(
-                     chatId: e.Callback.Message.Chat.Id,
-                     messageId: e.Callback.Message.MessageId,
-                     replyMarkup: inlineKeyboard,
-                     text: formated_str).Result;
             }
             catch (Exception exp)
             {
@@ -1723,7 +1730,7 @@ namespace PersikSharp
             {
                 _ = Bot.SendTextMessageAsync(
                          chatId: e.Message.Chat.Id,
-                         text: strManager.GetRandom("STK"),
+                         text: strManager["STK"],
                          parseMode: ParseMode.Markdown,
                          replyMarkup: new ForceReplyMarkup()).Result;
                 botcallbacks.RegisterNextstep(onStickerAnswer, e.Message);
@@ -1743,7 +1750,7 @@ namespace PersikSharp
 
                     _ = Bot.SendTextMessageAsync(
                             chatId: e.Message.Chat.Id,
-                            text: strManager.GetRandom("STK_OK"),
+                            text: strManager["STK_OK"],
                             parseMode: ParseMode.Markdown).Result;
                     _ = Bot.SendStickerAsync(
                         chatId: offtopia_id,
@@ -1757,7 +1764,7 @@ namespace PersikSharp
                     {
                         _ = Bot.SendTextMessageAsync(
                            chatId: e.Message.Chat.Id,
-                           text: strManager.GetRandom("STK_CANCEL"),
+                           text: strManager["STK_CANCEL"],
                            parseMode: ParseMode.Markdown).Result;
 
                         return;
@@ -1765,7 +1772,7 @@ namespace PersikSharp
 
                     _ = Bot.SendTextMessageAsync(
                             chatId: e.Message.Chat.Id,
-                            text: strManager.GetRandom("STK_WRONG"),
+                            text: strManager["STK_WRONG"],
                             parseMode: ParseMode.Markdown,
                             replyMarkup: new ForceReplyMarkup()).Result;
                     botcallbacks.RegisterNextstep(onStickerAnswer, e.Message);

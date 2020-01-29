@@ -79,14 +79,11 @@ namespace PersikSharp
         {
             var bot_username = Program.Bot.GetMeAsync().Result.Username;
             var match = Regex.Match(text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
+
             if (match.Success)
-            {
                 return match.Groups["command"].Value.Equals(command);
-            }
             else
-            {
                 return false;
-            }
         }
 
         /// <summary>
@@ -198,8 +195,7 @@ namespace PersikSharp
 
 
                 string file_ext = file.FilePath.Split('.')[1];
-                if (fileName == null)
-                    fileName = $"{fileId}.{file_ext}";
+                fileName = fileName ?? $"{fileId}.{file_ext}";
 
                 bool exists = System.IO.Directory.Exists($"./{folder}/");
                 if (!exists)

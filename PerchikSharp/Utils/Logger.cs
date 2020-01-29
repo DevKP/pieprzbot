@@ -26,8 +26,7 @@ namespace PersikSharp
 
         public static Logger Inst()
         {
-            if (instance == null)
-                instance = new Logger();
+            instance = instance ?? new Logger();
             return instance;
         }
         public static void Log(LogType ltype, string text)

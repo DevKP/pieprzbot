@@ -41,8 +41,7 @@ namespace PersikSharp
 
         public static CommandLine Inst()
         {
-            if (instance == null)
-                instance = new CommandLine();
+            instance = instance ?? new CommandLine();
             return instance;
         }
 
