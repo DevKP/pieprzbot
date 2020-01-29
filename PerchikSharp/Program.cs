@@ -42,6 +42,7 @@ namespace PersikSharp
         static CancellationToken exit_token = exitTokenSource.Token;
 
         const long offtopia_id = -1001125742098;
+        const int via_tcp_Id = 204678400;
         static string ApplicationFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
         static void Main(string[] args)
@@ -66,7 +67,6 @@ namespace PersikSharp
                     switch (arg)
                     {
                         case "/u":
-                            const int via_tcp_Id = 204678400;
                             string version = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
                             Bot.SendTextMessageAsync(via_tcp_Id,
@@ -221,6 +221,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("stk", onStickerCommand);
             botcallbacks.RegisterCommand("topbans", onTopBansCommand);
             botcallbacks.RegisterCommand("top", onTopCommand);
+            botcallbacks.RegisterCommand("offtopunban", onOfftopUnban);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
             botcallbacks.RegisterCommand("promote", onPromoteCommand);
@@ -243,7 +244,7 @@ namespace PersikSharp
                 try
                 {
                     var until = DateTime.Now.AddSeconds(420);
-                    _ = Perchik.RestrictUser(offtopia_id, int.Parse(match.Groups[1].Value), until, true);
+                    _ = Perchik.RestrictUserAsync(offtopia_id, int.Parse(match.Groups[1].Value), until, true);
                 }
                 catch (Exception exp)
                 {
@@ -268,7 +269,7 @@ namespace PersikSharp
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.Now.AddSeconds(forSeconds);
-            return Perchik.RestrictUser(chatId.Identifier, userId, until);
+            return Perchik.RestrictUserAsync(chatId.Identifier, userId, until);
         }
 
         static async void HandleDbRestrictions()
@@ -748,7 +749,7 @@ namespace PersikSharp
             try
             {
                 var until = DateTime.Now.AddSeconds(1);
-                Perchik.RestrictUser(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
+                Perchik.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
                 _ = database.InsertOrReplaceRowAsync(new DbUser()
                 {
@@ -955,7 +956,7 @@ namespace PersikSharp
                 if (rand.Next(0, 6) == 3)
                 {
                     var until = DateTime.Now.AddSeconds(10 * 60); //10 minutes
-                    Perchik.RestrictUser(message.Chat.Id, message.From.Id, until);
+                    Perchik.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
 
                     _ = Bot.SendTextMessageAsync(
@@ -1194,6 +1195,35 @@ namespace PersikSharp
             }
         }
 
+        private static void onOfftopUnban(object sender, CommandEventArgs e)
+        {
+            if (e.Message.Chat.Type != ChatType.Private)
+                return;
+
+            try
+            {
+                ChatPermissions permissions = new ChatPermissions();
+                permissions.CanAddWebPagePreviews = true;
+                permissions.CanChangeInfo = true;
+                permissions.CanInviteUsers = true;
+                permissions.CanPinMessages = true;
+                permissions.CanSendMediaMessages = true;
+                permissions.CanSendMessages = true;
+                permissions.CanSendOtherMessages = true;
+                permissions.CanSendPolls = true;
+
+                Bot.RestrictChatMemberAsync(
+                    chatId: offtopia_id,
+                    userId: via_tcp_Id,
+                    untilDate: DateTime.Now.AddSeconds(40),
+                    permissions: permissions);
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
+            }
+        }
+
         private static async Task<List<string>> PredictImage(PhotoSize ps)
         {
             var file = await Bot.GetFileAsync(ps.FileId);
@@ -1242,7 +1272,7 @@ namespace PersikSharp
                         if (message.Chat.Type != ChatType.Private)
                         {
                             var until = DateTime.Now.AddSeconds(120);
-                            _ = Perchik.RestrictUser(message.Chat.Id, message.From.Id, until);
+                            _ = Perchik.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
                             await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
@@ -1401,7 +1431,7 @@ namespace PersikSharp
                     });
                 }
 
-                Perchik.RestrictUser(message.Chat.Id, message.From.Id, DateTime.Now.AddYears(420));
+                Perchik.RestrictUserAsync(message.Chat.Id, message.From.Id, DateTime.Now.AddYears(420));
 
 
                 var human_button = new InlineKeyboardButton();
@@ -1453,12 +1483,12 @@ namespace PersikSharp
                     DbUser user = users.First();
                     var restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
                     var until = DateTime.Parse(restriction.First().DateTimeTo);
-                    Perchik.RestrictUser(message.Chat.Id, c.Callback.From.Id, until);
+                    Perchik.RestrictUserAsync(message.Chat.Id, c.Callback.From.Id, until);
 
                 }
                 else
                 {
-                    Perchik.RestrictUser(message.Chat.Id, c.Callback.From.Id, DateTime.Now.AddSeconds(1), canWriteMessages: true);
+                    Perchik.RestrictUserAsync(message.Chat.Id, c.Callback.From.Id, DateTime.Now.AddSeconds(1), canWriteMessages: true);
                 }
 
                 string username = "Ноунейм";

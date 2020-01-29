@@ -30,6 +30,6 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: NeutralResourcesLanguage("ru")]
 [assembly: AssemblyVersion(ThisAssembly.Git.SemVer.Major+ "." + ThisAssembly.Git.SemVer.Minor)]
-[assembly: AssemblyInformationalVersion("0.8." +
+[assembly: AssemblyInformationalVersion("0.9." +
   ThisAssembly.Git.Commits + "-" +
   ThisAssembly.Git.Commit)]

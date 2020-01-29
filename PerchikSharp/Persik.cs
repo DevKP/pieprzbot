@@ -138,7 +138,7 @@ namespace PersikSharp
         /// <param name="userid">User id.</param>
         /// <param name="until">Rescrict until.</param>
         /// <param name="userid">Can write messages or not.</param>
-        public static Task RestrictUser(long chatid, int userid, DateTime until, bool canWriteMessages = false)
+        public static Task RestrictUserAsync(long chatid, int userid, DateTime until, bool canWriteMessages = false)
         {
             try
             {
