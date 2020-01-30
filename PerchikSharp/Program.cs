@@ -1051,6 +1051,15 @@ namespace PersikSharp
                     user_activity = (double)user_text_length / total_text_length;
                 }
 
+                TimeSpan remaining = new TimeSpan(0);
+                if (user.RestrictionId != null)
+                {
+                    List<DbRestriction> restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
+                    DateTime unban_time = DateTime.Parse(restriction?.First().DateTimeTo);
+
+                    remaining = unban_time - DateTime.Now;
+                }
+
                 _ = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
                             text:
@@ -1060,10 +1069,9 @@ namespace PersikSharp
                             string.Format("Активность: {0:F2}%\n", user_activity * 100) +
                             $"Сообщений сегодня: { u_messages_today_count }\n" +
                             $"Сообщений вчера: { u_messages_lastday_count }\n" +
-                            $"Всего сообщений: { u_messages_count }\n\n" +
-                            $"Банов: { restrictions_count }\n" +
-                            $"Забанен: { user.RestrictionId != null }\n" +
-                            $"*",
+                            $"Всего сообщений: { u_messages_count }\n" +
+                            $"Банов: { restrictions_count }\n\n*" +
+                            (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`" }\n" : ""),
                             parseMode: ParseMode.Markdown).Result;
             }
             catch (Exception exp)
@@ -1324,6 +1332,7 @@ namespace PersikSharp
                     Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id})(DM): {msg}");
                 }
             }
+
 
             onPerchikReplyTrigger(sender, message_args);
             DatabaseUpdate(sender, message_args.Message);

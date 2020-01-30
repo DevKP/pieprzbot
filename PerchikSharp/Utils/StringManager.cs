@@ -24,7 +24,7 @@ namespace PersikSharp
             get { return this.GetRandom(s); }
         }
 
-        private List<string> get_value(string key)
+        private List<string> _get_value(string key)
         {
             try
             {
@@ -132,7 +132,7 @@ namespace PersikSharp
             if (dict == null)
                 throw new NullReferenceException();
 
-            return this.get_value(key);
+            return this._get_value(key);
         }
 
         /// <summary>
@@ -150,7 +150,7 @@ namespace PersikSharp
             if (this.dict == null)
                 throw new NullReferenceException();
 
-            List<string> strings = get_value(key);
+            List<string> strings = this._get_value(key);
             if (strings.Count > 1)
                 return strings[rand.Next(0, strings.Count)];
             else
@@ -172,7 +172,7 @@ namespace PersikSharp
             if (this.dict == null)
                 throw new NullReferenceException();
 
-            return this.get_value(key).First();
+            return this._get_value(key).First();
         }
 
         /// <summary>

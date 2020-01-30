@@ -146,9 +146,9 @@ namespace PersikSharp
                     DateTimeTo = DateTime.Now.AddSeconds(forSecond).ToString("yyyy-MM-dd HH:mm:ss")
                 });
 
-
-                user.RestrictionId = ExecuteScalarAsync<int>("select seq from sqlite_sequence where name='Restrictions'").Result;
-                await InsertOrReplaceRowAsync(user);
+                var _user = user;
+                _user.RestrictionId = ExecuteScalarAsync<int>("select seq from sqlite_sequence where name='Restrictions'").Result;
+                await InsertOrReplaceRowAsync(_user);
             });
         }
     } 
