@@ -1353,6 +1353,9 @@ namespace PersikSharp
                     DateTime = sqlFormattedDate
                 });
 
+                var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == e.From.Id).Result;
+                int? restrictionId = user.First().RestrictionId;
+
                 database.InsertOrReplaceRowAsync(new DbUser()
                 {
                     Id = e.From.Id,
@@ -1360,7 +1363,7 @@ namespace PersikSharp
                     LastName = e.From.LastName,
                     Username = e.From.Username,
                     LastMessage = sqlFormattedDate,
-                    RestrictionId = null
+                    RestrictionId = restrictionId
                 });
             }
             catch (Exception ex)
