@@ -43,6 +43,9 @@ namespace PersikSharp
         const int via_tcp_Id = 204678400;
         static string ApplicationFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
+
+        static List<long> votebanning_groups = new List<long>();
+
         static void Main(string[] args)
         {
 
@@ -158,7 +161,7 @@ namespace PersikSharp
             try
             {
                 perchik = new Perchik();
-                Bot = new TelegramBotClient(tokens["TELEGRAM"]);
+                Bot = new TelegramBotClient(tokens["TELEGRAM_TEST"]);
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
                 if (clarifai.HttpClient.ApiKey == string.Empty)
                     throw new ArgumentException("CLARIFAI token isn't valid!");
@@ -219,6 +222,7 @@ namespace PersikSharp
             botcallbacks.RegisterCommand("stk", onStickerCommand);
             botcallbacks.RegisterCommand("topbans", onTopBansCommand);
             botcallbacks.RegisterCommand("top", onTopCommand);
+            botcallbacks.RegisterCommand("voteban", onVoteban);
             botcallbacks.RegisterCommand("offtopunban", onOfftopUnban);
             botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
 
@@ -1184,10 +1188,105 @@ namespace PersikSharp
 
             try
             {
-                if (e.Message.From.Id == 204678400)
+                if (e.Message.From.Id == via_tcp_Id)
                 {
-                    Bot.PromoteChatMemberAsync(e.Message.Chat.Id, 204678400, true, false, false, true, true, true, true, true);
+                    Bot.PromoteChatMemberAsync(e.Message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
                 }
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
+            }
+        }
+
+        private static async void onVoteban(object sender, CommandEventArgs e)
+        {
+            if (string.IsNullOrEmpty(e.Text))
+                return;
+
+            try
+            {
+                if (votebanning_groups.Contains(e.Message.Chat.Id))
+                {
+                    await Bot.SendTextMessageAsync(
+                              chatId: e.Message.Chat.Id,
+                              text: $"*В этой группе уже проходит голосование!*",
+                              parseMode: ParseMode.Markdown);
+                    return;
+                }
+
+                const int time_secs = 60 * 2; //2 minutes
+                const int min_vote_count = 10;
+                const double vote_ratio = 0.8;
+                const int alert_period = 30;
+
+                DbUser user = database.FindUser(e.Text).First();
+                string username = $"@{user.Username}" ?? user.FirstName;
+                username = username.Replace('[', '<').Replace(']', '>');
+                string userlink = $"[{username}](tg://user?id={user.Id})";
+
+                Message message = e.Message;
+                string[] opts = { "За", "Против" };
+                var poll_msg = await Bot.SendPollAsync(
+                    chatId: message.Chat.Id,
+                    question: string.Format(strManager["VOTEBAN_QUESTION"], username),
+                    options: opts,
+                    disableNotification: true);
+
+                Poll recent_poll = poll_msg.Poll;
+                botcallbacks.RegisterPoll(poll_msg.Poll.Id, (_, p) => recent_poll = p.poll);
+                votebanning_groups.Add(e.Message.Chat.Id);
+
+                int alerts_count = time_secs / alert_period;
+                for (int alerts = 1; alerts < alerts_count; alerts++)
+                {
+                    await Task.Delay(1000 * alert_period);
+                    await Bot.SendTextMessageAsync(
+                              chatId: message.Chat.Id,
+                              text: string.Format(strManager["VOTEBAN_ALERT"],userlink, time_secs - alerts * alert_period, recent_poll.TotalVoterCount, min_vote_count),
+                              replyToMessageId: poll_msg.MessageId,
+                              parseMode: ParseMode.Markdown);
+
+                }
+
+                await Task.Delay(1000 * alert_period);
+
+                await Bot.StopPollAsync(message.Chat.Id, poll_msg.MessageId);
+                botcallbacks.RemovePoll(poll_msg.Poll.Id);
+                votebanning_groups.Remove(e.Message.Chat.Id);
+
+                if (recent_poll.TotalVoterCount < min_vote_count)
+                {
+                    await Bot.SendTextMessageAsync(
+                              chatId: message.Chat.Id,
+                              text: string.Format(strManager["VOTEBAN_NOTENOUGH"],recent_poll.TotalVoterCount, min_vote_count),
+                              replyToMessageId: poll_msg.MessageId,
+                              parseMode: ParseMode.Markdown);
+                    return;
+                }
+
+                double ratio = (double)recent_poll.Options[0].VoterCount / (double)recent_poll.TotalVoterCount;
+                if (ratio < vote_ratio)
+                {
+                    await Bot.SendTextMessageAsync(
+                              chatId: message.Chat.Id,
+                              text: string.Format(strManager["VOTEBAN_RATIO"], ratio * 100),
+                              replyToMessageId: poll_msg.MessageId,
+                              parseMode: ParseMode.Markdown);
+                    return;
+                }
+
+                await FullyRestrictUserAsync(
+                    chatId: message.Chat.Id,
+                    userId: user.Id,
+                    forSeconds: 60 * 15);
+
+                await database.AddRestrictionAsync(user, e.Message.Chat.Id, 60 * 15);
+
+                await Bot.SendTextMessageAsync(
+                               chatId: message.Chat.Id,
+                               text: string.Format(strManager["VOTEBAN_BANNED"], userlink),
+                               parseMode: ParseMode.Markdown);
             }
             catch (Exception exp)
             {

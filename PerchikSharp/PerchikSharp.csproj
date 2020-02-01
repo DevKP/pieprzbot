@@ -18,7 +18,7 @@
     </PackageReference>
     <PackageReference Include="log4net" Version="2.0.7" />
     <PackageReference Include="sqlite-net-pcl" Version="1.5.231" />
-    <PackageReference Include="Telegram.Bot" Version="15.0.0" />
+    <PackageReference Include="Telegram.Bot" Version="15.3.0" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

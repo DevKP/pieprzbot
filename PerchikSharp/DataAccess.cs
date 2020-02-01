@@ -2,6 +2,7 @@ using PersikSharp.Tables;
 using SQLite;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
@@ -150,6 +151,29 @@ namespace PersikSharp
                 _user.RestrictionId = ExecuteScalarAsync<int>("select seq from sqlite_sequence where name='Restrictions'").Result;
                 await InsertOrReplaceRowAsync(_user);
             });
+        }
+
+        public DbUser[] FindUser(string search_str)
+        {
+            string upper_name = search_str.ToUpper();
+
+            var all_users = this.GetRows<DbUser>();
+            var users = all_users.Where(u =>
+            {
+                if (u.FirstName != null && u.FirstName.ToUpper().Contains(upper_name))
+                    return true;
+                if (u.LastName != null && u.LastName.ToUpper().Contains(upper_name))
+                    return true;
+                if (u.Username != null && u.Username.ToUpper().Contains(upper_name))
+                    return true;
+
+                return false;
+            });
+
+            if (users.Count() == 0)
+                return null;
+            else
+                return users.ToArray();
         }
     } 
 }
