@@ -30,7 +30,7 @@ namespace PersikSharp
         public static TelegramBotClient Bot;
         static Perchik perchik;
         static ClarifaiClient clarifai;
-        static BotCallBacks botcallbacks;
+        static BotHelper bothelper;
         static StringManager strManager = new StringManager();
         static StringManager tokens = new StringManager();
 
@@ -85,12 +85,12 @@ namespace PersikSharp
             }
 
 
-            Console.Title = botcallbacks.Me.FirstName;
+            Console.Title = bothelper.Me.FirstName;
 
             try
             {
                 Bot.StartReceiving(Array.Empty<UpdateType>());
-                Logger.Log(LogType.Info, $"Start listening for @{botcallbacks.Me.Username}");
+                Logger.Log(LogType.Info, $"Start listening for @{bothelper.Me.Username}");
             }
             catch (Exception e)
             {
@@ -166,7 +166,7 @@ namespace PersikSharp
                 if (clarifai.HttpClient.ApiKey == string.Empty)
                     throw new ArgumentException("CLARIFAI token isn't valid!");
 
-                botcallbacks = new BotCallBacks(Bot);
+                bothelper = new BotHelper(Bot);
             }
             catch (FileNotFoundException e)
             {
@@ -194,39 +194,39 @@ namespace PersikSharp
             perchik.onNoneMatched += onNoneCommandMatched;
 
 
-            botcallbacks.RegisterRegEx(strManager["BOT_REGX"], onPersikCommand);
-            botcallbacks.RegisterRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
-            botcallbacks.RegisterRegEx(@"#оффтоп", onEveryoneCommand);
+            bothelper.AddRegEx(strManager["BOT_REGX"], onPersikCommand);
+            bothelper.AddRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
+            bothelper.AddRegEx(@"#оффтоп", onEveryoneCommand);
 
-            botcallbacks.RegisterRegEx("\b(420|трав(к)?а|шишки|марихуана)\b", (_, e) =>
+            bothelper.AddRegEx("\b(420|трав(к)?а|шишки|марихуана)\b", (_, e) =>
             {
                 Bot.SendStickerAsync(e.Message.Chat.Id,
                     "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
                     replyToMessageId: e.Message.MessageId);
             });
 
-            botcallbacks.onTextMessage += onTextMessage;
+            bothelper.onTextMessage += onTextMessage;
             //botcallbacks.onTextMessage += ;
-            botcallbacks.onPhotoMessage += onPhotoMessage;
-            botcallbacks.onStickerMessage += onStickerMessage;
-            botcallbacks.onChatMembersAddedMessage += onChatMembersAddedMessage;
-            botcallbacks.onDocumentMessage += onDocumentMessage;
+            bothelper.onPhotoMessage += onPhotoMessage;
+            bothelper.onStickerMessage += onStickerMessage;
+            bothelper.onChatMembersAddedMessage += onChatMembersAddedMessage;
+            bothelper.onDocumentMessage += onDocumentMessage;
 
-            botcallbacks.RegisterCommand("start", onStartCommand);
-            botcallbacks.RegisterCommand("info", onInfoCommand);
-            botcallbacks.RegisterCommand("rate", onRateCommand);
-            botcallbacks.RegisterCommand("me", onMeCommand);
-            botcallbacks.RegisterCommand("upal_otjalsa", onUpalOtjalsaCommand);
-            botcallbacks.RegisterCommand("version", onVersionCommand);
-            botcallbacks.RegisterCommand("pickle", onPickleCommand);
-            botcallbacks.RegisterCommand("stk", onStickerCommand);
-            botcallbacks.RegisterCommand("topbans", onTopBansCommand);
-            botcallbacks.RegisterCommand("top", onTopCommand);
-            botcallbacks.RegisterCommand("voteban", onVoteban);
-            botcallbacks.RegisterCommand("offtopunban", onOfftopUnban);
-            botcallbacks.RegisterCallbackQuery("update_rate", onRateUpdate);
+            bothelper.NativeCommand("start", onStartCommand);
+            bothelper.NativeCommand("info", onInfoCommand);
+            bothelper.NativeCommand("rate", onRateCommand);
+            bothelper.NativeCommand("me", onMeCommand);
+            bothelper.NativeCommand("upal_otjalsa", onUpalOtjalsaCommand);
+            bothelper.NativeCommand("version", onVersionCommand);
+            bothelper.NativeCommand("pickle", onPickleCommand);
+            bothelper.NativeCommand("stk", onStickerCommand);
+            bothelper.NativeCommand("topbans", onTopBansCommand);
+            bothelper.NativeCommand("top", onTopCommand);
+            bothelper.NativeCommand("voteban", onVoteban);
+            bothelper.NativeCommand("offtopunban", onOfftopUnban);
+            bothelper.CallbackQuery("update_rate", onRateUpdate);
 
-            botcallbacks.RegisterCommand("promote", onPromoteCommand);
+            bothelper.NativeCommand("promote", onPromoteCommand);
 
         }
 
@@ -335,7 +335,7 @@ namespace PersikSharp
                 return;
             }
 
-            if (message.ReplyToMessage?.From.Id != botcallbacks.Me.Id)
+            if (message.ReplyToMessage?.From.Id != bothelper.Me.Id)
                 perchik.ParseMessage(message);
         }
 
@@ -1234,7 +1234,7 @@ namespace PersikSharp
                     disableNotification: true);
 
                 Poll recent_poll = poll_msg.Poll;
-                botcallbacks.RegisterPoll(poll_msg.Poll.Id, (_, p) => recent_poll = p.poll);
+                bothelper.RegisterPoll(poll_msg.Poll.Id, (_, p) => recent_poll = p.poll);
                 votebanning_groups.Add(e.Message.Chat.Id);
 
                 List<Message> msg2delete = new List<Message>();
@@ -1254,7 +1254,7 @@ namespace PersikSharp
                 await Task.Delay(1000 * alert_period);
 
                 await Bot.StopPollAsync(message.Chat.Id, poll_msg.MessageId);
-                botcallbacks.RemovePoll(poll_msg.Poll.Id);
+                bothelper.RemovePoll(poll_msg.Poll.Id);
                 votebanning_groups.Remove(e.Message.Chat.Id);
                 msg2delete.ForEach(m => Bot.DeleteMessageAsync(m.Chat.Id, m.MessageId));
 
@@ -1539,8 +1539,8 @@ namespace PersikSharp
                      text: string.Format(strManager["CAPTCHA"], Perchik.MakeUserLink(message.From)),
                      parseMode: ParseMode.Markdown).Result;
 
-                botcallbacks.RegisterCallbackQuery(human_button.CallbackData, message.From.Id, onBotCheckButtonNoBot);
-                botcallbacks.RegisterCallbackQuery(bot_button.CallbackData, message.From.Id, onBotCheckButtonBot);
+                bothelper.RegisterCallbackQuery(human_button.CallbackData, message.From.Id, onBotCheckButtonNoBot);
+                bothelper.RegisterCallbackQuery(bot_button.CallbackData, message.From.Id, onBotCheckButtonBot);
 
                 //Thread.Sleep(1000 * 60);
 
@@ -1586,7 +1586,7 @@ namespace PersikSharp
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
                 _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
 
-                botcallbacks.RemoveCallbackQuery(c.Callback.Data);
+                bothelper.RemoveCallbackQuery(c.Callback.Data);
             }
             catch (Exception ex)
             {
@@ -1615,7 +1615,7 @@ namespace PersikSharp
                   text: string.Format(strManager["CAPTCHA_HUMAN"], Perchik.MakeUserLink(message.From)),
                   parseMode: ParseMode.Markdown);
 
-            botcallbacks.RemoveCallbackQuery(c.Callback.Data);
+            bothelper.RemoveCallbackQuery(c.Callback.Data);
         }
 
         //=======Bot commands========
@@ -1835,7 +1835,7 @@ namespace PersikSharp
                          text: strManager["STK"],
                          parseMode: ParseMode.Markdown,
                          replyMarkup: new ForceReplyMarkup()).Result;
-                botcallbacks.RegisterNextstep(onStickerAnswer, e.Message);
+                bothelper.RegisterNextstep(onStickerAnswer, e.Message);
             }
             catch (Exception ex)
             {
@@ -1858,7 +1858,7 @@ namespace PersikSharp
                         chatId: offtopia_id,
                         sticker: e.Message.Sticker.FileId);
 
-                    botcallbacks.RemoveNextstepCallback(e.Message);
+                    bothelper.RemoveNextstepCallback(e.Message);
                 }
                 else
                 {
@@ -1877,7 +1877,7 @@ namespace PersikSharp
                             text: strManager["STK_WRONG"],
                             parseMode: ParseMode.Markdown,
                             replyMarkup: new ForceReplyMarkup()).Result;
-                    botcallbacks.RegisterNextstep(onStickerAnswer, e.Message);
+                    bothelper.RegisterNextstep(onStickerAnswer, e.Message);
                 }
 
             }

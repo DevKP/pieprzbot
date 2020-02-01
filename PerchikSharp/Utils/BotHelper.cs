@@ -68,7 +68,7 @@ namespace PersikSharp
         public  int UserId { get; }
     }
 
-    class BotCallBacks
+    class BotHelper
     {
         public event EventHandler<MessageArgs> onTextMessage;
         public event EventHandler<MessageArgs> onStickerMessage;
@@ -87,8 +87,8 @@ namespace PersikSharp
             new Dictionary<string, EventHandler<CommandEventArgs>>();
         public Dictionary<InlineButton, EventHandler<CallbackQueryArgs>> queryCallbacks =
             new Dictionary<InlineButton, EventHandler<CallbackQueryArgs>>();
-        public List<BotCallBackUnit> nextstepCallbacks =
-            new List<BotCallBackUnit>();
+        public List<BotEventHandlerUnit> nextstepCallbacks =
+            new List<BotEventHandlerUnit>();
         public Dictionary<string, EventHandler<RegExArgs>> regexCallbacks =
             new Dictionary<string, EventHandler<RegExArgs>>();
         public Dictionary<string, EventHandler<PollArgs>> polls =
@@ -97,8 +97,8 @@ namespace PersikSharp
         public User Me { get; }
         private string bot_username;
 
-        public BotCallBacks() { }
-        public BotCallBacks(TelegramBotClient bot)
+        public BotHelper() { }
+        public BotHelper(TelegramBotClient bot)
         {
             bot.OnUpdate += Bot_OnUpdate;
             bot.OnMessage += Bot_OnMessageAsync;
@@ -159,7 +159,7 @@ namespace PersikSharp
         /// </summary>
         /// <param name="command">Command without slash.</param>
         /// <param name="c">Method to be called.</param>
-        public void RegisterCommand(string command, EventHandler<CommandEventArgs> c)
+        public void NativeCommand(string command, EventHandler<CommandEventArgs> c)
         {
             commandsCallbacks.Add(command, c);
         }
@@ -169,7 +169,7 @@ namespace PersikSharp
         /// </summary>
         /// <param name="pattern">Regular expression.</param>
         /// <param name="c">Method to be called.</param>
-        public void RegisterRegEx(string pattern, EventHandler<RegExArgs> c)
+        public void AddRegEx(string pattern, EventHandler<RegExArgs> c)
         {
             regexCallbacks.Add(pattern, c);
         }
@@ -179,7 +179,7 @@ namespace PersikSharp
         /// </summary>
         /// <param name="data">Callback data, see. Telegram API</param>
         /// <param name="c">Method to be called.</param>
-        public void RegisterCallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
+        public void CallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
         {
             queryCallbacks.Add(new InlineButton(data), c);
         }
@@ -222,7 +222,7 @@ namespace PersikSharp
 
             if (!isWaitingMessages)
             {
-                var cbUnit = new BotCallBackUnit(callback, message, fromAnyUser, arg);
+                var cbUnit = new BotEventHandlerUnit(callback, message, fromAnyUser, arg);
                 nextstepCallbacks.Add(cbUnit);
             }
         }

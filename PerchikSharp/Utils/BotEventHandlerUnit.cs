@@ -5,7 +5,7 @@ using Telegram.Bot.Types;
 
 namespace PersikSharp
 {
-    public class BotCallBackUnit
+    public class BotEventHandlerUnit
     {
         public int userId;
         public long chatId;
@@ -13,7 +13,7 @@ namespace PersikSharp
         public bool fromAnyUser;
         public event EventHandler<NextstepArgs> callback;
 
-        public BotCallBackUnit(EventHandler<NextstepArgs> callback, Message message, bool fromAnyUser = false, object arg = null)
+        public BotEventHandlerUnit(EventHandler<NextstepArgs> callback, Message message, bool fromAnyUser = false, object arg = null)
         {
             this.callback = callback;
             this.userId = message.From.Id;
