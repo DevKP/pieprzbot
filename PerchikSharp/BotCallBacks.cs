@@ -53,6 +53,13 @@ namespace PersikSharp
         public Message Message { get; }
     }
 
+    public class PollArgs : EventArgs
+    {
+        public PollArgs(Poll poll)
+        { this.poll = poll; }
+        public Poll poll { get; }
+    }
+
     class InlineButton
     {
         public InlineButton(string data, int userid = 0)
@@ -74,6 +81,8 @@ namespace PersikSharp
 
         public event EventHandler<MessageArgs> onTextEdited;
 
+        public event EventHandler<PollAnswer> onPollAnswer;
+
         public Dictionary<string, EventHandler<CommandEventArgs>> commandsCallbacks =
             new Dictionary<string, EventHandler<CommandEventArgs>>();
         public Dictionary<InlineButton, EventHandler<CallbackQueryArgs>> queryCallbacks =
@@ -82,6 +91,8 @@ namespace PersikSharp
             new List<BotCallBackUnit>();
         public Dictionary<string, EventHandler<RegExArgs>> regexCallbacks =
             new Dictionary<string, EventHandler<RegExArgs>>();
+        public Dictionary<string, EventHandler<PollArgs>> polls =
+           new Dictionary<string, EventHandler<PollArgs>>();
 
         public User Me { get; }
         private string bot_username;
@@ -89,9 +100,11 @@ namespace PersikSharp
         public BotCallBacks() { }
         public BotCallBacks(TelegramBotClient bot)
         {
+            bot.OnUpdate += Bot_OnUpdate;
             bot.OnMessage += Bot_OnMessageAsync;
             bot.OnMessageEdited += Bot_OnMessageEdited;
             bot.OnCallbackQuery += Bot_OnCallbackQuery;
+           
 
             try
             {
@@ -104,6 +117,41 @@ namespace PersikSharp
                 Console.ReadKey();
                 Environment.Exit(1);
             }
+        }
+
+        private void Bot_OnUpdate(object sender, UpdateEventArgs e)
+        {
+            if(e.Update.Type == UpdateType.Poll)
+            {
+                this.onPollAnswer?.Invoke(sender, e.Update.PollAnswer);
+
+                Update update = e.Update;
+                try
+                {
+                    foreach (var poll in polls)
+                    {
+                        if(poll.Key == update.Poll.Id)
+                        {
+                            poll.Value?.Invoke(this, new PollArgs(update.Poll));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(LogType.Error, $"Exception: {ex.Message}");
+                }
+            }
+        }
+
+
+        public void RegisterPoll(string pollId, EventHandler<PollArgs> p)
+        {
+            polls.Add(pollId, p);
+        }
+
+        public void RemovePoll(string pollId)
+        {
+            polls.Remove(pollId);
         }
 
         /// <summary>
