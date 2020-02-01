@@ -19,9 +19,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Net.Http;
 using System.Diagnostics;
 using System.Reflection;
-using Telegram.Bot.Args;
 using PersikSharp.Tables;
-using System.Globalization;
 using System.Net.Http.Headers;
 using System.Web;
 
@@ -1108,19 +1106,13 @@ namespace PersikSharp
                 double user_activity = 0;
                 int total_text_length = messages_today.Sum(m =>
                 {
-                    if (m.Text != null)
-                        return m.Text.Length;
-                    else
-                        return 0;
+                    return m.Text?.Length ?? 0;
                 });
                 total_symbols += total_text_length;
 
                 int user_text_length = u_messages_today.Sum(m =>
                 {
-                    if (m.Text != null)
-                        return m.Text.Length;
-                    else
-                        return 0;
+                    return m.Text?.Length ?? 0;
                 });
 
                 user_activity = (double)user_text_length / total_text_length;
@@ -1394,34 +1386,17 @@ namespace PersikSharp
 
                 Message message = message_args.Message;
 
-                string username = "Ноунейм";
-                string firstName = "";
-                string lastName = "";
-                if (message.From.Username != null)
-                {
-                    username = $"@{message.From.Username}";
-                }
-                else
-                {
-                    if (message.From.FirstName != null)
-                    {
-                        username = message.From.FirstName;
-                        firstName = message.From.FirstName;
-                    }
-                    if (message.From.LastName != null)
-                    {
-                        lastName = message.From.LastName;
-                    }
-                }
+                string username = string.Empty;
+                username = $"@{message.From.Username}" ?? message.From.FirstName;
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
                 _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
 
 
-                if(message.From.Id == 204678400)
+                if(message.From.Id == via_tcp_Id)
                 {
                     Thread.Sleep(2000);
-                    Bot.PromoteChatMemberAsync(message.Chat.Id, 204678400, true, false, false, true, true, true, true, true);
+                    Bot.PromoteChatMemberAsync(message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
                 }
 
 
@@ -1504,24 +1479,7 @@ namespace PersikSharp
                 }
 
                 string username = "Ноунейм";
-                string firstName = "";
-                string lastName = "";
-                if (c.Callback.From.Username != null)
-                {
-                    username = $"@{c.Callback.From.Username}";
-                }
-                else
-                {
-                    if (c.Callback.From.FirstName != null)
-                    {
-                        username = c.Callback.From.FirstName;
-                        firstName = c.Callback.From.FirstName;
-                    }
-                    if (c.Callback.From.LastName != null)
-                    {
-                        lastName = c.Callback.From.LastName;
-                    }
-                }
+                username = $"@{c.Callback.From.Username}" ?? c.Callback.From.FirstName;
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
                 _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
