@@ -1216,7 +1216,7 @@ namespace PersikSharp
                 }
 
                 const int time_secs = 60 * 2; //2 minutes
-                const int min_vote_count = 7;
+                const int min_vote_count = 6;
                 const double vote_ratio = 0.8;
                 const int alert_period = 30;
 
@@ -1237,15 +1237,17 @@ namespace PersikSharp
                 botcallbacks.RegisterPoll(poll_msg.Poll.Id, (_, p) => recent_poll = p.poll);
                 votebanning_groups.Add(e.Message.Chat.Id);
 
+                List<Message> msg2delete = new List<Message>();
+
                 int alerts_count = time_secs / alert_period;
                 for (int alerts = 1; alerts < alerts_count; alerts++)
                 {
                     await Task.Delay(1000 * alert_period);
-                    await Bot.SendTextMessageAsync(
+                    msg2delete.Add(await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
                               text: string.Format(strManager["VOTEBAN_ALERT"],userlink, time_secs - alerts * alert_period, recent_poll.TotalVoterCount, min_vote_count),
                               replyToMessageId: poll_msg.MessageId,
-                              parseMode: ParseMode.Markdown);
+                              parseMode: ParseMode.Markdown));
 
                 }
 
@@ -1254,6 +1256,7 @@ namespace PersikSharp
                 await Bot.StopPollAsync(message.Chat.Id, poll_msg.MessageId);
                 botcallbacks.RemovePoll(poll_msg.Poll.Id);
                 votebanning_groups.Remove(e.Message.Chat.Id);
+                msg2delete.ForEach(m => Bot.DeleteMessageAsync(m.Chat.Id, m.MessageId));
 
                 if (recent_poll.TotalVoterCount < min_vote_count)
                 {
