@@ -1210,7 +1210,7 @@ namespace PersikSharp
                 {
                     await Bot.SendTextMessageAsync(
                               chatId: e.Message.Chat.Id,
-                              text: $"*В этой группе уже проходит голосование!*",
+                              text: strManager["VOTEBAN_ALREADY"],
                               parseMode: ParseMode.Markdown);
                     return;
                 }
