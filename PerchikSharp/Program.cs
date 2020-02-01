@@ -161,7 +161,7 @@ namespace PersikSharp
             try
             {
                 perchik = new Perchik();
-                Bot = new TelegramBotClient(tokens["TELEGRAM_TEST"]);
+                Bot = new TelegramBotClient(tokens["TELEGRAM"]);
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
                 if (clarifai.HttpClient.ApiKey == string.Empty)
                     throw new ArgumentException("CLARIFAI token isn't valid!");
