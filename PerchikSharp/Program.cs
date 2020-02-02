@@ -1203,7 +1203,13 @@ namespace PersikSharp
         private static async void onVoteban(object sender, CommandEventArgs e)
         {
             if (string.IsNullOrEmpty(e.Text))
+            {
+                await Bot.SendTextMessageAsync(
+                             chatId: e.Message.Chat.Id,
+                             text: StringManager.StringFromFile("votebanusage.txt"),
+                             parseMode: ParseMode.Markdown);
                 return;
+            }
 
             try
             {
