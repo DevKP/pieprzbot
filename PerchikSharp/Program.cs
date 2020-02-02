@@ -1227,7 +1227,7 @@ namespace PersikSharp
                 const double vote_ratio = 0.7;
                 const int alert_period = 30;
 
-                DbUser user = database.FindUser(e.Text).First();
+                DbUser user = database.FindUser(e.Text.Replace("@","")).First();
                 string username = $"@{user.Username}" ?? user.FirstName;
                 username = username.Replace('[', '<').Replace(']', '>');
                 string userlink = $"[{username}](tg://user?id={user.Id})";
