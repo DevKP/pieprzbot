@@ -1218,7 +1218,7 @@ namespace PersikSharp
 
                 const int time_secs = 60 * 2; //2 minutes
                 const int min_vote_count = 6;
-                const double vote_ratio = 0.8;
+                const double vote_ratio = 0.7;
                 const int alert_period = 30;
 
                 DbUser user = database.FindUser(e.Text).First();
