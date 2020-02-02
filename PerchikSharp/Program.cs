@@ -1234,7 +1234,11 @@ namespace PersikSharp
                     options: opts,
                     disableNotification: true);
 
+                var chat = await Bot.GetChatAsync(message.Chat.Id);
+                Logger.Log(LogType.Info, $"<{chat.Title}>: Voteban poll started for {username}:{user.Id}");
+
                 Poll recent_poll = poll_msg.Poll;
+                PollOption[] options = recent_poll.Options;
                 bothelper.RegisterPoll(poll_msg.Poll.Id, (_, p) => recent_poll = p.poll);
                 votebanning_groups.Add(e.Message.Chat.Id);
 
@@ -1246,10 +1250,14 @@ namespace PersikSharp
                     await Task.Delay(1000 * alert_period);
                     msg2delete.Add(await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
-                              text: string.Format(strManager["VOTEBAN_ALERT"],userlink, time_secs - alerts * alert_period, recent_poll.TotalVoterCount, min_vote_count),
+                              text: string.Format(strManager["VOTEBAN_ALERT"],
+                                userlink, time_secs - alerts * alert_period, recent_poll.TotalVoterCount, min_vote_count),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown));
 
+                    options = recent_poll.Options;
+                    Logger.Log(LogType.Info, 
+                        $"<{chat.Title}>: Poll status {options[0].VoterCount}<>{options[1].VoterCount}, votes: {recent_poll.TotalVoterCount}");
                 }
 
                 await Task.Delay(1000 * alert_period);
@@ -1266,6 +1274,7 @@ namespace PersikSharp
                               text: string.Format(strManager["VOTEBAN_NOTENOUGH"],recent_poll.TotalVoterCount, min_vote_count),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown);
+                    Logger.Log(LogType.Info, $"<{chat.Title}>: {options[0].VoterCount}<>{options[1].VoterCount} Poll result: Not enough votes");
                     return;
                 }
 
@@ -1277,6 +1286,7 @@ namespace PersikSharp
                               text: string.Format(strManager["VOTEBAN_RATIO"], ratio * 100),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown);
+                    Logger.Log(LogType.Info, $"<{chat.Title}>: {options[0].VoterCount}<>{options[1].VoterCount} Poll result: Decided not to ban");
                     return;
                 }
 
@@ -1291,6 +1301,10 @@ namespace PersikSharp
                                chatId: message.Chat.Id,
                                text: string.Format(strManager["VOTEBAN_BANNED"], userlink),
                                parseMode: ParseMode.Markdown);
+
+                Logger.Log(LogType.Info, 
+                    $"<{chat.Title}>: Poll result: {options[0].VoterCount}<>{options[1].VoterCount} The user has been banned!");
+
             }
             catch (Exception exp)
             {
@@ -1448,8 +1462,9 @@ namespace PersikSharp
                     DateTime = sqlFormattedDate
                 });
 
+
                 var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == e.From.Id).Result;
-                int? restrictionId = user.First().RestrictionId;
+                int? restrictionId = user.Count != 0 ? user.First().RestrictionId : null;
 
                 database.InsertOrReplaceRowAsync(new DbUser()
                 {
