@@ -8,65 +8,18 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using PerchikSharp;
 
 namespace PersikSharp
 {
-    public class MessageArgs : EventArgs
-    {
-        public MessageArgs(Message m) { Message = m; }
-        public Message Message { get; }
-    }
-    public class CommandEventArgs : EventArgs
-    {
-        public CommandEventArgs(Message m, string command, string text)
-        { Message = m; Command = command; Text = text; }
-        public Message Message { get; }
-        public string Command { get; }
-        public string Text { get; }
-    }
-    public class CallbackQueryArgs : EventArgs
-    {
-        public CallbackQueryArgs(CallbackQuery m, int userid = 0)
-        { Callback = m; UserId = userid; }
-        public CallbackQueryArgs(Message m, int userid = 0)
-        {
-            Callback = new CallbackQuery();
-            Callback.Message = m;
-            UserId = userid;
-        }
-        public CallbackQuery Callback { get; }
-        public int UserId { get; }
-    }
-    public class NextstepArgs : EventArgs
-    {
-        public NextstepArgs(Message m, object arg)
-        { Message = m; Arg = arg; }
-        public Message Message { get; }
-        public object Arg { get; }
-    }
-    public class RegExArgs : EventArgs
-    {
-        public RegExArgs(Message msg, Match m, string p)
-        { this.Message = msg; this.Match = m; this.Pattern = p; }
-        public Match Match { get; }
-        public string Pattern { get; }
-        public Message Message { get; }
-    }
+    
+    
+    
+    
 
-    public class PollArgs : EventArgs
-    {
-        public PollArgs(Poll poll)
-        { this.poll = poll; }
-        public Poll poll { get; }
-    }
+    
 
-    class InlineButton
-    {
-        public InlineButton(string data, int userid = 0)
-        { Data = data; UserId = userid; }
-        public string Data { get; }
-        public  int UserId { get; }
-    }
+    
 
     class BotHelper
     {
