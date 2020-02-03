@@ -229,6 +229,8 @@ namespace PersikSharp
 
             bothelper.NativeCommand("promote", onPromoteCommand);
 
+            bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
+
         }
 
         static void StartDatabaseCheck(object s)
