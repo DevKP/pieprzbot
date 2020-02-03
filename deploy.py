@@ -55,4 +55,5 @@ for name in config_files:
 
 print("STARTING PERCHIK!")
 os.chdir(deploy_path)
-os.startfile(deploy_path + "\\PerchikSharp.exe /u")
+#os.system(deploy_path + "\\PerchikSharp.exe /u")
+subprocess.Popen([deploy_path + "\\PerchikSharp.exe", "/u"])
