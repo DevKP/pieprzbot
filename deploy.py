@@ -52,8 +52,3 @@ for name in config_files:
         dst_full = deploy_path + "\\Configs\\" + name
         shutil.copy(src_full, dst_full)
         print("Copied Config %s" % name)
-
-print("STARTING PERCHIK!")
-os.chdir(deploy_path)
-#os.system(deploy_path + "\\PerchikSharp.exe /u")
-subprocess.Popen([deploy_path + "\\PerchikSharp.exe", "/u"])
