@@ -32,7 +32,8 @@ deploy:
   stage: deploy
   script:
     - 'C:\Users\buggt\AppData\Local\Programs\Python\Python38-32\python.exe .\deploy.py'
-    - 'C:\Projects\PersikSharp\Builds\PerchikSharp.exe'
+    - 'cd C:\Projects\PersikSharp\Builds'
+    - 'PerchikSharp.exe /u'
   only:
     - master
     - DeployTest
