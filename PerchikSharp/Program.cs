@@ -68,7 +68,7 @@ namespace PersikSharp
                 {
                     switch (arg)
                     {
-                        case "/u":
+                        case "-u":
                             string version = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
                             Bot.SendTextMessageAsync(via_tcp_Id,
@@ -78,9 +78,11 @@ namespace PersikSharp
                                 $"*Updated to version: {version}*",
                                 ParseMode.Markdown);
                             break;
-                        case "/min":
+                        case "-min":
                             ConsoleWindow.HideConsole();
                             break;
+                        case "-close":
+                            return;
                     }
                 }
             }

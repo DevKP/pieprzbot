@@ -9,12 +9,6 @@ bin_path = ".\\PerchikSharp\\bin\\Debug\\netcoreapp3.1"
 config_path = ".\\PerchikSharp\\Configs"
 ignore = [".db", ".db-shm", ".db-wal", ".log"]
 
-
-for proc in psutil.process_iter():
-    if proc.name() == "PerchikSharp.exe" or proc.name() == "dotnet.exe":
-        proc.kill()
-        break
-
 old_files = []
 for (dirpath, dirnames, filenames) in walk(deploy_path):
     old_files.extend(filenames)
