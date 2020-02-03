@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using PerchikSharp;
+using System.Net.Http;
 
 namespace PersikSharp
 {
@@ -354,6 +355,27 @@ namespace PersikSharp
             }catch(KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> Command \"{match.Groups[0].Value}\" not found!!");
+            }
+        }
+
+        public static async Task<string> HttpRequestAsync(string url)
+        {
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(url);
+
+                HttpResponseMessage response = await client.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string strResult = await response.Content.ReadAsStringAsync();
+
+                    return strResult;
+                }
+                else
+                {
+                    return null;
+                }
             }
         }
     }

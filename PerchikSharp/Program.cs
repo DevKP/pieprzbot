@@ -450,26 +450,7 @@ namespace PersikSharp
             }
         }
 
-        private async Task<string> HttpRequest(string url)
-        {
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = new Uri(url);
-
-                HttpResponseMessage response = await client.GetAsync(url);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    string strResult = await response.Content.ReadAsStringAsync();
-
-                    return strResult;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+        
 
         private static void onWeatherForecast(object sender, RegExArgs a)//Переделать под другой АПИ
         {
@@ -483,13 +464,7 @@ namespace PersikSharp
             dynamic weather_json;
             try
             {
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(search_url);
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream resStream = response.GetResponseStream();
-
-                StreamReader reader = new StreamReader(resStream);
-                string respone_str = reader.ReadToEnd();
-
+                string respone_str = BotHelper.HttpRequestAsync(search_url).Result;
                 if (respone_str.Contains("The allowed number of requests has been exceeded."))
                 {
                     _ = Bot.SendTextMessageAsync(
@@ -501,17 +476,10 @@ namespace PersikSharp
                 }
 
                 location_json = JsonConvert.DeserializeObject(respone_str);
-
                 location_code = location_json[0].Key;
 
                 string current_url = $"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru-ru&metric=true&details=true";
-
-                request = (HttpWebRequest)WebRequest.Create(current_url);
-                response = (HttpWebResponse)request.GetResponse();
-                resStream = response.GetResponseStream();
-
-                reader = new StreamReader(resStream);
-                respone_str = reader.ReadToEnd();
+                respone_str = BotHelper.HttpRequestAsync(current_url).Result;
 
                 weather_json = JsonConvert.DeserializeObject(respone_str);
 
@@ -572,7 +540,7 @@ namespace PersikSharp
             }
         }
 
-            private static void onNoneCommandMatched(object sender, RegExArgs e)
+        private static void onNoneCommandMatched(object sender, RegExArgs e)
         {
             Logger.Log(LogType.Info, $"<Perchik>({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
             _ = Bot.SendTextMessageAsync(
