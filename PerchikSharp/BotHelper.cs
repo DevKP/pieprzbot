@@ -12,15 +12,6 @@ using PerchikSharp;
 
 namespace PersikSharp
 {
-    
-    
-    
-    
-
-    
-
-    
-
     class BotHelper
     {
         public event EventHandler<MessageArgs> onTextMessage;
@@ -31,38 +22,38 @@ namespace PersikSharp
         public event EventHandler<MessageArgs> onDocumentMessage;
         public event EventHandler<MessageArgs> onVoiceMessage;
         public event EventHandler<MessageArgs> onVideoNoteMessage;
-
         public event EventHandler<MessageArgs> onTextEdited;
-
         public event EventHandler<PollAnswer> onPollAnswer;
 
-        public Dictionary<string, EventHandler<CommandEventArgs>> commandsCallbacks =
-            new Dictionary<string, EventHandler<CommandEventArgs>>();
-        public Dictionary<InlineButton, EventHandler<CallbackQueryArgs>> queryCallbacks =
-            new Dictionary<InlineButton, EventHandler<CallbackQueryArgs>>();
-        public List<BotEventHandlerUnit> nextstepCallbacks =
-            new List<BotEventHandlerUnit>();
-        public Dictionary<string, EventHandler<RegExArgs>> regexCallbacks =
-            new Dictionary<string, EventHandler<RegExArgs>>();
-        public Dictionary<string, EventHandler<PollArgs>> polls =
-           new Dictionary<string, EventHandler<PollArgs>>();
+        public Dictionary<string, EventHandler<CommandEventArgs>> commandHandlers;
+        public Dictionary<InlineButton, EventHandler<CallbackQueryArgs>> queryHandlers; 
+        public Dictionary<string, EventHandler<RegExArgs>> regexHandlers;
+        public Dictionary<string, EventHandler<PollArgs>> pollHandlers;
+        public List<BotEventHandlerUnit> nextstepHandlers;
 
         public User Me { get; }
         private string bot_username;
 
-        public BotHelper() { }
-        public BotHelper(TelegramBotClient bot)
+        public BotHelper() 
         {
-            bot.OnUpdate += Bot_OnUpdate;
-            bot.OnMessage += Bot_OnMessageAsync;
-            bot.OnMessageEdited += Bot_OnMessageEdited;
-            bot.OnCallbackQuery += Bot_OnCallbackQuery;
+            this.commandHandlers = new Dictionary<string, EventHandler<CommandEventArgs>>();
+            this.queryHandlers = new Dictionary<InlineButton, EventHandler<CallbackQueryArgs>>();
+            this.regexHandlers = new Dictionary<string, EventHandler<RegExArgs>>();
+            this.pollHandlers = new Dictionary<string, EventHandler<PollArgs>>();
+            this.nextstepHandlers = new List<BotEventHandlerUnit>();
+        }
+        public BotHelper(TelegramBotClient bot) : this()
+        {
+            bot.OnUpdate += this.Bot_OnUpdate;
+            bot.OnMessage += this.Bot_OnMessageAsync;
+            bot.OnMessageEdited += this.Bot_OnMessageEdited;
+            bot.OnCallbackQuery += this.Bot_OnCallbackQuery;
            
 
             try
             {
                 this.Me = bot.GetMeAsync().Result;
-                bot_username = this.Me.Username;
+                this.bot_username = this.Me.Username;
             }
             catch (Exception exc)
             {
@@ -74,37 +65,42 @@ namespace PersikSharp
 
         private void Bot_OnUpdate(object sender, UpdateEventArgs e)
         {
-            if(e.Update.Type == UpdateType.Poll)
+            try
             {
-                this.onPollAnswer?.Invoke(sender, e.Update.PollAnswer);
-
-                Update update = e.Update;
-                try
+                switch (e.Update.Type)
                 {
-                    foreach (var poll in polls)
-                    {
-                        if(poll.Key == update.Poll.Id)
+                    case UpdateType.Poll:
+                        Update update = e.Update;
+                        foreach (var poll in this.pollHandlers)
                         {
-                            poll.Value?.Invoke(this, new PollArgs(update.Poll));
+                            if (poll.Key == update.Poll.Id)
+                            {
+                                poll.Value?.Invoke(this, new PollArgs(update.Poll));
+                            }
                         }
-                    }
+                        break;
+                    case UpdateType.PollAnswer:
+                        this.onPollAnswer?.Invoke(sender, e.Update.PollAnswer);
+                        break;
+                    default:
+                        break;
                 }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogType.Error, $"Exception: {ex.Message}");
-                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
         }
 
 
         public void RegisterPoll(string pollId, EventHandler<PollArgs> p)
         {
-            polls.Add(pollId, p);
+            this.pollHandlers.Add(pollId, p);
         }
 
         public void RemovePoll(string pollId)
         {
-            polls.Remove(pollId);
+            this.pollHandlers.Remove(pollId);
         }
 
         /// <summary>
@@ -114,7 +110,7 @@ namespace PersikSharp
         /// <param name="c">Method to be called.</param>
         public void NativeCommand(string command, EventHandler<CommandEventArgs> c)
         {
-            commandsCallbacks.Add(command, c);
+            this.commandHandlers.Add(command, c);
         }
 
         /// <summary>
@@ -124,7 +120,7 @@ namespace PersikSharp
         /// <param name="c">Method to be called.</param>
         public void AddRegEx(string pattern, EventHandler<RegExArgs> c)
         {
-            regexCallbacks.Add(pattern, c);
+            this.regexHandlers.Add(pattern, c);
         }
 
         /// <summary>
@@ -134,7 +130,7 @@ namespace PersikSharp
         /// <param name="c">Method to be called.</param>
         public void CallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
         {
-            queryCallbacks.Add(new InlineButton(data), c);
+            this.queryHandlers.Add(new InlineButton(data), c);
         }
 
         /// <summary>
@@ -144,7 +140,7 @@ namespace PersikSharp
         /// <param name="c">Method to be called.</param>
         public void RegisterCallbackQuery(string data, int userid, EventHandler<CallbackQueryArgs> c)
         {
-            queryCallbacks.Add(new InlineButton(data, userid), c);
+            this.queryHandlers.Add(new InlineButton(data, userid), c);
         }
 
         /// <summary>
@@ -153,14 +149,14 @@ namespace PersikSharp
         /// <param name="data">Callback data, see. Telegram API</param>
         public void RemoveCallbackQuery(string data)
         {
-            var button = queryCallbacks.FirstOrDefault(o => o.Key.Data == data).Key;
-            queryCallbacks.Remove(button);
+            var button = queryHandlers.FirstOrDefault(o => o.Key.Data == data).Key;
+            this.queryHandlers.Remove(button);
         }
 
 
         public void RegisterNextstep(EventHandler<NextstepArgs> callback, Message message, bool fromAnyUser = false, object arg = null)
         {
-            var isWaitingMessages = nextstepCallbacks.Where(unit => 
+            var isWaitingMessages = this.nextstepHandlers.Where(unit => 
             {
                 if (unit.chatId == message.Chat.Id)
                 {
@@ -176,18 +172,18 @@ namespace PersikSharp
             if (!isWaitingMessages)
             {
                 var cbUnit = new BotEventHandlerUnit(callback, message, fromAnyUser, arg);
-                nextstepCallbacks.Add(cbUnit);
+                this.nextstepHandlers.Add(cbUnit);
             }
         }
 		
         public void RemoveNextstepCallback(Message message)
         {
-            var waitingMessages = nextstepCallbacks.Where(unit => unit.userId == message.From.Id
+            var waitingMessages = this.nextstepHandlers.Where(unit => unit.userId == message.From.Id
                 && unit.chatId == message.Chat.Id);
             if (waitingMessages.Any())
             {
                 var waitingMessage = waitingMessages.First();
-                nextstepCallbacks.Remove(waitingMessage);
+                this.nextstepHandlers.Remove(waitingMessage);
             }
         }
 
@@ -197,7 +193,7 @@ namespace PersikSharp
             {
                 Logger.Log(LogType.Info, $"<{this.GetType().Name}> InlineCallback \"{a.CallbackQuery.Data}\" from user ({a.CallbackQuery.From.FirstName}:{a.CallbackQuery.From.Id}).");
 
-                var buttonEventPair = queryCallbacks.First(o => o.Key.Data == a.CallbackQuery.Data);
+                var buttonEventPair = this.queryHandlers.First(o => o.Key.Data == a.CallbackQuery.Data);
 
                 if (buttonEventPair.Key.UserId != 0)
                 {
@@ -221,7 +217,7 @@ namespace PersikSharp
             switch (e.Message.Type)
             {
                 case MessageType.Text:
-                    onTextEdited?.Invoke(this, new MessageArgs(e.Message));
+                    this.onTextEdited?.Invoke(this, new MessageArgs(e.Message));
                     break;
             }
         }
@@ -236,7 +232,7 @@ namespace PersikSharp
         {
             var message = e.Message;
 
-            var waitingMessages = nextstepCallbacks.Where(unit =>
+            var waitingMessages = this.nextstepHandlers.Where(unit =>
             {
                 if (unit.chatId == message.Chat.Id)
                 {
@@ -252,7 +248,7 @@ namespace PersikSharp
             if (waitingMessages.Any())
             {
                 var waitingMessage = waitingMessages.First();
-                nextstepCallbacks.Remove(waitingMessage);
+                this.nextstepHandlers.Remove(waitingMessage);
 
                 waitingMessage.InvokeCallback(message);
             }
@@ -267,35 +263,35 @@ namespace PersikSharp
                     this.RegEx_OnMessageAsync(this, message_args);
 
                     message_str = message.Text;
-                    onTextMessage?.Invoke(this, new MessageArgs(e.Message));
+                    this.onTextMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Sticker:
                     message_str = message.Sticker?.FileId;
-                    onStickerMessage?.Invoke(this, new MessageArgs(e.Message));
+                    this.onStickerMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Photo:
                     message_str = message.Photo[0].FileId;
-                    onPhotoMessage?.Invoke(this, new MessageArgs(e.Message));
+                    this.onPhotoMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.ChatMembersAdded:
                     message_str = message.NewChatMembers[0].Id.ToString();
-                    onChatMembersAddedMessage?.Invoke(this, new MessageArgs(e.Message));
+                    this.onChatMembersAddedMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Document:
                     message_str = message.Document.FileId;
-                    onDocumentMessage?.Invoke(this, new MessageArgs(e.Message));
+                    this.onDocumentMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Video:
                     message_str = message.Video.FileId;
-                    onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
+                    this.onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Voice:
                     message_str = message.Voice.FileId;
-                    onVoiceMessage?.Invoke(this, new MessageArgs(e.Message));
+                    this.onVoiceMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.VideoNote:
                     message_str = message.VideoNote.FileId;
-                    onVideoNoteMessage?.Invoke(this, new MessageArgs(e.Message));
+                    this.onVideoNoteMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Unknown:
                     break;
@@ -314,7 +310,7 @@ namespace PersikSharp
             Message message = e.Message;
             try
             {
-                foreach(var regex in regexCallbacks)
+                foreach(var regex in this.regexHandlers)
                 {
                     string pattern = regex.Key;
                     Match match = Regex.Match(message.Text, pattern, RegexOptions.IgnoreCase);
@@ -353,7 +349,7 @@ namespace PersikSharp
                     }
 
                     CommandEventArgs cmdargs = new CommandEventArgs(message, command, text);
-                    commandsCallbacks[match.Groups["command"].Value]?.Invoke(this, cmdargs);
+                    this.commandHandlers[match.Groups["command"].Value]?.Invoke(this, cmdargs);
                 }
             }catch(KeyNotFoundException)
             {

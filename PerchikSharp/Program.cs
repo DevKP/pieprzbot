@@ -450,6 +450,27 @@ namespace PersikSharp
             }
         }
 
+        private async Task<string> HttpRequest(string url)
+        {
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(url);
+
+                HttpResponseMessage response = await client.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string strResult = await response.Content.ReadAsStringAsync();
+
+                    return strResult;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
         private static void onWeatherForecast(object sender, RegExArgs a)//Переделать под другой АПИ
         {
             Message message = a.Message;
