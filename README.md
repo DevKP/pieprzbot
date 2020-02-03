@@ -1,0 +1,1 @@
+[![pipeline status](https://gitlab.com/0Kitty/persiksharp/badges/master/pipeline.svg)](https://gitlab.com/0Kitty/persiksharp/commits/master)
