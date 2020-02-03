@@ -21,6 +21,7 @@ build:
     paths:
       - PerchikSharp\bin\Debug\netcoreapp3.1\*.dll
       - PerchikSharp\bin\Debug\netcoreapp3.1\*.json
+      - PerchikSharp\bin\Debug\netcoreapp3.1\*.exe
   only:
     - master
   tags:
