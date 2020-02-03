@@ -19,7 +19,8 @@ build:
   artifacts:
     expire_in: 1 week
     paths:
-      - PerchikSharp\bin\Debug\netcoreapp2.1\*.dll
+      - PerchikSharp\bin\Debug\netcoreapp3.1\*.dll
+      - PerchikSharp\bin\Debug\netcoreapp3.1\*.json
   only:
     - master
   tags:
