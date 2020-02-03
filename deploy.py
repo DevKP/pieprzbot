@@ -11,7 +11,7 @@ ignore = [".db", ".db-shm", ".db-wal", ".log"]
 
 
 for proc in psutil.process_iter():
-    if proc.name() == "PerchikSharp.exe":
+    if proc.name() == "PerchikSharp.exe" or proc.name() == "dotnet.exe":
         proc.kill()
         break
 
