@@ -1,12 +1,19 @@
 import os
 import shutil
 import subprocess
+import psutil
 from os import walk
 
 deploy_path = "C:\Projects\PersikSharp\Builds"
 bin_path = ".\\PerchikSharp\\bin\\Debug\\netcoreapp3.1"
 config_path = ".\\PerchikSharp\\Configs"
 ignore = [".db", ".db-shm", ".db-wal", ".log"]
+
+
+for proc in psutil.process_iter():
+    if proc.name() == "PerchikSharp.exe":
+        proc.kill()
+        break
 
 old_files = []
 for (dirpath, dirnames, filenames) in walk(deploy_path):
