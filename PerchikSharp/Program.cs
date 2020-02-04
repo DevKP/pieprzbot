@@ -950,7 +950,16 @@ namespace PersikSharp
 
                 var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { update_button } });
 
-                string text = getStatisticsText(name);
+                string text = string.Empty;
+                try
+                {
+                    text = getStatisticsText(name);
+                }catch(Exception ex)
+                {
+                    inlineKeyboard = null;
+                    text = ex.Message;
+                }
+
                 Message msg = await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
                             text: text,
@@ -960,7 +969,16 @@ namespace PersikSharp
 
                 bothelper.RegisterCallbackQuery(update_button.CallbackData, e.Message.From.Id, async (_, o) => 
                 {
-                    string new_text = getStatisticsText(name);
+                    string new_text = string.Empty;
+                    try
+                    {
+                        new_text = getStatisticsText(name);
+                    }
+                    catch (Exception ex)
+                    {
+                        new_text = ex.Message;
+                    }
+
                     if (new_text != text)
                     {
                         await Bot.EditMessageTextAsync(
@@ -998,7 +1016,7 @@ namespace PersikSharp
 
             if (users.Count() == 0)
             {
-                return $"*Пользователя \"{search}\" нет в базе.*";
+                throw new Exception($"*Пользователя \"{search}\" нет в базе.*");
             }
 
             DbUser user = users.First();
