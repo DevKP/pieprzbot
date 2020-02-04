@@ -1236,7 +1236,8 @@ namespace PersikSharp
                     msg2delete.Add(await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
                               text: string.Format(strManager["VOTEBAN_ALERT"],
-                                userlink, time_secs - alerts * alert_period, recent_poll.TotalVoterCount, min_vote_count),
+                                userlink, time_secs - alerts * alert_period, recent_poll.TotalVoterCount, min_vote_count,
+                                recent_poll.Options[0].VoterCount, recent_poll.Options[1].VoterCount),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown));
 
@@ -1256,7 +1257,8 @@ namespace PersikSharp
                 {
                     await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
-                              text: string.Format(strManager["VOTEBAN_NOTENOUGH"],recent_poll.TotalVoterCount, min_vote_count),
+                              text: string.Format(strManager["VOTEBAN_NOTENOUGH"], recent_poll.TotalVoterCount, min_vote_count,
+                                recent_poll.Options[0].VoterCount, recent_poll.Options[1].VoterCount),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown);
                     Logger.Log(LogType.Info, $"<{chat.Title}>: {options[0].VoterCount}<>{options[1].VoterCount} Poll result: Not enough votes");
@@ -1284,7 +1286,8 @@ namespace PersikSharp
 
                 await Bot.SendTextMessageAsync(
                                chatId: message.Chat.Id,
-                               text: string.Format(strManager["VOTEBAN_BANNED"], userlink),
+                               text: string.Format(strManager["VOTEBAN_BANNED"], userlink,
+                                recent_poll.Options[0].VoterCount, recent_poll.Options[1].VoterCount),
                                parseMode: ParseMode.Markdown);
 
                 Logger.Log(LogType.Info, 
