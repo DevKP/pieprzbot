@@ -35,7 +35,7 @@ namespace PersikSharp
         static StringManager strManager = new StringManager();
         static StringManager tokens = new StringManager();
 
-        static PerschikDB database = new PerschikDB("database.db");
+        static PerschikDB database;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -51,14 +51,16 @@ namespace PersikSharp
         {
 
             Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
-            CloseAnotherInstance();
-
-           CommandLine.Inst().onSubmitAction += PrintString;
-           CommandLine.Inst().StartUpdating();
+            //CloseAnotherInstance();
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
+
+            FileInfo file = new FileInfo("./Data/");
+            file.Directory.Create();
+            database = new PerschikDB("./Data/database.db");
             database.Create();
+
             Init();
 
             //Update Message to group and me
@@ -68,7 +70,7 @@ namespace PersikSharp
                 {
                     switch (arg)
                     {
-                        case "--u":
+                        case "--update":
                             string version = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
                             Bot.SendTextMessageAsync(via_tcp_Id,
@@ -77,9 +79,6 @@ namespace PersikSharp
                             Bot.SendTextMessageAsync(offtopia_id,
                                 $"*Updated to version: {version}*",
                                 ParseMode.Markdown);
-                            break;
-                        case "--min":
-                            ConsoleWindow.HideConsole();
                             break;
                         case "--close":
                             return;
@@ -110,7 +109,6 @@ namespace PersikSharp
             }
 
             Bot.StopReceiving();
-            CommandLine.Inst().StopUpdating();
         }
 
         private static void LoadDictionary()
@@ -137,25 +135,6 @@ namespace PersikSharp
                 Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
                 Console.ReadKey();
                 Environment.Exit(1);
-            }
-        }
-
-        private static void CloseAnotherInstance()
-        {
-            try
-            {
-                Process current = Process.GetCurrentProcess();
-                foreach (Process process in Process.GetProcessesByName(current.ProcessName))
-                {
-                    if (process.Id != current.Id)
-                    {
-                        process.Kill();
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                Logger.Log(LogType.Error, $"Unable to terminate another instance. Make it manualy.");
             }
         }
 
@@ -238,39 +217,6 @@ namespace PersikSharp
         static void StartDatabaseCheck(object s)
         {
             HandleDbRestrictions();
-        }
-
-        public static async void PrintString(object sender, CommandLineEventArgs e)
-        {
-            CommandLine.Text = string.Empty;
-            string str = e.Text;
-
-            var match = Regex.Match(str, @"unban:(.*):", RegexOptions.IgnoreCase);
-            if (match.Success)
-            {
-                try
-                {
-                    var until = DateTime.Now.AddSeconds(420);
-                    _ = Perchik.RestrictUserAsync(offtopia_id, int.Parse(match.Groups[1].Value), until, true);
-                }
-                catch (Exception exp)
-                {
-                    Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
-                }
-
-                Logger.Log(LogType.Info, $"User {match.Groups[1].Value} - UNBANNED!");
-                return;
-            }
-            if (str[0] == '!')
-            {
-                await Bot.SendTextMessageAsync(offtopia_id, str.Substring(1, str.Length - 1), ParseMode.Markdown);
-                Logger.Log(LogType.Info, $"(ME) {str}");
-                return;
-            }
-            if (str.Contains("exit"))
-                exitTokenSource.Cancel();
-            else
-                Logger.Log(LogType.Info, $"{str}  <- Syntax Error!");
         }
 
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
@@ -1379,7 +1325,7 @@ namespace PersikSharp
 
                 if ((float)nsfw_val > 0.7)
                 {
-                    await Perchik.SaveFileAsync(file.FileId, "nsfw");
+                    await Perchik.SaveFileAsync(file.FileId, "./Data/nsfw");
 
                     if (ENABLE_FILTER)
                     {
@@ -1399,7 +1345,7 @@ namespace PersikSharp
                 }
                 else
                 {
-                    await Perchik.SaveFileAsync(file.FileId, "photos");
+                    await Perchik.SaveFileAsync(file.FileId, "./Data/photos");
                 }
             }
             catch (Exception exp)
@@ -1416,7 +1362,7 @@ namespace PersikSharp
 
             try
             {
-                await Perchik.SaveFileAsync(message.Document.FileId, "documents", message.Document.FileName);
+                await Perchik.SaveFileAsync(message.Document.FileId, "./Data/documents", message.Document.FileName);
             }
             catch (Exception exp)
             {

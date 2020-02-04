@@ -1,6 +1,6 @@
 ﻿{
   "BOT_REGX": [ "(п[eеэpр]+[pрeеэ][ч][ик]+?(к|ч[eеэ]к))" ],
-  "TOKENS_PATH": [ "./Configs/tokens.json" ],
+  "TOKENS_PATH": [ "./Data/tokens.json" ],
   "INFO_PATH": [ "info.txt" ],
   "HELLO": [
     "*Я!*",

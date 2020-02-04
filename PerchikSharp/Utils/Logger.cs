@@ -36,7 +36,11 @@ namespace PersikSharp
                 try
                 {
                     XmlDocument log4netConfig = new XmlDocument();
-                    log4netConfig.Load(File.OpenRead("./Configs/log4net.config"));
+                    using(var stm = new FileStream("./Configs/log4net.config", FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        log4netConfig.Load(stm);
+                    }
+                    
 
                     ILoggerRepository repo = log4net.LogManager.CreateRepository(
                     Assembly.GetEntryAssembly(), typeof(log4net.Repository.Hierarchy.Hierarchy));
@@ -52,23 +56,20 @@ namespace PersikSharp
                 }
             }
 
-            lock (CommandLine.Inst())
+            switch (ltype)
             {
-                switch (ltype)
-                {
-                    case LogType.Debug:
-                        log.Debug(text);                      
-                        break;
-                    case LogType.Info:
-                        log.Info(text);                     
-                        break;
-                    case LogType.Error:
-                        log.Error(text);
-                        break;
-                    case LogType.Fatal:
-                        log.Fatal(text);
-                        break;
-                }
+                case LogType.Debug:
+                    log.Debug(text);
+                    break;
+                case LogType.Info:
+                    log.Info(text);
+                    break;
+                case LogType.Error:
+                    log.Error(text);
+                    break;
+                case LogType.Fatal:
+                    log.Fatal(text);
+                    break;
             }
         }
     }

@@ -198,9 +198,8 @@ namespace PersikSharp
                 string file_ext = file.FilePath.Split('.')[1];
                 fileName = fileName ?? $"{fileId}.{file_ext}";
 
-                bool exists = System.IO.Directory.Exists($"./{folder}/");
-                if (!exists)
-                    System.IO.Directory.CreateDirectory($"./{folder}/");
+                if (!Directory.Exists($"./{folder}/"))
+                    Directory.CreateDirectory($"./{folder}/");
                 using (FileStream file_stream = new FileStream($"./{folder}/{fileName}",
                     FileMode.Create, System.IO.FileAccess.Write))
                 {
