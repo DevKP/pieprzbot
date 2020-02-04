@@ -1,45 +1,26 @@
-variables:
-  NUGET_PATH: 'C:\Nuget\nuget.exe'
-  MSBUILD_PATH: 'D:\Microsoft Visual Studio\2019\Preview\MSBuild\Current\Bin\msbuild.exe'
-  ErrorActionPreference: STOP
+image: docker:stable
+image: docker/compose:latest
 
 stages:
   - build
-  - deploy
+
+services:
+  - docker:dind
+
+before_script:
+  - docker info
 
 build:
+  only:
+    - DeployTest
+    - master
+  before_script:
+    - docker login registry.gitlab.com -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}
+  script:
+    - docker build -t ${CI_REGISTRY}/${CI_PROJECT_PATH}:latest .
+    - docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}:latest   
+  after_script:
+    - docker logout ${CI_REGISTRY}
   stage: build
-  script:
-    - 'dotnet restore'
-    - 'dotnet build'
-  artifacts:
-    expire_in: 1 week
-    paths:
-      - PerchikSharp\bin\Debug\netcoreapp3.1\*.dll
-      - PerchikSharp\bin\Debug\netcoreapp3.1\*.json
-      - PerchikSharp\bin\Debug\netcoreapp3.1\*.exe
-      - PerchikSharp\bin\Debug\netcoreapp3.1\*.txt
-      - PerchikSharp\bin\Debug\netcoreapp3.1\*.mp3
-      - PerchikSharp\bin\Debug\netcoreapp3.1\*.jpg
-  only:
-    - master
-    - DeployTest
-  tags:
-    - powershell
-    - windows
-
-deploy:
-  stage: deploy
-  script:
-    - 'start C:\Projects\PersikSharp\Builds\PerchikSharp.exe --stop'
-    - 'C:\Users\buggt\AppData\Local\Programs\Python\Python38-32\python.exe .\deploy.py'
-    - 'cd C:\Projects\PersikSharp\Builds'
-    - 'start .\PerchikSharp.exe --u'
-  only:
-    - master
-    - DeployTest
-  tags:
-    - powershell
-    - windows
-  dependencies:
-    - build
+  tags: 
+    - docker

@@ -1,0 +1,17 @@
+version: "3"
+volumes:
+  conf:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "C:/PerchikSharp/Data"
+
+services:
+  perchik:
+    image: registry.gitlab.com/0kitty/persiksharp:latest
+    container_name: perchik
+    working_dir: /bot
+    volumes:
+      - //c/PerchikSharp/Data:/bot/Data
+    restart: unless-stopped
