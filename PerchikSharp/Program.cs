@@ -938,9 +938,9 @@ namespace PersikSharp
                 string name = e.Match.Groups["name"]?.Value;
                 if (name == null || name.Length == 0)
                 {
-                    name = name ?? message.From.Username;//Can be null
+                    name = message.From.Username ?? name;//Can be null
 
-                    name = name ?? message.From.FirstName;//But FirstName can't
+                    name = message.From.FirstName ?? name;//But FirstName can't
 
                 }                                         // Last name isn't required, this will be unreachable code
 
