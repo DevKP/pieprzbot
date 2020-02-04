@@ -1,5 +1,4 @@
 image: docker:stable
-image: docker/compose:latest
 
 stages:
   - build

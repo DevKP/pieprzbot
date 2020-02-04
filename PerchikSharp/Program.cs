@@ -73,12 +73,13 @@ namespace PersikSharp
                         case "--update":
                             string version = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
-                            Bot.SendTextMessageAsync(via_tcp_Id,
-                                $"*Updated to version: {version}*",
-                                ParseMode.Markdown);
-                            Bot.SendTextMessageAsync(offtopia_id,
-                                $"*Updated to version: {version}*",
-                                ParseMode.Markdown);
+                            string text = $"*Перчик жив! 🌶*\nВерсия: {version}";
+                            _ = Bot.SendTextMessageAsync(via_tcp_Id,
+                                                         text,
+                                                         ParseMode.Markdown);
+                            _ = Bot.SendTextMessageAsync(offtopia_id,
+                                                         text,
+                                                         ParseMode.Markdown);
                             break;
                         case "--close":
                             return;
@@ -929,97 +930,118 @@ namespace PersikSharp
             }
         }
 
-        private static void onStatisticsCommand(object sender, RegExArgs e)
+        private static async void onStatisticsCommand(object sender, RegExArgs e)
         {
             try
             {
                 Message message = e.Message;
                 string name = e.Match.Groups["name"]?.Value;
-                if(name == null || name.Length == 0){
-                    if(message.From.Username != null){
-                        name = message.From.Username;
-                    }
-                    if(message.From.FirstName != null){
-                        name = message.From.FirstName;
-                    }
-                    if(message.From.LastName != null){
-                        name = message.From.LastName;
-                    }
-                }
-                string upper_name = name.ToUpper().Replace("@", "");
-
-                var all_users = database.GetRows<DbUser>();
-                var users = all_users.Where(u =>
+                if (name == null || name.Length == 0)
                 {
-                    if (u.FirstName != null && u.FirstName.ToUpper().Contains(upper_name))
-                        return true;
-                    if (u.LastName != null && u.LastName.ToUpper().Contains(upper_name))
-                        return true;
-                    if (u.Username != null && u.Username.ToUpper().Contains(upper_name))
-                        return true;
+                    name = name ?? message.From.Username;//Can be null
 
-                    return false;
-                });
+                    name = name ?? message.From.FirstName;//But FirstName can't
 
-                if (users.Count() == 0)
-                {
-                    _ = Bot.SendTextMessageAsync(
+                }                                         // Last name isn't required, this will be unreachable code
+
+                var update_button = new InlineKeyboardButton();
+                update_button.CallbackData = "stats-update";
+                update_button.Text = strManager["RATE_UPDATE_BTN"];
+
+                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { update_button } });
+
+                string text = getStatisticsText(name);
+                Message msg = await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: $"*Пользователя \"{name}\" нет в базе.*",
+                            text: text,
+                            replyMarkup: inlineKeyboard,
                             parseMode: ParseMode.Markdown);
 
-                    return;
-                }
-                DbUser user = users.First();
 
-                var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
-                var msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
-
-                var date = DateTime.Now.ToString("yyyy-MM-dd");
-
-                var messages_today = messages.Where(m => m.DateTime.Substring(0, 10) == date);
-                var u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date);
-
-                int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count(); //TODO: FIX
-                int u_messages_today_count = u_messages_today.Count();
-                int u_messages_count = msgs_from_user.Count();
-                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
-
-                double user_activity = 0;
-                if (u_messages_today_count != 0)
+                bothelper.RegisterCallbackQuery(update_button.CallbackData, e.Message.From.Id, async (_, o) => 
                 {
-                    int total_text_length = messages_today.Sum(m => m.Text.Length);
-                    int user_text_length = u_messages_today.Sum(m => m.Text.Length);
-                    user_activity = (double)user_text_length / total_text_length;
-                }
-
-                TimeSpan remaining = new TimeSpan(0);
-                if (user.RestrictionId != null)
-                {
-                    List<DbRestriction> restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
-                    DateTime unban_time = DateTime.Parse(restriction?.First().DateTimeTo);
-
-                    remaining = unban_time - DateTime.Now;
-                }
-
-                _ = Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text:
-                            $"*Имя: {user.FirstName} {user.LastName}\n" +
-                            $"ID: {user.Id}\n" +
-                            $"Ник: {user.Username}\n\n" +
-                            string.Format("Активность: {0:F2}%\n", user_activity * 100) +
-                            $"Сообщений сегодня: { u_messages_today_count }\n" +
-                            $"Сообщений вчера: { u_messages_lastday_count }\n" +
-                            $"Всего сообщений: { u_messages_count }\n" +
-                            $"Банов: { restrictions_count }\n\n*" +
-                            (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`" }\n" : ""),
-                            parseMode: ParseMode.Markdown).Result;
+                    string new_text = getStatisticsText(name);
+                    if (new_text != text)
+                    {
+                        await Bot.EditMessageTextAsync(
+                                chatId: msg.Chat.Id,
+                                messageId: msg.MessageId,
+                                replyMarkup: inlineKeyboard,
+                                text: new_text,
+                                parseMode: ParseMode.Markdown);
+                    }
+                });
             }
             catch (Exception exp)
             {
                 Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
             }
+        }
+
+        private static string getStatisticsText(string search)
+        {
+            string upper_name = search.ToUpper().Replace("@", "");
+
+            var all_users = database.GetRows<DbUser>();
+            var users = all_users.Where(u =>
+            {
+                if (u.FirstName != null && u.FirstName.ToUpper().Contains(upper_name))
+                    return true;
+                if (u.LastName != null && u.LastName.ToUpper().Contains(upper_name))
+                    return true;
+                if (u.Username != null && u.Username.ToUpper().Contains(upper_name))
+                    return true;
+
+                return false;
+            });
+
+
+            if (users.Count() == 0)
+            {
+                return $"*Пользователя \"{search}\" нет в базе.*";
+            }
+
+            DbUser user = users.First();
+
+            var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
+            var msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
+
+            var date = DateTime.Now.ToString("yyyy-MM-dd");
+
+            var messages_today = messages.Where(m => m.DateTime.Substring(0, 10) == date);
+            var u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date);
+
+            int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count(); //TODO: FIX
+            int u_messages_today_count = u_messages_today.Count();
+            int u_messages_count = msgs_from_user.Count();
+            int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
+
+            double user_activity = 0;
+            if (u_messages_today_count != 0)
+            {
+                int total_text_length = messages_today.Sum(m => m.Text.Length);
+                int user_text_length = u_messages_today.Sum(m => m.Text.Length);
+                user_activity = (double)user_text_length / total_text_length;
+            }
+
+            TimeSpan remaining = new TimeSpan(0);
+            if (user.RestrictionId != null)
+            {
+                List<DbRestriction> restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
+                DateTime unban_time = DateTime.Parse(restriction?.First().DateTimeTo);
+
+                remaining = unban_time - DateTime.Now;
+            }
+
+            return $"*Имя: {user.FirstName} {user.LastName}\n" +
+                        $"ID: {user.Id}\n" +
+                        $"Ник: {user.Username}\n\n" +
+                        string.Format("Активность: {0:F2}%\n", user_activity * 100) +
+                        $"Сообщений сегодня: { u_messages_today_count }\n" +
+                        $"Сообщений вчера: { u_messages_lastday_count }\n" +
+                        $"Всего сообщений: { u_messages_count }\n" +
+                        $"Банов: { restrictions_count }\n\n*" +
+                        (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`" }\n" : "");
         }
 
         private static void onTopCommand(object sender, CommandEventArgs e)

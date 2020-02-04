@@ -201,7 +201,7 @@ namespace PersikSharp
                 if (!Directory.Exists($"./{folder}/"))
                     Directory.CreateDirectory($"./{folder}/");
                 using (FileStream file_stream = new FileStream($"./{folder}/{fileName}",
-                    FileMode.Create, System.IO.FileAccess.Write))
+                    FileMode.Create, FileAccess.Write))
                 {
                     docu.WriteTo(file_stream);
                     file_stream.Flush();
