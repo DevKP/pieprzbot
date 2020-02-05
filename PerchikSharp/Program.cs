@@ -1210,12 +1210,21 @@ namespace PersikSharp
                     return;
                 }
 
-                const int time_secs = 60 * 3; //2 minutes
+                const int time_secs = 60 * 3; //3 minutes
                 const int min_vote_count = 6;
                 const double vote_ratio = 0.7;
                 const int alert_period = 30;
 
-                DbUser user = database.FindUser(e.Text.Replace("@","")).First();
+                DbUser user = database.FindUser(e.Text.Replace("@",""))?.LastOrDefault();
+                if(user == null)
+                {
+                    await Bot.SendTextMessageAsync(
+                              chatId: e.Message.Chat.Id,
+                              text: $"*Пользователя \"{e.Text}\" нет в базе.*",
+                              parseMode: ParseMode.Markdown);
+                    return;
+                }
+
                 string username = $"@{user.Username}" ?? user.FirstName;
                 username = username.Replace('[', '<').Replace(']', '>');
                 string userlink = $"[{username}](tg://user?id={user.Id})";
@@ -1226,15 +1235,50 @@ namespace PersikSharp
                     chatId: message.Chat.Id,
                     question: string.Format(strManager["VOTEBAN_QUESTION"], username),
                     options: opts,
-                    disableNotification: true);
+                    disableNotification: false,
+                    isAnonymous: false);
 
                 var chat = await Bot.GetChatAsync(message.Chat.Id);
                 Logger.Log(LogType.Info, $"<{chat.Title}>: Voteban poll started for {username}:{user.Id}");
 
+                int legitvotes = 0, ignored = 0;
+                int forban = 0, againstban = 0;
+                
                 Poll recent_poll = poll_msg.Poll;
-                PollOption[] options = recent_poll.Options;
-                bothelper.RegisterPoll(poll_msg.Poll.Id, (_, p) => recent_poll = p.poll);
+                List<PollAnswer> answers = new List<PollAnswer>();
                 votebanning_groups.Add(e.Message.Chat.Id);
+
+
+                bothelper.RegisterPoll(poll_msg.Poll.Id, async (_, p) =>
+                {
+                    if (p.pollAnswer == null)
+                        return;
+
+                    recent_poll = p.poll;
+                    var pollanswer = p.pollAnswer;
+                    int exist = await database.ExecuteScalarAsync<int>($"SELECT count(*) FROM Users WHERE Id={pollanswer?.User.Id}");
+                    if(exist == 1)
+                    {
+                        if (pollanswer.OptionIds.Length > 0)
+                        {
+                            answers.Add(pollanswer);
+                            Logger.Log(LogType.Info,
+                                        $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} voted {pollanswer.OptionIds[0]}");
+                        }
+                        else
+                        {
+                            answers.RemoveAll(a => a.User.Id == pollanswer.User.Id);
+                            Logger.Log(LogType.Info,
+                                        $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} retracted vote");
+                        }
+                    }
+                    else
+                    {
+                        Logger.Log(LogType.Info,
+                            $"<{chat.Title}>: Voteban ignored user from another chat {pollanswer?.User.FirstName}:{pollanswer?.User.Id}");
+                    }
+                });
+                
 
                 List<Message> msg2delete = new List<Message>();
 
@@ -1242,17 +1286,22 @@ namespace PersikSharp
                 for (int alerts = 1; alerts < alerts_count; alerts++)
                 {
                     await Task.Delay(1000 * alert_period);
+
+                    forban = answers.Sum(a => a.OptionIds[0] == 0 ? 1 : 0);
+                    againstban = answers.Sum(a => a.OptionIds[0] == 1 ? 1 : 0);
+                    legitvotes = answers.Count;
+                    ignored = recent_poll.TotalVoterCount - legitvotes;
+
                     msg2delete.Add(await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
                               text: string.Format(strManager["VOTEBAN_ALERT"],
-                                userlink, time_secs - alerts * alert_period, recent_poll.TotalVoterCount, min_vote_count,
-                                recent_poll.Options[0].VoterCount, recent_poll.Options[1].VoterCount),
+                                userlink, time_secs - alerts * alert_period, legitvotes, min_vote_count,
+                                forban, againstban),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown));
 
-                    options = recent_poll.Options;
                     Logger.Log(LogType.Info, 
-                        $"<{chat.Title}>: Poll status {options[0].VoterCount}<>{options[1].VoterCount}, votes: {recent_poll.TotalVoterCount}");
+                        $"<{chat.Title}>: Voteban poll status {forban}<>{againstban}, totalvotes: {recent_poll.TotalVoterCount}, ignored: {ignored}");
                 }
 
                 await Task.Delay(1000 * alert_period);
@@ -1262,27 +1311,34 @@ namespace PersikSharp
                 votebanning_groups.Remove(e.Message.Chat.Id);
                 msg2delete.ForEach(m => Bot.DeleteMessageAsync(m.Chat.Id, m.MessageId));
 
-                if (recent_poll.TotalVoterCount < min_vote_count)
+                forban = answers.Sum(a => a.OptionIds[0] == 0 ? 1 : 0);
+                againstban = answers.Sum(a => a.OptionIds[0] == 1 ? 1 : 0);
+                legitvotes = answers.Count;
+                ignored = recent_poll.TotalVoterCount - legitvotes;
+
+                string igore_text = ignored > 0 ? string.Format(strManager["VOTEBAN_IGNORED"], ignored) : "";
+
+                if (legitvotes < min_vote_count)
                 {
                     await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
-                              text: string.Format(strManager["VOTEBAN_NOTENOUGH"], recent_poll.TotalVoterCount, min_vote_count,
-                                recent_poll.Options[0].VoterCount, recent_poll.Options[1].VoterCount),
+                              text: string.Format($"{strManager["VOTEBAN_NOTENOUGH"]}\n\n{igore_text}", legitvotes, min_vote_count,
+                                forban, againstban),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown);
-                    Logger.Log(LogType.Info, $"<{chat.Title}>: {options[0].VoterCount}<>{options[1].VoterCount} Poll result: Not enough votes");
+                    Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Not enough votes");
                     return;
                 }
 
-                double ratio = (double)recent_poll.Options[0].VoterCount / (double)recent_poll.TotalVoterCount;
+                double ratio = (double)forban / (double)legitvotes;
                 if (ratio < vote_ratio)
                 {
                     await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
-                              text: string.Format(strManager["VOTEBAN_RATIO"], ratio * 100),
+                              text: string.Format($"{strManager["VOTEBAN_RATIO"]}\n\n {igore_text}", ratio * 100),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown);
-                    Logger.Log(LogType.Info, $"<{chat.Title}>: {options[0].VoterCount}<>{options[1].VoterCount} Poll result: Decided not to ban");
+                    Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Decided not to ban");
                     return;
                 }
 
@@ -1295,12 +1351,12 @@ namespace PersikSharp
 
                 await Bot.SendTextMessageAsync(
                                chatId: message.Chat.Id,
-                               text: string.Format(strManager["VOTEBAN_BANNED"], userlink,
-                                recent_poll.Options[0].VoterCount, recent_poll.Options[1].VoterCount),
+                               text: string.Format($"{strManager["VOTEBAN_BANNED"]}\n\n {igore_text}", userlink,
+                                forban, againstban),
                                parseMode: ParseMode.Markdown);
 
                 Logger.Log(LogType.Info, 
-                    $"<{chat.Title}>: Poll result: {options[0].VoterCount}<>{options[1].VoterCount} The user has been banned!");
+                    $"<{chat.Title}>: Poll result: {forban}<>{againstban} The user has been banned!");
 
             }
             catch (Exception exp)

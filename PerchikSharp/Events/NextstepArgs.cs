@@ -8,7 +8,9 @@ namespace PerchikSharp
     public class NextstepArgs : EventArgs
     {
         public NextstepArgs(Message m, object arg)
-        { Message = m; Arg = arg; }
+        { 
+            Message = m; Arg = arg;
+        }
         public Message Message { get; }
         public object Arg { get; }
     }

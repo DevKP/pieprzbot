@@ -32,6 +32,8 @@ namespace PersikSharp
         public Dictionary<string, EventHandler<PollArgs>> pollHandlers;
         public List<BotEventHandlerUnit> nextstepHandlers;
 
+        public List<PollAnswer> pollAnswersCache;
+
         public User Me { get; }
         private string bot_username;
 
@@ -42,6 +44,8 @@ namespace PersikSharp
             this.regexHandlers = new Dictionary<string, EventHandler<RegExArgs>>();
             this.pollHandlers = new Dictionary<string, EventHandler<PollArgs>>();
             this.nextstepHandlers = new List<BotEventHandlerUnit>();
+            this.pollAnswersCache = new List<PollAnswer>();
+
         }
         public BotHelper(TelegramBotClient bot) : this()
         {
@@ -68,20 +72,26 @@ namespace PersikSharp
         {
             try
             {
+                Update update = e.Update;
                 switch (e.Update.Type)
                 {
                     case UpdateType.Poll:
-                        Update update = e.Update;
+                        
                         foreach (var poll in this.pollHandlers)
                         {
                             if (poll.Key == update.Poll.Id)
                             {
-                                poll.Value?.Invoke(this, new PollArgs(update.Poll));
+                                PollAnswer pollanswer = this.pollAnswersCache.Where((p) => p.PollId == update.Poll.Id).LastOrDefault();
+                                poll.Value?.Invoke(this, new PollArgs(update.Poll, pollanswer));
                             }
                         }
                         break;
                     case UpdateType.PollAnswer:
-                        this.onPollAnswer?.Invoke(sender, e.Update.PollAnswer);
+                        if (this.pollHandlers.Any(h => h.Key == update.PollAnswer.PollId))
+                        {
+                            this.pollAnswersCache.Add(e.Update.PollAnswer);
+                            this.onPollAnswer?.Invoke(sender, e.Update.PollAnswer);
+                        }
                         break;
                     default:
                         break;
