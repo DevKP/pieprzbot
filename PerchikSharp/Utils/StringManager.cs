@@ -46,7 +46,7 @@ namespace PersikSharp
         /// Text string.
         /// </returns>
         /// <param name="path">Path to text file.</param>
-        public static string StringFromFile(string path)
+        public static string FromFile(string path)
         {
             if (path == null)
                 throw new ArgumentNullException();

@@ -73,7 +73,7 @@ namespace PersikSharp
                         case "--update":
                             string version = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
-                            string text = $"*Перчик жив! 🌶*\nВерсия: {version}\n\n*Изменения:*\n{StringManager.StringFromFile("changelog.txt")}";
+                            string text = $"*Перчик жив! 🌶*\nВерсия: {version}\n\n*Изменения:*\n{StringManager.FromFile("changelog.txt")}";
                             _ = Bot.SendTextMessageAsync(via_tcp_Id,
                                                          text,
                                                          ParseMode.Markdown);
@@ -1185,7 +1185,7 @@ namespace PersikSharp
             {
                 await Bot.SendTextMessageAsync(
                              chatId: e.Message.Chat.Id,
-                             text: StringManager.StringFromFile("votebanusage.txt"),
+                             text: StringManager.FromFile("votebanusage.txt"),
                              parseMode: ParseMode.Markdown);
                 return;
             }
@@ -1739,7 +1739,7 @@ namespace PersikSharp
 
             _ = Bot.SendTextMessageAsync(
                        chatId: message.Chat.Id,
-                       text: StringManager.StringFromFile(strManager["INFO_PATH"]),
+                       text: StringManager.FromFile(strManager["INFO_PATH"]),
                        parseMode: ParseMode.Markdown).Result;
         }
         private static void onMeCommand(object sender, CommandEventArgs message_args)
