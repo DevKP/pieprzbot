@@ -1210,7 +1210,7 @@ namespace PersikSharp
                     return;
                 }
 
-                const int time_secs = 60 * 2; //2 minutes
+                const int time_secs = 60 * 3; //2 minutes
                 const int min_vote_count = 6;
                 const double vote_ratio = 0.7;
                 const int alert_period = 30;
