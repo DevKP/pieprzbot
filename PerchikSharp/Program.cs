@@ -1493,10 +1493,14 @@ namespace PersikSharp
                 Message message = message_args.Message;
 
                 string username = string.Empty;
-                username = $"@{message.From.Username}" ?? message.From.FirstName;
+                if (message.From.Username != null)
+                {
+                    username = $"@{message.From.Username}";
+                }
+                else { username = Perchik.MakeUserLink(message.From); }
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
-                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
+                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string, ParseMode.Markdown);
 
 
                 if(message.From.Id == via_tcp_Id)

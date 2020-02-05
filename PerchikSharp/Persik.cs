@@ -123,7 +123,7 @@ namespace PersikSharp
         {
             try
             {
-                return string.Format("[{0}](tg://user?id={1})", user.FirstName.Replace('[',' ').Replace(']', ' '), user.Id);
+                return string.Format("[{0}](tg://user?id={1})", user.FirstName.Replace('[','<').Replace(']', '>'), user.Id);
             }
             catch (NullReferenceException)//If FirstName is null using id as name
             {
