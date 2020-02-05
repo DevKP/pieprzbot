@@ -72,8 +72,17 @@ namespace PersikSharp
                     {
                         case "--update":
                             string version = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
+                            string changelog = string.Empty;
+                            try
+                            {
+                                changelog = $"\n\n*Изменения:*\n{StringManager.FromFile("changelog.txt")}";
+                                System.IO.File.Delete("changelog.txt");
+                            }catch(FileNotFoundException)
+                            {
+                                
+                            }
 
-                            string text = $"*Перчик жив! 🌶*\nВерсия: {version}\n\n*Изменения:*\n{StringManager.FromFile("changelog.txt")}";
+                            string text = $"*Перчик жив! 🌶*\nВерсия: {version}{changelog}";
                             _ = Bot.SendTextMessageAsync(via_tcp_Id,
                                                          text,
                                                          ParseMode.Markdown);
