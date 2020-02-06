@@ -10,10 +10,8 @@ namespace PerchikSharp.Db.Tables
         [BsonId]
         public int id { get; set; }
         public string firstname { get; set; }
-        public string? lastname { get; set; }
-        public string? username { get; set; }
-        public bool restricted { get; set; }
-        [BsonRef("Restrictions")]
-        public List<Restriction>? restrictions { get; set; }
+        public string lastname { get; set; }
+        public string username { get; set; }
+        public Restriction restriction { get; set; }
     }
 }

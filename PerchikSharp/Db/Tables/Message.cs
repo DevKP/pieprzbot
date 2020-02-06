@@ -13,9 +13,9 @@ namespace PerchikSharp.Db.Tables
         [BsonRef("Users")]
         public User from { get; set; }
         public int? replytoid { get; set; }
-        public string? text { get; set; }
+        public string text { get; set; }
         public MessageType type { get; set; }
-        public string? fileid { get; set; }
+        public string fileid { get; set; }
         public DateTime date { get; set; }
         public DateTime? editdate { get; set; }
     }

@@ -12,5 +12,6 @@ namespace PerchikSharp.Db.Tables
         public Chat chat { get; set; }
         public DateTime date { get; set; }
         public DateTime until { get; set; }
+        public User user { get; set; }
     }
 }

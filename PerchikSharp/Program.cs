@@ -36,7 +36,7 @@ namespace PerchikSharp
         static StringManager tokens = new StringManager();
 
         static PerschikDB database;
-        static PerchikDB db;
+        public static PerchikDB db;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -206,6 +206,7 @@ namespace PerchikSharp
             bothelper.onStickerMessage += onStickerMessage;
             bothelper.onChatMembersAddedMessage += onChatMembersAddedMessage;
             bothelper.onDocumentMessage += onDocumentMessage;
+            Bot.OnMessage += Bot_OnMessage;
 
             bothelper.NativeCommand("start", onStartCommand);
             bothelper.NativeCommand("info", onInfoCommand);
@@ -231,23 +232,12 @@ namespace PerchikSharp
                 Message telemsg = e.Message;
                 User teleuser = telemsg.From;
 
-                var restriction = new Db.Tables.Restriction()
-                {
-                    chat = new Db.Tables.Chat() { id = e.Message.Chat.Id},
-                    date = DateTime.Now,
-                    until = DateTime.Now.AddSeconds(20)
-                };
-
-                db.UpsertRestriction(restriction);
-
                 var user = new Db.Tables.User()
                 {
                     id = teleuser.Id,
                     firstname = teleuser.FirstName,
                     lastname = teleuser.LastName,
                     username = teleuser.Username,
-                    restrictions = new List<Db.Tables.Restriction>() { restriction },
-                    restricted = true
                 };
                 db.UpsertUser(user);
 
@@ -280,6 +270,11 @@ namespace PerchikSharp
 
         }
 
+        private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
+        {
+            DatabaseUpdate(sender, e.Message);
+        }
+
         static void StartDatabaseCheck(object s)
         {
             HandleDbRestrictions();
@@ -295,14 +290,13 @@ namespace PerchikSharp
         {
             try
             {
-                var _users = db.FindUser(u => u.restricted && u.restrictions != null);
+                var _users = db.FindUser(u => u.restriction != null);
                 foreach (var user in _users)
                 {
-                    int lastRestrictionId = user.restrictions.Max(r => r.id);
-                    var restriction = db.FindRestriction(r => r.id == lastRestrictionId).First();
+                    var restriction = db.FindRestriction(r => r.id == user.restriction.id).First();
                     if (DateTime.Now > restriction.until)
                     {
-                        user.restricted = false;
+                        user.restriction = null;
                         db.UpsertUser(user);
 
                         _ = Bot.SendTextMessageAsync(
@@ -697,14 +691,23 @@ namespace PerchikSharp
                             parseMode: ParseMode.Markdown);
                     }
 
-                    _ = database.AddRestrictionAsync(new DbUser()
+                    var restriction = new Db.Tables.Restriction()
                     {
-                        Id = e.Message.ReplyToMessage.From.Id,
-                        FirstName = e.Message.ReplyToMessage.From.FirstName,
-                        LastName = e.Message.ReplyToMessage.From.LastName,
-                        Username = e.Message.ReplyToMessage.From.Username,
-                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                    }, e.Message.Chat.Id, seconds);
+                        chat = new Db.Tables.Chat() { id = message.Chat.Id },
+                        date = DateTime.Now,
+                        until = DateTime.Now.AddSeconds(seconds),
+                        user = new Db.Tables.User() { id = message.ReplyToMessage.From.Id }
+                    };
+                    var user = new Db.Tables.User()
+                    {
+                        id = message.ReplyToMessage.From.Id,
+                        firstname = message.ReplyToMessage.From.FirstName,
+                        lastname = message.ReplyToMessage.From.LastName,
+                        username = message.ReplyToMessage.From.Username,
+                        restriction = restriction
+                    };
+                    db.UpsertRestriction(restriction);
+                    db.UpsertUser(user);
 
                     _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
@@ -1571,37 +1574,37 @@ namespace PerchikSharp
 
 
             onPerchikReplyTrigger(sender, message_args);
-            DatabaseUpdate(sender, message_args.Message);
+            //DatabaseUpdate(sender, message_args.Message);
         }
 
         private static void DatabaseUpdate(object s, Message e)
         {
             try
             {
-                DateTime myDateTime = DateTime.Now;
-                string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-
-                database.InsertRowAsync(new DbMessage()
+                var user = new Db.Tables.User()
                 {
-                    Id = e.MessageId,
-                    UserId = e.From.Id,
-                    Text = e.Text,
-                    DateTime = sqlFormattedDate
-                });
+                    id = e.From.Id,
+                    firstname = e.From.FirstName,
+                    lastname = e.From.LastName,
+                    username = e.From.Username,
 
-
-                var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == e.From.Id).Result;
-                int? restrictionId = user.Count != 0 ? user.First().RestrictionId : null;
-
-                database.InsertOrReplaceRowAsync(new DbUser()
+                };
+                var users = db.FindUser(u => u.id == e.From.Id);
+                if(users.Count != 0)
                 {
-                    Id = e.From.Id,
-                    FirstName = e.From.FirstName,
-                    LastName = e.From.LastName,
-                    Username = e.From.Username,
-                    LastMessage = sqlFormattedDate,
-                    RestrictionId = restrictionId
-                });
+                    user.restriction = users.First().restriction; 
+                }
+
+                var message = new Db.Tables.Message()
+                {
+                    id = e.MessageId,
+                    from = user,
+                    text = e.Text,
+                    type = e.Type,
+                    date = e.Date
+                };
+                db.UpsertUser(user);
+                db.UpsertMessage(message);
             }
             catch (Exception ex)
             {
