@@ -4,7 +4,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using PerchikSharp;
 
-namespace PersikSharp
+namespace PerchikSharp
 {
     public class BotEventHandlerUnit
     {

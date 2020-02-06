@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
-namespace PersikSharp
+namespace PerchikSharp
 {
     public enum LogType
     {

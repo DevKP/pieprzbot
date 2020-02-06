@@ -1,7 +1,7 @@
 ﻿using SQLite;
 using System;
 
-namespace PersikSharp.Tables
+namespace PerchikSharp.oldTables
 {
     [Table("Users")]
     public partial class DbUser : ITable

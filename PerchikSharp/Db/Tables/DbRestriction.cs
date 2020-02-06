@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PersikSharp.Tables
+namespace PerchikSharp.oldTables
 {
     [Table("Restrictions")]
     public partial class DbRestriction : ITable

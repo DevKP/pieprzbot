@@ -19,12 +19,12 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Net.Http;
 using System.Diagnostics;
 using System.Reflection;
-using PersikSharp.Tables;
 using System.Net.Http.Headers;
 using System.Web;
-using PerchikSharp;
+using PerchikSharp.oldTables;
+using PerchikSharp.Db;
 
-namespace PersikSharp
+namespace PerchikSharp
 {
     class Program
     {
@@ -36,6 +36,7 @@ namespace PersikSharp
         static StringManager tokens = new StringManager();
 
         static PerschikDB database;
+        static PerchikDB db;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -60,6 +61,8 @@ namespace PersikSharp
             file.Directory.Create();
             database = new PerschikDB("./Data/database.db");
             database.Create();
+
+            db = new PerchikDB("./Data/test_database.db");
 
             Init();
 
@@ -222,6 +225,59 @@ namespace PersikSharp
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
+
+            bothelper.NativeCommand("db", (_, e) =>
+            {
+                Message telemsg = e.Message;
+                User teleuser = telemsg.From;
+
+                var restriction = new Db.Tables.Restriction()
+                {
+                    chat = new Db.Tables.Chat() { id = e.Message.Chat.Id},
+                    date = DateTime.Now,
+                    until = DateTime.Now.AddSeconds(20)
+                };
+
+                db.UpsertRestriction(restriction);
+
+                var user = new Db.Tables.User()
+                {
+                    id = teleuser.Id,
+                    firstname = teleuser.FirstName,
+                    lastname = teleuser.LastName,
+                    username = teleuser.Username,
+                    restrictions = new List<Db.Tables.Restriction>() { restriction },
+                    restricted = true
+                };
+                db.UpsertUser(user);
+
+                db.UpsertMessage(new Db.Tables.Message()
+                {
+                    id = telemsg.MessageId,
+                    from = new Db.Tables.User() { id = teleuser.Id },
+                    replytoid = null,
+                    text = telemsg.Text,
+                    type = telemsg.Type,
+                    date = telemsg.Date
+                });
+
+
+                //var user = new Db.Tables.User()
+                //{
+                //    id = teleuser.Id,
+                //    firstname = teleuser.FirstName,
+                //    lastname = teleuser.LastName,
+                //    username = teleuser.Username,
+                //    restrictions = new List<Db.Tables.Restriction>() { restriction }
+                //};
+                //db.UpsertRestriction(restriction);
+                //db.UpsertUser(user);
+
+
+
+
+            });
+
         }
 
         static void StartDatabaseCheck(object s)
@@ -239,6 +295,24 @@ namespace PersikSharp
         {
             try
             {
+                var _users = db.FindUser(u => u.restricted && u.restrictions != null);
+                foreach (var user in _users)
+                {
+                    int lastRestrictionId = user.restrictions.Max(r => r.id);
+                    var restriction = db.FindRestriction(r => r.id == lastRestrictionId).First();
+                    if (DateTime.Now > restriction.until)
+                    {
+                        user.restricted = false;
+                        db.UpsertUser(user);
+
+                        _ = Bot.SendTextMessageAsync(
+                                    chatId: restriction.chat.id,
+                                    text: string.Format(strManager["UNBANNED"], $"[{user.firstname}](tg://user?id={user.id})"),
+                                    parseMode: ParseMode.Markdown);
+                    }
+                }
+
+
                 var users = database.GetRowsByFilterAsync<DbUser>(u => u.RestrictionId != null).Result;
                 if (users.Count != 0)
                 {

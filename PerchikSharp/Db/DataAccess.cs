@@ -1,4 +1,4 @@
-using PersikSharp.Tables;
+using PerchikSharp.oldTables;
 using SQLite;
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
-namespace PersikSharp
+namespace PerchikSharp
 {
     public class PerschikDB
     {
