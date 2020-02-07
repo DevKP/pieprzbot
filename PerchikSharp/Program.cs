@@ -299,40 +299,10 @@ namespace PerchikSharp
                         user.restriction = null;
                         db.UpsertUser(user);
 
-                        _ = Bot.SendTextMessageAsync(
+                        await Bot.SendTextMessageAsync(
                                     chatId: restriction.chat.id,
                                     text: string.Format(strManager["UNBANNED"], $"[{user.firstname}](tg://user?id={user.id})"),
                                     parseMode: ParseMode.Markdown);
-                    }
-                }
-
-
-                var users = database.GetRowsByFilterAsync<DbUser>(u => u.RestrictionId != null).Result;
-                if (users.Count != 0)
-                {
-                    foreach (DbUser user in users)
-                    {
-                        var restrictions = await database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId);
-                        if (restrictions.Count != 0)
-                        {
-                            DbRestriction restriction = restrictions[0];
-                            DateTime to = DateTime.Parse(restriction.DateTimeTo);
-
-                            if (DateTime.Now > to)
-                            {
-                                user.RestrictionId = null;
-                                _ = database.InsertOrReplaceRowAsync(user);
-                                _ = Bot.SendTextMessageAsync(
-                                    chatId: restriction.ChatId,
-                                    text: string.Format(strManager["UNBANNED"], $"[{user.FirstName}](tg://user?id={user.Id})"),
-                                    parseMode: ParseMode.Markdown);
-                            }
-                        }
-                        else
-                        {
-                            user.RestrictionId = null;
-                            _ = database.InsertOrReplaceRowAsync(user);
-                        }
                     }
                 }
             }
@@ -1077,61 +1047,54 @@ namespace PerchikSharp
         private static string getStatisticsText(string search)
         {
             string upper_name = search.ToUpper().Replace("@", "");
-
-            var all_users = database.GetRows<DbUser>();
-            var users = all_users.Where(u =>
+            var users = db.UserCollection.Include(x => x.restriction).FindAll().Where(u =>
             {
-                if (u.FirstName != null && u.FirstName.ToUpper().Contains(upper_name))
+                if (u.firstname != null && u.firstname.ToUpper().Contains(upper_name))
                     return true;
-                if (u.LastName != null && u.LastName.ToUpper().Contains(upper_name))
+                if (u.lastname != null && u.lastname.ToUpper().Contains(upper_name))
                     return true;
-                if (u.Username != null && u.Username.ToUpper().Contains(upper_name))
+                if (u.username != null && u.username.ToUpper().Contains(upper_name))
                     return true;
 
                 return false;
             });
-
 
             if (users.Count() == 0)
             {
                 throw new Exception($"*Пользователя \"{search}\" нет в базе.*");
             }
 
-            DbUser user = users.First();
+            var user = users.First();
 
-            var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
-            var msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
+            var msgs_from_user = db.MessageCollection.Find(m => m.from.id == user.id);
 
-            var date = DateTime.Now.ToString("yyyy-MM-dd");
+            var messages_today = db.FindMessage(m => m.date.Date == DateTime.Now.Date);
+            var u_messages_today = msgs_from_user.Where(m => m.date.Date == DateTime.Now.Date).ToList();
 
-            var messages_today = messages.Where(m => m.DateTime.Substring(0, 10) == date);
-            var u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date);
-
-            int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count(); //TODO: FIX
+            int u_messages_lastday_count = msgs_from_user.Where(m => m.date.Date == DateTime.Now.AddDays(-1).Date).Count();
             int u_messages_today_count = u_messages_today.Count();
             int u_messages_count = msgs_from_user.Count();
-            int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
+            int restrictions_count = db.BanCollection.Count();
 
             double user_activity = 0;
             if (u_messages_today_count != 0)
             {
-                int total_text_length = messages_today.Sum(m => m.Text.Length);
-                int user_text_length = u_messages_today.Sum(m => m.Text.Length);
+                messages_today.RemoveAll(m => m.text == null);
+                u_messages_today.RemoveAll(m => m.text == null);
+                int total_text_length = messages_today.Sum(m => m.text.Length);
+                int user_text_length = u_messages_today.Sum(m => m.text.Length);
                 user_activity = (double)user_text_length / total_text_length;
             }
 
             TimeSpan remaining = new TimeSpan(0);
-            if (user.RestrictionId != null)
+            if (user.restriction != null)
             {
-                List<DbRestriction> restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
-                DateTime unban_time = DateTime.Parse(restriction?.First().DateTimeTo);
-
-                remaining = unban_time - DateTime.Now;
+                remaining = user.restriction.until - DateTime.Now;
             }
 
-            return $"*Имя: {user.FirstName} {user.LastName}\n" +
-                        $"ID: {user.Id}\n" +
-                        $"Ник: {user.Username}\n\n" +
+            return $"*Имя: {user.firstname} {user.lastname}\n" +
+                        $"ID: {user.id}\n" +
+                        $"Ник: {user.username}\n\n" +
                         string.Format("Активность: {0:F2}%\n", user_activity * 100) +
                         $"Сообщений сегодня: { u_messages_today_count }\n" +
                         $"Сообщений вчера: { u_messages_lastday_count }\n" +
@@ -1644,120 +1607,11 @@ namespace PerchikSharp
                 }
 
 
-                //remove to enable
-                return;
-
-
-                var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == message.From.Id).Result;
-                if (user.Count == 0)
-                {
-                    database.InsertOrReplaceRowAsync(new DbUser()
-                    {
-                        Id = message.From.Id,
-                        FirstName = message.From.FirstName,
-                        LastName = message.From.LastName,
-                        Username = message.From.Username,
-                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        RestrictionId = null
-                    });
-                }
-
-                Perchik.RestrictUserAsync(message.Chat.Id, message.From.Id, DateTime.Now.AddYears(420));
-
-
-                var human_button = new InlineKeyboardButton();
-                human_button.CallbackData = Path.GetRandomFileName();
-                human_button.Text = strManager["CAPTCHA_HUMAN_BTN"];
-
-                var bot_button = new InlineKeyboardButton();
-                bot_button.CallbackData = Path.GetRandomFileName();
-                bot_button.Text = strManager["CAPTCHA_BOT_BTN"];
-
-                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { human_button, bot_button } });
-
-                var captcha_msg = Bot.SendTextMessageAsync(
-                     chatId: message_args.Message.Chat.Id,
-                     replyMarkup: inlineKeyboard,
-                     text: string.Format(strManager["CAPTCHA"], Perchik.MakeUserLink(message.From)),
-                     parseMode: ParseMode.Markdown).Result;
-
-                bothelper.RegisterCallbackQuery(human_button.CallbackData, message.From.Id, onBotCheckButtonNoBot);
-                bothelper.RegisterCallbackQuery(bot_button.CallbackData, message.From.Id, onBotCheckButtonBot);
-
-                //Thread.Sleep(1000 * 60);
-
-                //CallbackQuery fake_button_callback = new CallbackQuery();
-                //fake_button_callback.From = message.From;
-                //fake_button_callback.Message = message;
-
-                //onBotCheckButtonBot(sender, new CallbackQueryArgs(fake_button_callback, message.From.Id));
             }
             catch (Exception ex)
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
-        }
-
-        private static void onBotCheckButtonNoBot(object sender, CallbackQueryArgs c)
-        {
-            try
-            {
-                Message message = c.Callback.Message;
-
-                Bot.DeleteMessageAsync(
-                chatId: message.Chat.Id,
-                messageId: message.MessageId);
-
-                var users = database.GetRowsByFilterAsync<DbUser>(u => u.Id == c.Callback.From.Id).Result;
-                if (users.Count != 0 && users.First().RestrictionId != null)
-                {
-                    DbUser user = users.First();
-                    var restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
-                    var until = DateTime.Parse(restriction.First().DateTimeTo);
-                    Perchik.RestrictUserAsync(message.Chat.Id, c.Callback.From.Id, until);
-
-                }
-                else
-                {
-                    Perchik.RestrictUserAsync(message.Chat.Id, c.Callback.From.Id, DateTime.Now.AddSeconds(1), canWriteMessages: true);
-                }
-
-                string username = "Ноунейм";
-                username = $"@{c.Callback.From.Username}" ?? c.Callback.From.FirstName;
-
-                string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
-                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
-
-                bothelper.RemoveCallbackQuery(c.Callback.Data);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
-            }
-        }
-
-        private static void onBotCheckButtonBot(object sender, CallbackQueryArgs c)
-        {
-            Message message = c.Callback.Message;
-
-            Bot.DeleteMessageAsync(
-                chatId: message.Chat.Id,
-                messageId: message.MessageId);
-
-            Bot.KickChatMemberAsync(
-                chatId: message.Chat.Id,
-                userId: c.Callback.From.Id);
-
-            Bot.UnbanChatMemberAsync(
-                chatId: message.Chat.Id,
-                userId: c.Callback.From.Id);
-
-            Bot.SendTextMessageAsync(
-                  chatId: message.Chat.Id,
-                  text: string.Format(strManager["CAPTCHA_HUMAN"], Perchik.MakeUserLink(message.From)),
-                  parseMode: ParseMode.Markdown);
-
-            bothelper.RemoveCallbackQuery(c.Callback.Data);
         }
 
         //=======Bot commands========
