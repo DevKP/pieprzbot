@@ -32,6 +32,8 @@ namespace PerchikSharp.Db
 
         public PerchikDB(string connectionString) : base(connectionString)
         {
+            MessageCollFactory.EnsureIndex("uid", "$.from._id");
+            MessageCollFactory.EnsureIndex("idate", "$.date");
         }
        
         public List<Tables.Chat> FindChat(Expression<Func<Tables.Chat, bool>> predicate)

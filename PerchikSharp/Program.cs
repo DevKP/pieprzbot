@@ -23,6 +23,7 @@ using System.Net.Http.Headers;
 using System.Web;
 using PerchikSharp.oldTables;
 using PerchikSharp.Db;
+using LiteDB;
 
 namespace PerchikSharp
 {
@@ -58,7 +59,7 @@ namespace PerchikSharp
             FileInfo file = new FileInfo("./Data/");
             file.Directory.Create();
 
-            db = new PerchikDB("./Data/test_database.db");
+            db = new PerchikDB("./Data/database.db");
 
             Init();
 
@@ -221,6 +222,69 @@ namespace PerchikSharp
             bothelper.NativeCommand("promote", onPromoteCommand);
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
+
+            bothelper.NativeCommand("migr", (_, e) =>
+            {
+                PerchikDB database = new PerchikDB("./Data/new_database.db");
+                PerschikDB database_old = new PerschikDB("./Data/old_database.db");
+                database_old.Create();
+
+                var uCollection = database.UserCollFactory;
+                var mCollection = database.MessageCollFactory;
+                var rCollection = database.BanCollFactory;
+                var cmCollection = database.ChatMessageCollFactory;
+
+                var users_old = database_old.GetRows<DbUser>();
+                var messages_old = database_old.GetRows<DbMessage>();
+                var restrictions_old = database_old.GetRows<DbRestriction>();
+
+                foreach (var old_message in messages_old)
+                {
+                    var message = new Db.Tables.Message()
+                    {
+                        messageid = old_message.Id,
+                        from = new Db.Tables.User() { id = old_message.UserId },
+                        text = old_message.Text,
+                        date = DateTime.Parse(old_message.DateTime),
+                        editdate = null
+                    };
+                    mCollection.Insert(message);
+                    cmCollection.Insert(new Db.Tables.ChatMessage()
+                    {
+                        chat = new Db.Tables.Chat() { id = -1001464920421 },
+                        message = message
+                    });
+                    Logger.Log(LogType.Info, $"Migrated message id: {message.id} messageid: {old_message.Id} - {old_message.Text}");
+                }
+                foreach (var old_restriction in restrictions_old)
+                {
+                    rCollection.Insert(new Db.Tables.Restriction()
+                    {
+                        chat = new Db.Tables.Chat() { id = long.Parse(old_restriction.ChatId) },
+                        date = DateTime.Parse(old_restriction.DateTimeFrom),
+                        until = DateTime.Parse(old_restriction.DateTimeTo),
+                        user = new Db.Tables.User() { id = old_restriction.UserId }
+                    });
+                    Logger.Log(LogType.Info, $"Migrated restriction id: {old_restriction.Id} - {old_restriction.DateTimeFrom} => {old_restriction.DateTimeTo}");
+                }
+
+                foreach (var old_user in users_old)
+                {
+                    uCollection.Insert(new Db.Tables.User()
+                    {
+                        id = old_user.Id,
+                        firstname = old_user.FirstName,
+                        lastname = old_user.LastName,
+                        username = old_user.Username,
+                        restriction = null
+                    });
+                    Logger.Log(LogType.Info, $"Migrated user {old_user.FirstName}:{old_user.Id}");
+                }
+
+                Logger.Log(LogType.Info, $"Loaded users: {users_old.Count}");
+                Logger.Log(LogType.Info, $"Loaded messages: {messages_old.Count}");
+                Logger.Log(LogType.Info, $"Loaded restrictions: {restrictions_old.Count}");
+            });
         }
 
         private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
@@ -1026,14 +1090,22 @@ namespace PerchikSharp
             }
 
             var user = users.First();
+            var timenow = DateTime.Now;
 
-            var msgs_from_user = mCollection.Find(m => m.from.id == user.id);
+            var msgs_from_user = mCollection.Find(m=> m.from.id == user.id);
+            var messages_today = mCollection.Find(m => m.date.Date == timenow.Date);
 
-            var messages_today = mCollection.Find(m => m.date.Date == DateTime.Now.Date);
-            var u_messages_today = msgs_from_user.Where(m => m.date.Date == DateTime.Now.Date).ToList();
+            var u_messages_today = new List<Db.Tables.Message>();
+            foreach(var msg in msgs_from_user)
+            {
+                if (msg.date.Date == timenow.Date)
+                    u_messages_today.Add(msg);
+            }
 
-            int u_messages_lastday_count = msgs_from_user.Where(m => m.date.Date == DateTime.Now.AddDays(-1).Date).Count();
-            int u_messages_today_count = u_messages_today.Count();
+            var timelastday = DateTime.Now.AddDays(-1);
+            int u_messages_lastday_count = msgs_from_user.Count(x => x.date.Date == timelastday.Date);
+
+            int u_messages_today_count = u_messages_today.Count;
             int u_messages_count = msgs_from_user.Count();
             int restrictions_count = bCollection.Count(b => b.user.id == user.id);
 
@@ -1539,7 +1611,7 @@ namespace PerchikSharp
 
                 var message = new Db.Tables.Message()
                 {
-                    id = e.MessageId,
+                    messageid = e.MessageId,
                     from = user,
                     replytoid = e.ReplyToMessage?.From.Id,
                     text = e.Text,
@@ -1576,7 +1648,7 @@ namespace PerchikSharp
                 Db.Tables.Message pinnedmessage = null;
                 if(telegram_chat.PinnedMessage != null)
                 {
-                    pinnedmessage = new Db.Tables.Message() { id = telegram_chat.PinnedMessage.MessageId };
+                    pinnedmessage = new Db.Tables.Message() { messageid = telegram_chat.PinnedMessage.MessageId };
                 }
                 db.ChatCollFactory.Upsert(new Db.Tables.Chat()
                 {

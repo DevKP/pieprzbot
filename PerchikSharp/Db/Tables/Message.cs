@@ -10,6 +10,7 @@ namespace PerchikSharp.Db.Tables
     {
         [BsonId]
         public int id { get; set; }
+        public int messageid { get; set; }
         [BsonRef("Users")]
         public User from { get; set; }
         public int? replytoid { get; set; }
