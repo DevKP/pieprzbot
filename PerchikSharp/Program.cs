@@ -35,7 +35,6 @@ namespace PerchikSharp
         static StringManager strManager = new StringManager();
         static StringManager tokens = new StringManager();
 
-        static PerschikDB database;
         public static PerchikDB db;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
@@ -58,8 +57,6 @@ namespace PerchikSharp
 
             FileInfo file = new FileInfo("./Data/");
             file.Directory.Create();
-            database = new PerschikDB("./Data/database.db");
-            database.Create();
 
             db = new PerchikDB("./Data/test_database.db");
 
@@ -1218,8 +1215,21 @@ namespace PerchikSharp
                 const double vote_ratio = 0.7;
                 const int alert_period = 30;
 
-                DbUser user = database.FindUser(e.Text.Replace("@",""))?.LastOrDefault();
-                if(user == null)
+                string username = e.Text.Replace("@", "").ToLower();
+
+                var user = db.UserCollFactory.FindAll().Where(u =>
+                {
+                    if (u.firstname != null && u.firstname.ToLower().Contains(username))
+                        return true;
+                    if (u.lastname != null && u.lastname.ToLower().Contains(username))
+                        return true;
+                    if (u.username != null && u.username.ToLower().Contains(username))
+                        return true;
+
+                    return false;
+                }).FirstOrDefault();
+
+                if (user == null)
                 {
                     await Bot.SendTextMessageAsync(
                               chatId: e.Message.Chat.Id,
@@ -1228,9 +1238,8 @@ namespace PerchikSharp
                     return;
                 }
 
-                string username = $"@{user.Username}" ?? user.FirstName;
-                username = username.Replace('[', '<').Replace(']', '>');
-                string userlink = $"[{username}](tg://user?id={user.Id})";
+                username = user.firstname.Replace('[', '<').Replace(']', '>');
+                string userlink = $"[{username}](tg://user?id={user.id})";
 
                 Message message = e.Message;
                 string[] opts = { "За", "Против" };
@@ -1242,7 +1251,7 @@ namespace PerchikSharp
                     isAnonymous: false);
 
                 var chat = await Bot.GetChatAsync(message.Chat.Id);
-                Logger.Log(LogType.Info, $"<{chat.Title}>: Voteban poll started for {username}:{user.Id}");
+                Logger.Log(LogType.Info, $"<{chat.Title}>: Voteban poll started for {username}:{user.id}");
 
                 int legitvotes = 0, ignored = 0;
                 int forban = 0, againstban = 0;
@@ -1252,15 +1261,15 @@ namespace PerchikSharp
                 votebanning_groups.Add(e.Message.Chat.Id);
 
 
-                bothelper.RegisterPoll(poll_msg.Poll.Id, async (_, p) =>
+                bothelper.RegisterPoll(poll_msg.Poll.Id, (_, p) =>
                 {
                     if (p.pollAnswer == null)
                         return;
 
                     recent_poll = p.poll;
                     var pollanswer = p.pollAnswer;
-                    int exist = await database.ExecuteScalarAsync<int>($"SELECT count(*) FROM Users WHERE Id={pollanswer?.User.Id}");
-                    if(exist == 1)
+                    bool exist = db.UserCollFactory.Exists(u => u.id == pollanswer.User.Id);
+                    if(exist)
                     {
                         if (pollanswer.OptionIds.Length > 0)
                         {
@@ -1298,7 +1307,7 @@ namespace PerchikSharp
                     msg2delete.Add(await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
                               text: string.Format(strManager["VOTEBAN_ALERT"],
-                                userlink, time_secs - alerts * alert_period, legitvotes, min_vote_count,
+                                user.firstname, time_secs - alerts * alert_period, legitvotes, min_vote_count,
                                 forban, againstban),
                               replyToMessageId: poll_msg.MessageId,
                               parseMode: ParseMode.Markdown));
@@ -1347,15 +1356,22 @@ namespace PerchikSharp
 
                 await FullyRestrictUserAsync(
                     chatId: message.Chat.Id,
-                    userId: user.Id,
+                    userId: user.id,
                     forSeconds: 60 * 15);
 
-                await database.AddRestrictionAsync(user, e.Message.Chat.Id, 60 * 15);
+                var restriction = new Db.Tables.Restriction()
+                {
+                    chat = new Db.Tables.Chat() { id = e.Message.Chat.Id },
+                    date = DateTime.Now,
+                    until = DateTime.Now.AddSeconds(60 * 15),
+                    user = user
+                };
 
                 await Bot.SendTextMessageAsync(
                                chatId: message.Chat.Id,
                                text: string.Format($"{strManager["VOTEBAN_BANNED"]}\n\n {igore_text}", userlink,
                                 forban, againstban),
+                               replyToMessageId: poll_msg.MessageId,
                                parseMode: ParseMode.Markdown);
 
                 Logger.Log(LogType.Info, 
