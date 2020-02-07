@@ -987,7 +987,7 @@ namespace PerchikSharp
                         new_text = ex.Message;
                     }
 
-                    if (new_text != text)
+                    if (new_text.Equals(text))
                     {
                         await Bot.EditMessageTextAsync(
                                 chatId: msg.Chat.Id,
@@ -1546,10 +1546,25 @@ namespace PerchikSharp
 
         }
 
-        private static void onChatMembersAddedMessage(object sender, MessageArgs message_args)
+        private static async void onChatMembersAddedMessage(object sender, MessageArgs message_args)
         {
             try
             {
+                Chat telegram_chat = await Bot.GetChatAsync(message_args.Message.Chat.Id);
+                Db.Tables.Message pinnedmessage = null;
+                if(telegram_chat.PinnedMessage != null)
+                {
+                    pinnedmessage = new Db.Tables.Message() { id = telegram_chat.PinnedMessage.MessageId };
+                }
+                db.ChatCollFactory.Upsert(new Db.Tables.Chat()
+                {
+                    id = telegram_chat.Id,
+                    type = telegram_chat.Type,
+                    title = telegram_chat.Title,
+                    description = telegram_chat.Description,
+                    pinnedmessage = pinnedmessage
+                });
+
                 if (message_args.Message.From.IsBot)
                     return;
 
