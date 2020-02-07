@@ -1038,7 +1038,7 @@ namespace PerchikSharp
             int u_messages_lastday_count = msgs_from_user.Where(m => m.date.Date == DateTime.Now.AddDays(-1).Date).Count();
             int u_messages_today_count = u_messages_today.Count();
             int u_messages_count = msgs_from_user.Count();
-            int restrictions_count = bCollection.Count();
+            int restrictions_count = bCollection.Count(b => b.user.id == user.id);
 
             double user_activity = 0;
             if (u_messages_today_count != 0)
@@ -1140,24 +1140,29 @@ namespace PerchikSharp
 
             Message message = e.Message;
 
-            var users = database.GetRows<DbUser>();
-            Dictionary<DbUser, int> users_bans = new Dictionary<DbUser, int>();
+            var users = db.UserCollFactory.FindAll();
+            var users_bans = new Dictionary<Db.Tables.User, int>();
             foreach (var user in users)
             {
-                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
+                int restrictions_count = db.BanCollFactory.Count(b => b.user.id == user.id);
                 users_bans.Add(user, restrictions_count);
             }
-            var user_bans_ordered = users_bans.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+            var user_bans_ordered = users_bans.OrderBy(x => -x.Value).ToDictionary(x => x.Key, x => x.Value);
             string msg_string = "*Топ 10 по банам:*\n";
-            for (int i = 0; i < 10 && i < user_bans_ordered.Count; i++)
+            int i = 0;
+            foreach(var ban in user_bans_ordered)
             {
-                int dict_index = user_bans_ordered.Count - 1 - i;
-                DbUser user = user_bans_ordered.ElementAt(dict_index).Key;
-                string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
-                string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
-                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
-                int bans = user_bans_ordered.ElementAt(dict_index).Value;
+                var user = ban.Key;
+                string first_name = user.firstname?.Replace('[', '<').Replace(']', '>');
+                string last_name = user.lastname?.Replace('[', '<').Replace(']', '>');
+                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.id);
+                int bans = ban.Value;
                 msg_string += $"{i + 1}. {full_name} -- {bans}\n";
+
+                if(++i == 10)
+                {
+                    break;
+                }
             }
 
             stopwatch.Stop();
@@ -1520,6 +1525,7 @@ namespace PerchikSharp
                 {
                     id = e.MessageId,
                     from = user,
+                    replytoid = e.ReplyToMessage?.From.Id,
                     text = e.Text,
                     type = e.Type,
                     date = e.Date
