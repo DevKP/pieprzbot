@@ -829,21 +829,23 @@ namespace PerchikSharp
                 int[] users_whitelist = { 204678400
                                          /*тут огурец*/ };
                 if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
-                    if (!users_whitelist.Any( id => id == message.From.Id))
+                    if (!users_whitelist.Any(id => id == message.From.Id))
                         return;
 
 
-                var users = database.GetRows<DbUser>();
+
+                var users = db.UserCollection.FindAll();
                 string message_str = string.Empty;
 
                 int max_users_in_message = 10;
                 List<Message> sended_messages = new List<Message>();
 
-                for (int i = 0; i < users.Count; i++)
+                int i = 0;
+                foreach(var user in users)
                 {
-                    string firstname = users[i].FirstName.Replace('[', '<').Replace(']', '>');
-                    message_str += $"[{firstname}](tg://user?id={users[i].Id})\n";
-                    if (i % max_users_in_message == 0 || i == users.Count - 1)
+                    string firstname = user.firstname.Replace('[', '<').Replace(']', '>');
+                    message_str += $"[{firstname}](tg://user?id={user.id})\n";
+                    if (i % max_users_in_message == 0 || i == users.Count() - 1)
                     {
                         var msg = Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
@@ -852,6 +854,8 @@ namespace PerchikSharp
                         sended_messages.Add(msg);
                         message_str = string.Empty;
                     }
+
+                    i++;
                 }
 
                 Thread.Sleep(5000);
