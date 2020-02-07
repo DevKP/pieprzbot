@@ -1541,7 +1541,7 @@ namespace PerchikSharp
                 {
                     id = e.MessageId,
                     from = user,
-                    replytoid = e.ReplyToMessage?.From.Id,
+                    replytoid = e.ReplyToMessage?.MessageId,
                     text = e.Text,
                     type = e.Type,
                     date = e.Date
