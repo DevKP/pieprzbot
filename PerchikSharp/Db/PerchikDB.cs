@@ -33,38 +33,6 @@ namespace PerchikSharp.Db
         public PerchikDB(string connectionString) : base(connectionString)
         {
         }
-       
-        public List<Tables.Chat> FindChat(Expression<Func<Tables.Chat, bool>> predicate)
-        {
-            var col = this.GetCollection<Tables.Chat>("Chats");
-            return col.Find(predicate).ToList();
-        }
-        public bool UpsertChat(Tables.Chat chat)
-        {
-            var col = this.GetCollection<Tables.Chat>("Chats");
-            return col.Upsert(chat);
-        }
-        public List<Tables.User> FindUser(Expression<Func<Tables.User, bool>> predicate)
-        {
-            var col = this.GetCollection<Tables.User>("Users");
-            return col.Find(predicate).ToList();
-        }
-        public bool UpsertUser(Tables.User user)
-        {
-            var col = this.GetCollection<Tables.User>("Users");
-            return col.Upsert(user);
-        }
-        public List<Tables.Message> FindMessage(Expression<Func<Tables.Message, bool>> predicate)
-        {
-            var col = this.GetCollection<Tables.Message>("Messages");
-            return col.Find(predicate).ToList();
-        }
-        public bool UpsertMessage(Tables.Message msg)
-        {
-            var col = this.GetCollection<Tables.Message>("Messages");
-            return col.Upsert(msg);
-        }
-
         public void AddMessageToChat(long chatid, Tables.Message message)
         {
             if (message.from == null || message.date == null)
@@ -80,16 +48,6 @@ namespace PerchikSharp.Db
             };
             mCollection.Insert(message);
             cmCollection.Insert(chatmessage);
-        }
-        public List<Tables.Restriction> FindRestriction(Expression<Func<Tables.Restriction, bool>> predicate)
-        {
-            var col = this.GetCollection<Tables.Restriction>("Restrictions");
-            return col.Find(predicate).ToList();
-        }
-        public bool UpsertRestriction(Tables.Restriction restriction)
-        {
-            var col = this.GetCollection<Tables.Restriction>("Restrictions");
-            return col.Upsert(restriction);
         }
         public bool AddRestriction(Tables.Restriction restriction)
         {

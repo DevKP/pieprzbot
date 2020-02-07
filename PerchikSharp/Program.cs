@@ -57,7 +57,7 @@ namespace PerchikSharp
             FileInfo file = new FileInfo("./Data/");
             file.Directory.Create();
 
-            db = new PerchikDB("./Data/test_database.db");
+            db = new PerchikDB("./Data/database.db");
 
             Init();
 
@@ -242,14 +242,16 @@ namespace PerchikSharp
         {
             try
             {
-                var _users = db.FindUser(u => u.restriction != null);
+                var uCollection = db.UserCollFactory;
+                var bCollection = db.BanCollFactory;
+                var _users = uCollection.Find(u => u.restriction != null);
                 foreach (var user in _users)
                 {
-                    var restriction = db.FindRestriction(r => r.id == user.restriction.id).First();
+                    var restriction = bCollection.Find(r => r.id == user.restriction.id).First();
                     if (DateTime.Now > restriction.until)
                     {
                         user.restriction = null;
-                        db.UpsertUser(user);
+                        uCollection.Upsert(user);
 
                         await Bot.SendTextMessageAsync(
                                     chatId: restriction.chat.id,
@@ -1522,6 +1524,7 @@ namespace PerchikSharp
         {
             try
             {
+                var uCollection = db.UserCollFactory;
                 var user = new Db.Tables.User()
                 {
                     id = e.From.Id,
@@ -1530,8 +1533,8 @@ namespace PerchikSharp
                     username = e.From.Username,
 
                 };
-                var users = db.FindUser(u => u.id == e.From.Id);
-                if(users.Count != 0)
+                var users = uCollection.Find(u => u.id == e.From.Id);
+                if(users.Count() != 0)
                 {
                     user.restriction = users.First().restriction; 
                 }
@@ -1545,7 +1548,7 @@ namespace PerchikSharp
                     type = e.Type,
                     date = e.Date
                 };
-                db.UpsertUser(user);
+                uCollection.Upsert(user);
                 db.AddMessageToChat(e.Chat.Id, message);
             }
             catch (Exception ex)
