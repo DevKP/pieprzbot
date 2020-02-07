@@ -72,5 +72,25 @@ namespace PerchikSharp.Db
             var col = this.litedb.GetCollection<Tables.Restriction>("Restrictions");
             return col.Upsert(restriction);
         }
+        public bool AddRestriction(Tables.Restriction restriction)
+        {
+            if(restriction.chat == null || restriction.user == null ||
+                restriction.date == null || restriction.until == null)
+            {
+                throw new ArgumentNullException(nameof(restriction));
+            }
+            var users = UserCollection.Find(u => u.id == restriction.user.id);
+            if (users.Count() > 0)
+            {
+                var user = users.First();
+                user.restriction = restriction;
+                BanCollection.Insert(restriction);
+                UserCollection.Update(user);
+                return true;
+            }
+            else
+                return false;
+        }
+
     }
 }

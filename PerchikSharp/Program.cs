@@ -691,6 +691,7 @@ namespace PerchikSharp
                             parseMode: ParseMode.Markdown);
                     }
 
+
                     var restriction = new Db.Tables.Restriction()
                     {
                         chat = new Db.Tables.Chat() { id = message.Chat.Id },
@@ -698,16 +699,7 @@ namespace PerchikSharp
                         until = DateTime.Now.AddSeconds(seconds),
                         user = new Db.Tables.User() { id = message.ReplyToMessage.From.Id }
                     };
-                    var user = new Db.Tables.User()
-                    {
-                        id = message.ReplyToMessage.From.Id,
-                        firstname = message.ReplyToMessage.From.FirstName,
-                        lastname = message.ReplyToMessage.From.LastName,
-                        username = message.ReplyToMessage.From.Username,
-                        restriction = restriction
-                    };
-                    db.UpsertRestriction(restriction);
-                    db.UpsertUser(user);
+                    db.AddRestriction(restriction);
 
                     _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
@@ -725,14 +717,14 @@ namespace PerchikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        _ = database.AddRestrictionAsync(new DbUser()
+                        var restriction = new Db.Tables.Restriction()
                         {
-                            Id = e.Message.From.Id,
-                            FirstName = e.Message.From.FirstName,
-                            LastName = e.Message.From.LastName,
-                            Username = e.Message.From.Username,
-                            LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        }, e.Message.Chat.Id, seconds);
+                            chat = new Db.Tables.Chat() { id = message.Chat.Id },
+                            date = DateTime.Now,
+                            until = DateTime.Now.AddSeconds(seconds),
+                            user = new Db.Tables.User() { id = message.From.Id }
+                        };
+                        db.AddRestriction(restriction);
                     }
                     else
                     {
@@ -745,14 +737,14 @@ namespace PerchikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        _ = database.AddRestrictionAsync(new DbUser()
+                        var restriction = new Db.Tables.Restriction()
                         {
-                            Id = e.Message.From.Id,
-                            FirstName = e.Message.From.FirstName,
-                            LastName = e.Message.From.LastName,
-                            Username = e.Message.From.Username,
-                            LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        }, e.Message.Chat.Id, 40);
+                            chat = new Db.Tables.Chat() { id = message.Chat.Id },
+                            date = DateTime.Now,
+                            until = DateTime.Now.AddSeconds(40),
+                            user = new Db.Tables.User() { id = message.ReplyToMessage.From.Id }
+                        };
+                        db.AddRestriction(restriction);
                     }
 
                     _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
@@ -780,15 +772,15 @@ namespace PerchikSharp
                 var until = DateTime.Now.AddSeconds(1);
                 Perchik.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
-                _ = database.InsertOrReplaceRowAsync(new DbUser()
+                var user = new Db.Tables.User()
                 {
-                    Id = e.Message.ReplyToMessage.From.Id,
-                    FirstName = e.Message.ReplyToMessage.From.FirstName,
-                    LastName = e.Message.ReplyToMessage.From.LastName,
-                    Username = e.Message.ReplyToMessage.From.Username,
-                    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    RestrictionId = null
-                });
+                    id = e.Message.ReplyToMessage.From.Id,
+                    firstname = e.Message.ReplyToMessage.From.FirstName,
+                    lastname = e.Message.ReplyToMessage.From.LastName,
+                    username = e.Message.ReplyToMessage.From.Username,
+                    restriction = null
+                };
+                db.UserCollection.Upsert(user);
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
