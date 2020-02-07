@@ -7,69 +7,87 @@ using System.Linq.Expressions;
 
 namespace PerchikSharp.Db
 {
-    class PerchikDB//(c)
+    class PerchikDB : LiteDatabase//(c)
     {
         public ILiteCollection<Tables.User> UserCollection 
         {
-            get { return this.litedb.GetCollection<Tables.User>("Users"); } 
+            get { return this.GetCollection<Tables.User>("Users"); } 
         }
         public ILiteCollection<Tables.Chat> ChatCollection
         {
-            get { return this.litedb.GetCollection<Tables.Chat>("Chats"); }
+            get { return this.GetCollection<Tables.Chat>("Chats"); }
         }
         public ILiteCollection<Tables.Message> MessageCollection
         {
-            get { return this.litedb.GetCollection<Tables.Message>("Messages"); }
+            get { return this.GetCollection<Tables.Message>("Messages"); }
+        }
+        public ILiteCollection<Tables.ChatMessage> ChatMessageCollection
+        {
+            get { return this.GetCollection<Tables.ChatMessage>("ChatMessages"); }
         }
         public ILiteCollection<Tables.Restriction> BanCollection
         {
-            get { return this.litedb.GetCollection<Tables.Restriction>("Restrictions"); }
+            get { return this.GetCollection<Tables.Restriction>("Restrictions"); }
         }
 
-        public LiteDatabase litedb { get; private set; }
-        public PerchikDB(string connectionString)
+        public PerchikDB(string connectionString) : base(connectionString)
         {
-            this.litedb = new LiteDatabase(connectionString);
         }
        
         public List<Tables.Chat> FindChat(Expression<Func<Tables.Chat, bool>> predicate)
         {
-            var col = this.litedb.GetCollection<Tables.Chat>("Chats");
+            var col = this.GetCollection<Tables.Chat>("Chats");
             return col.Find(predicate).ToList();
         }
         public bool UpsertChat(Tables.Chat chat)
         {
-            var col = this.litedb.GetCollection<Tables.Chat>("Chats");
+            var col = this.GetCollection<Tables.Chat>("Chats");
             return col.Upsert(chat);
         }
         public List<Tables.User> FindUser(Expression<Func<Tables.User, bool>> predicate)
         {
-            var col = this.litedb.GetCollection<Tables.User>("Users");
+            var col = this.GetCollection<Tables.User>("Users");
             return col.Find(predicate).ToList();
         }
         public bool UpsertUser(Tables.User user)
         {
-            var col = this.litedb.GetCollection<Tables.User>("Users");
+            var col = this.GetCollection<Tables.User>("Users");
             return col.Upsert(user);
         }
         public List<Tables.Message> FindMessage(Expression<Func<Tables.Message, bool>> predicate)
         {
-            var col = this.litedb.GetCollection<Tables.Message>("Messages");
+            var col = this.GetCollection<Tables.Message>("Messages");
             return col.Find(predicate).ToList();
         }
         public bool UpsertMessage(Tables.Message msg)
         {
-            var col = this.litedb.GetCollection<Tables.Message>("Messages");
+            var col = this.GetCollection<Tables.Message>("Messages");
             return col.Upsert(msg);
+        }
+
+        public void AddMessageToChat(long chatid, Tables.Message message)
+        {
+            if (message.from == null || message.date == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            var chatmessage = new Tables.ChatMessage()
+            {
+                chat = new Tables.Chat() { id = chatid },
+                message = message
+            };
+            this.MessageCollection.Insert(message);
+            this.ChatMessageCollection.Insert(chatmessage);
         }
         public List<Tables.Restriction> FindRestriction(Expression<Func<Tables.Restriction, bool>> predicate)
         {
-            var col = this.litedb.GetCollection<Tables.Restriction>("Restrictions");
+            var col = this.GetCollection<Tables.Restriction>("Restrictions");
             return col.Find(predicate).ToList();
         }
         public bool UpsertRestriction(Tables.Restriction restriction)
         {
-            var col = this.litedb.GetCollection<Tables.Restriction>("Restrictions");
+            var col = this.GetCollection<Tables.Restriction>("Restrictions");
             return col.Upsert(restriction);
         }
         public bool AddRestriction(Tables.Restriction restriction)

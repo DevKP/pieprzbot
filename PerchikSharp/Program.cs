@@ -52,7 +52,6 @@ namespace PerchikSharp
         {
 
             Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
-            //CloseAnotherInstance();
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
@@ -225,49 +224,6 @@ namespace PerchikSharp
             bothelper.NativeCommand("promote", onPromoteCommand);
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
-
-
-            bothelper.NativeCommand("db", (_, e) =>
-            {
-                Message telemsg = e.Message;
-                User teleuser = telemsg.From;
-
-                var user = new Db.Tables.User()
-                {
-                    id = teleuser.Id,
-                    firstname = teleuser.FirstName,
-                    lastname = teleuser.LastName,
-                    username = teleuser.Username,
-                };
-                db.UpsertUser(user);
-
-                db.UpsertMessage(new Db.Tables.Message()
-                {
-                    id = telemsg.MessageId,
-                    from = new Db.Tables.User() { id = teleuser.Id },
-                    replytoid = null,
-                    text = telemsg.Text,
-                    type = telemsg.Type,
-                    date = telemsg.Date
-                });
-
-
-                //var user = new Db.Tables.User()
-                //{
-                //    id = teleuser.Id,
-                //    firstname = teleuser.FirstName,
-                //    lastname = teleuser.LastName,
-                //    username = teleuser.Username,
-                //    restrictions = new List<Db.Tables.Restriction>() { restriction }
-                //};
-                //db.UpsertRestriction(restriction);
-                //db.UpsertUser(user);
-
-
-
-
-            });
-
         }
 
         private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
@@ -1114,18 +1070,18 @@ namespace PerchikSharp
 
             Message message = e.Message;
 
-            var users = database.GetRows<DbUser>();
-            Dictionary<DbUser, double> users_activity = new Dictionary<DbUser, double>();
+            var users = db.UserCollection.FindAll();
+            Dictionary<Db.Tables.User, double> users_activity = new Dictionary<Db.Tables.User, double>();
 
             var date = DateTime.Now.ToString("yyyy-MM-dd");
-            var messages_today = database.GetRowsByFilterAsync<DbMessage>(m => m.DateTime.Contains(date)).Result;
+            var messages_today = db.MessageCollection.Find(m => m.date.Date == DateTime.Now.Date);
 
-            IEnumerable<DbMessage> u_messages_today;
+            IEnumerable<Db.Tables.Message> u_messages_today;
             int total_symbols = 0;
 
             foreach (var user in users)
             {
-                u_messages_today = messages_today.Where(m => m.UserId == user.Id && m.DateTime.Substring(0, 10) == date);
+                u_messages_today = messages_today.Where(m => m.from.id == user.id && m.date.Date == DateTime.Now.Date);
 
                 if (u_messages_today.Count() == 0)
                 {
@@ -1135,13 +1091,13 @@ namespace PerchikSharp
                 double user_activity = 0;
                 int total_text_length = messages_today.Sum(m =>
                 {
-                    return m.Text?.Length ?? 0;
+                    return m.text?.Length ?? 0;
                 });
                 total_symbols += total_text_length;
 
                 int user_text_length = u_messages_today.Sum(m =>
                 {
-                    return m.Text?.Length ?? 0;
+                    return m.text?.Length ?? 0;
                 });
 
                 user_activity = (double)user_text_length / total_text_length;
@@ -1154,10 +1110,10 @@ namespace PerchikSharp
             {
                 int dict_index = users_inorder.Count - 1 - i;
 
-                DbUser user = users_inorder.ElementAt(dict_index).Key;
-                string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
-                string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
-                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
+                Db.Tables.User user = users_inorder.ElementAt(dict_index).Key;
+                string first_name = user.firstname?.Replace('[', '<').Replace(']', '>');
+                string last_name = user.lastname?.Replace('[', '<').Replace(']', '>');
+                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.id);
                 double activity = users_inorder.ElementAt(dict_index).Value;
 
                 msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, activity * 100);
@@ -1563,7 +1519,7 @@ namespace PerchikSharp
                     date = e.Date
                 };
                 db.UpsertUser(user);
-                db.UpsertMessage(message);
+                db.AddMessageToChat(e.Chat.Id, message);
             }
             catch (Exception ex)
             {
