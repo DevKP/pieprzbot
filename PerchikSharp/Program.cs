@@ -21,7 +21,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Net.Http.Headers;
 using System.Web;
-using PerchikSharp.oldTables;
 using PerchikSharp.Db;
 
 namespace PerchikSharp
@@ -1606,7 +1605,7 @@ namespace PerchikSharp
                 if(message.From.Id == via_tcp_Id)
                 {
                     Thread.Sleep(2000);
-                    Bot.PromoteChatMemberAsync(message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
+                    _ = Bot.PromoteChatMemberAsync(message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
                 }
 
 
