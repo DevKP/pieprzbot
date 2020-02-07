@@ -9,23 +9,23 @@ namespace PerchikSharp.Db
 {
     class PerchikDB : LiteDatabase//(c)
     {
-        public ILiteCollection<Tables.User> UserCollection 
+        public ILiteCollection<Tables.User> UserCollFactory 
         {
             get { return this.GetCollection<Tables.User>("Users"); } 
         }
-        public ILiteCollection<Tables.Chat> ChatCollection
+        public ILiteCollection<Tables.Chat> ChatCollFactory
         {
             get { return this.GetCollection<Tables.Chat>("Chats"); }
         }
-        public ILiteCollection<Tables.Message> MessageCollection
+        public ILiteCollection<Tables.Message> MessageCollFactory
         {
             get { return this.GetCollection<Tables.Message>("Messages"); }
         }
-        public ILiteCollection<Tables.ChatMessage> ChatMessageCollection
+        public ILiteCollection<Tables.ChatMessage> ChatMessageCollFactory
         {
             get { return this.GetCollection<Tables.ChatMessage>("ChatMessages"); }
         }
-        public ILiteCollection<Tables.Restriction> BanCollection
+        public ILiteCollection<Tables.Restriction> BanCollFactory
         {
             get { return this.GetCollection<Tables.Restriction>("Restrictions"); }
         }
@@ -71,14 +71,15 @@ namespace PerchikSharp.Db
             {
                 throw new ArgumentNullException(nameof(message));
             }
-
+            var mCollection = this.MessageCollFactory;
+            var cmCollection = this.ChatMessageCollFactory;
             var chatmessage = new Tables.ChatMessage()
             {
                 chat = new Tables.Chat() { id = chatid },
                 message = message
             };
-            this.MessageCollection.Insert(message);
-            this.ChatMessageCollection.Insert(chatmessage);
+            mCollection.Insert(message);
+            cmCollection.Insert(chatmessage);
         }
         public List<Tables.Restriction> FindRestriction(Expression<Func<Tables.Restriction, bool>> predicate)
         {
@@ -97,13 +98,15 @@ namespace PerchikSharp.Db
             {
                 throw new ArgumentNullException(nameof(restriction));
             }
-            var users = UserCollection.Find(u => u.id == restriction.user.id);
+            var bCollection = this.BanCollFactory;
+            var uCollection = this.UserCollFactory;
+            var users = uCollection.Find(u => u.id == restriction.user.id);
             if (users.Count() > 0)
             {
                 var user = users.First();
                 user.restriction = restriction;
-                BanCollection.Insert(restriction);
-                UserCollection.Update(user);
+                bCollection.Insert(restriction);
+                uCollection.Update(user);
                 return true;
             }
             else

@@ -706,7 +706,7 @@ namespace PerchikSharp
                     username = e.Message.ReplyToMessage.From.Username,
                     restriction = null
                 };
-                db.UserCollection.Upsert(user);
+                db.UserCollFactory.Upsert(user);
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
@@ -790,7 +790,7 @@ namespace PerchikSharp
 
 
 
-                var users = db.UserCollection.FindAll();
+                var users = db.UserCollFactory.FindAll();
                 string message_str = string.Empty;
 
                 int max_users_in_message = 10;
@@ -1006,8 +1006,12 @@ namespace PerchikSharp
 
         private static string getStatisticsText(string search)
         {
+            var uCollection = db.UserCollFactory;
+            var mCollection = db.MessageCollFactory;
+            var bCollection = db.BanCollFactory;
+
             string upper_name = search.ToUpper().Replace("@", "");
-            var users = db.UserCollection.Include(x => x.restriction).FindAll().Where(u =>
+            var users = uCollection.Include(x => x.restriction).FindAll().Where(u =>
             {
                 if (u.firstname != null && u.firstname.ToUpper().Contains(upper_name))
                     return true;
@@ -1026,20 +1030,20 @@ namespace PerchikSharp
 
             var user = users.First();
 
-            var msgs_from_user = db.MessageCollection.Find(m => m.from.id == user.id);
+            var msgs_from_user = mCollection.Find(m => m.from.id == user.id);
 
-            var messages_today = db.FindMessage(m => m.date.Date == DateTime.Now.Date);
+            var messages_today = mCollection.Find(m => m.date.Date == DateTime.Now.Date);
             var u_messages_today = msgs_from_user.Where(m => m.date.Date == DateTime.Now.Date).ToList();
 
             int u_messages_lastday_count = msgs_from_user.Where(m => m.date.Date == DateTime.Now.AddDays(-1).Date).Count();
             int u_messages_today_count = u_messages_today.Count();
             int u_messages_count = msgs_from_user.Count();
-            int restrictions_count = db.BanCollection.Count();
+            int restrictions_count = bCollection.Count();
 
             double user_activity = 0;
             if (u_messages_today_count != 0)
             {
-                messages_today.RemoveAll(m => m.text == null);
+                messages_today = messages_today.Where(m => m.text != null);
                 u_messages_today.RemoveAll(m => m.text == null);
                 int total_text_length = messages_today.Sum(m => m.text.Length);
                 int user_text_length = u_messages_today.Sum(m => m.text.Length);
@@ -1068,17 +1072,19 @@ namespace PerchikSharp
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
+            var uCollection = db.UserCollFactory;
+            var mCollection = db.MessageCollFactory;
+
+
             Message message = e.Message;
 
-            var users = db.UserCollection.FindAll();
+            var users = uCollection.FindAll();
             Dictionary<Db.Tables.User, double> users_activity = new Dictionary<Db.Tables.User, double>();
 
-            var date = DateTime.Now.ToString("yyyy-MM-dd");
-            var messages_today = db.MessageCollection.Find(m => m.date.Date == DateTime.Now.Date);
+            var messages_today = mCollection.Find(m => m.date.Date == DateTime.Now.Date);
 
             IEnumerable<Db.Tables.Message> u_messages_today;
             int total_symbols = 0;
-
             foreach (var user in users)
             {
                 u_messages_today = messages_today.Where(m => m.from.id == user.id && m.date.Date == DateTime.Now.Date);
