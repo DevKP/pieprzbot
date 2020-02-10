@@ -7,7 +7,7 @@ namespace PerchikSharp.Db.Tables
 {
     class User
     {
-        [BsonId]
+        
         public int id { get; set; }
         public string firstname { get; set; }
         public string lastname { get; set; }
