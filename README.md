@@ -1,3 +1,7 @@
+<a href="https://gitlab.com/0kitty/persiksharp/-/commits/master"><img alt="pipeline status" src="https://gitlab.com/0kitty/persiksharp/badges/master/pipeline.svg" /></a>
+
+
+
 # PieprzBot
 
 Telegram bot to administer my group and does some funny things. The Bot was written using [Telegram.Bot](https://github.com/TelegramBots/Telegram.Bot) API Client.
