@@ -37,7 +37,7 @@ namespace PerchikSharp
         static StringManager strManager = new StringManager();
         static StringManager tokens = new StringManager();
 
-        public static PerchikDB db;
+        public static PerchikDB db_;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -60,7 +60,7 @@ namespace PerchikSharp
             FileInfo file = new FileInfo("./Data/");
             file.Directory.Create();
 
-            //db = new PerchikDB("./Data/database.db");
+            db_ = new PerchikDB("./Data/database.db");
             //dbv2_ = new PerchikDBv2();
             Init();
 
@@ -228,38 +228,13 @@ namespace PerchikSharp
             {
                 using (var dbv2 = PerchikDBv2.Context)
                 {
-                    var chat = new Db.Tables.Chatv2()
-                    {
-                        Id = e.Message.Chat.Id,
-                        Title = e.Message.Chat.Title,
-                        Description = e.Message.Chat.Description,
-                    };
-                    dbv2.AddOrUpdateChat(chat);
 
-                    var user = new Db.Tables.Userv2()
+                    foreach (var c in dbv2.Chats.Include(c => c.ChatUsers).ThenInclude(c => c.User).ToList())
                     {
-                        Id = e.Message.From.Id,
-                        FirstName = e.Message.From.FirstName,
-                    };
-                    dbv2.AddOrUpdateUser(user, e.Message.Chat.Id);
-
-                    var msg = new Db.Tables.Messagev2()
-                    {
-                        MessageId = e.Message.MessageId,
-                        UserId = e.Message.From.Id,
-                        ChatId = e.Message.Chat.Id,
-                        Text = e.Message.Text,
-                        Date = e.Message.Date
-                    };
-                    dbv2.AddMessage(msg);
-                    await dbv2.SaveChangesAsync();
-
-                    foreach (var c in dbv2.Chats.Include(c => c.Messages).ToList())
-                    {
-                        Logger.Log(LogType.Debug, $"Chat Title: {c.Title} Messages:");
-                        foreach (var m in c.Messages)
+                        Logger.Log(LogType.Debug, $"Chat Title: {c.Title} Users:");
+                        foreach (var cu in c.ChatUsers)
                         {
-                            Logger.Log(LogType.Debug, $"Name: {m.User.FirstName} Message: {m.Text}");
+                            Logger.Log(LogType.Debug, $"Name: {cu.User.FirstName} Id: {cu.User.Id}");
                         }
                     }
 
@@ -1194,41 +1169,44 @@ namespace PerchikSharp
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            Message message = e.Message;
-
-            var users = db.UserCollFactory.FindAll();
-            var users_bans = new Dictionary<Db.Tables.User, int>();
-            foreach (var user in users)
+            using (var db = PerchikDBv2.Context)
             {
-                int restrictions_count = db.BanCollFactory.Count(b => b.user.id == user.id);
-                users_bans.Add(user, restrictions_count);
-            }
-            var user_bans_ordered = users_bans.OrderBy(x => -x.Value).ToDictionary(x => x.Key, x => x.Value);
-            string msg_string = "*Топ 10 по банам:*\n";
-            int i = 0;
-            foreach(var ban in user_bans_ordered)
-            {
-                var user = ban.Key;
-                string first_name = user.firstname?.Replace('[', '<').Replace(']', '>');
-                string last_name = user.lastname?.Replace('[', '<').Replace(']', '>');
-                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.id);
-                int bans = ban.Value;
-                msg_string += $"{i + 1}. {full_name} -- {bans}\n";
+                Message message = e.Message;
 
-                if(++i == 10)
+                var users = db.Users.Include(x => x.Restrictions).ToList();
+                var users_bans = new Dictionary<Db.Tables.Userv2, int>();
+                foreach (var user in users)
                 {
-                    break;
+                    int restrictions_count = db.Restrictions.Count();
+                    users_bans.Add(user, restrictions_count);
                 }
+                var user_bans_ordered = users.OrderBy(x => -x.Restrictions.Count).ToDictionary(x => x, x => x.Restrictions.Count);
+                string msg_string = "*Топ 10 по банам:*\n";
+                int i = 0;
+                foreach (var ban in user_bans_ordered)
+                {
+                    var user = ban.Key;
+                    string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
+                    string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
+                    string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
+                    int bans = ban.Value;
+                    msg_string += $"{i + 1}. {full_name} -- {bans}\n";
+
+                    if (++i == 10)
+                    {
+                        break;
+                    }
+                }
+
+
+                stopwatch.Stop();
+
+                _ = Bot.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
+                                parseMode: ParseMode.Markdown).Result;
             }
-
-            stopwatch.Stop();
-
-            _ = Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
-                            parseMode: ParseMode.Markdown).Result;
         }
-
         private static void onPromoteCommand(object sender, CommandEventArgs e)
         {
             if (e.Message.Chat.Type == ChatType.Private)
@@ -1276,166 +1254,167 @@ namespace PerchikSharp
 
                 string username = e.Text.Replace("@", "").ToLower();
 
-                var user = db.UserCollFactory.FindAll().Where(u =>
+                using (var db = PerchikDBv2.Context)
                 {
-                    if (u.firstname != null && u.firstname.ToLower().Contains(username))
-                        return true;
-                    if (u.lastname != null && u.lastname.ToLower().Contains(username))
-                        return true;
-                    if (u.username != null && u.username.ToLower().Contains(username))
-                        return true;
 
-                    return false;
-                }).FirstOrDefault();
+                    var user = db.Users.Where(u =>
+                        (u.FirstName.ToLower().Contains(username)) ||
+                        (u.LastName != null && u.LastName.ToLower().Contains(username)) ||
+                        (u.UserName != null && u.UserName.ToLower().Contains(username))
+                    ).FirstOrDefault();
 
-                if (user == null)
-                {
-                    await Bot.SendTextMessageAsync(
-                              chatId: e.Message.Chat.Id,
-                              text: $"*Пользователя \"{e.Text}\" нет в базе.*",
-                              parseMode: ParseMode.Markdown);
-                    return;
-                }
-
-                username = user.firstname.Replace('[', '<').Replace(']', '>');
-                string userlink = $"[{username}](tg://user?id={user.id})";
-
-                Message message = e.Message;
-                string[] opts = { "За", "Против" };
-                var poll_msg = await Bot.SendPollAsync(
-                    chatId: message.Chat.Id,
-                    question: string.Format(strManager["VOTEBAN_QUESTION"], username),
-                    options: opts,
-                    disableNotification: false,
-                    isAnonymous: false);
-
-                var chat = await Bot.GetChatAsync(message.Chat.Id);
-                Logger.Log(LogType.Info, $"<{chat.Title}>: Voteban poll started for {username}:{user.id}");
-
-                int legitvotes = 0, ignored = 0;
-                int forban = 0, againstban = 0;
-                
-                Poll recent_poll = poll_msg.Poll;
-                List<PollAnswer> answers = new List<PollAnswer>();
-                votebanning_groups.Add(e.Message.Chat.Id);
-
-
-                bothelper.RegisterPoll(poll_msg.Poll.Id, (_, p) =>
-                {
-                    if (p.pollAnswer == null)
-                        return;
-
-                    recent_poll = p.poll;
-                    var pollanswer = p.pollAnswer;
-                    bool exist = db.UserCollFactory.Exists(u => u.id == pollanswer.User.Id);
-                    if(exist)
+                    if (user == null)
                     {
-                        if (pollanswer.OptionIds.Length > 0)
+                        await Bot.SendTextMessageAsync(
+                                  chatId: e.Message.Chat.Id,
+                                  text: $"*Пользователя \"{e.Text}\" нет в базе.*",
+                                  parseMode: ParseMode.Markdown);
+                        return;
+                    }
+
+                    username = user.FirstName.Replace('[', '<').Replace(']', '>');
+                    string userlink = $"[{username}](tg://user?id={user.Id})";
+
+                    Message message = e.Message;
+                    string[] opts = { "За", "Против" };
+                    var poll_msg = await Bot.SendPollAsync(
+                        chatId: message.Chat.Id,
+                        question: string.Format(strManager["VOTEBAN_QUESTION"], username),
+                        options: opts,
+                        disableNotification: false,
+                        isAnonymous: false);
+
+                    var chat = await Bot.GetChatAsync(message.Chat.Id);
+                    Logger.Log(LogType.Info, $"<{chat.Title}>: Voteban poll started for {username}:{user.Id}");
+
+                    int legitvotes = 0, ignored = 0;
+                    int forban = 0, againstban = 0;
+
+                    Poll recent_poll = poll_msg.Poll;
+                    List<PollAnswer> answers = new List<PollAnswer>();
+                    votebanning_groups.Add(e.Message.Chat.Id);
+
+
+                    bothelper.RegisterPoll(poll_msg.Poll.Id, (_, p) =>
+                    {
+                        if (p.pollAnswer == null)
+                            return;
+
+                        recent_poll = p.poll;
+                        var pollanswer = p.pollAnswer;
+                        var existingUser = db.Users.Where(x => x.Id == pollanswer.User.Id).FirstOrDefault();
+                        if (existingUser != null)
                         {
-                            answers.Add(pollanswer);
-                            Logger.Log(LogType.Info,
-                                        $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} voted {pollanswer.OptionIds[0]}");
+                            if (pollanswer.OptionIds.Length > 0)
+                            {
+                                answers.Add(pollanswer);
+                                Logger.Log(LogType.Info,
+                                            $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} voted {pollanswer.OptionIds[0]}");
+                            }
+                            else
+                            {
+                                answers.RemoveAll(a => a.User.Id == pollanswer.User.Id);
+                                Logger.Log(LogType.Info,
+                                            $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} retracted vote");
+                            }
                         }
                         else
                         {
-                            answers.RemoveAll(a => a.User.Id == pollanswer.User.Id);
                             Logger.Log(LogType.Info,
-                                        $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} retracted vote");
+                                $"<{chat.Title}>: Voteban ignored user from another chat {pollanswer?.User.FirstName}:{pollanswer?.User.Id}");
                         }
-                    }
-                    else
+                    });
+
+
+                    List<Message> msg2delete = new List<Message>();
+
+                    int alerts_count = time_secs / alert_period;
+                    for (int alerts = 1; alerts < alerts_count; alerts++)
                     {
+                        await Task.Delay(1000 * alert_period);
+
+                        forban = answers.Sum(a => a.OptionIds[0] == 0 ? 1 : 0);
+                        againstban = answers.Sum(a => a.OptionIds[0] == 1 ? 1 : 0);
+                        legitvotes = answers.Count;
+                        ignored = recent_poll.TotalVoterCount - legitvotes;
+
+                        msg2delete.Add(await Bot.SendTextMessageAsync(
+                                  chatId: message.Chat.Id,
+                                  text: string.Format(strManager["VOTEBAN_ALERT"],
+                                    user.FirstName, time_secs - alerts * alert_period, legitvotes, min_vote_count,
+                                    forban, againstban),
+                                  replyToMessageId: poll_msg.MessageId,
+                                  parseMode: ParseMode.Markdown));
+
                         Logger.Log(LogType.Info,
-                            $"<{chat.Title}>: Voteban ignored user from another chat {pollanswer?.User.FirstName}:{pollanswer?.User.Id}");
+                            $"<{chat.Title}>: Voteban poll status {forban}<>{againstban}, totalvotes: {recent_poll.TotalVoterCount}, ignored: {ignored}");
                     }
-                });
-                
 
-                List<Message> msg2delete = new List<Message>();
-
-                int alerts_count = time_secs / alert_period;
-                for (int alerts = 1; alerts < alerts_count; alerts++)
-                {
                     await Task.Delay(1000 * alert_period);
+
+                    await Bot.StopPollAsync(message.Chat.Id, poll_msg.MessageId);
+                    bothelper.RemovePoll(poll_msg.Poll.Id);
+                    votebanning_groups.Remove(e.Message.Chat.Id);
+                    msg2delete.ForEach(m => Bot.DeleteMessageAsync(m.Chat.Id, m.MessageId));
 
                     forban = answers.Sum(a => a.OptionIds[0] == 0 ? 1 : 0);
                     againstban = answers.Sum(a => a.OptionIds[0] == 1 ? 1 : 0);
                     legitvotes = answers.Count;
                     ignored = recent_poll.TotalVoterCount - legitvotes;
 
-                    msg2delete.Add(await Bot.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
-                              text: string.Format(strManager["VOTEBAN_ALERT"],
-                                user.firstname, time_secs - alerts * alert_period, legitvotes, min_vote_count,
-                                forban, againstban),
-                              replyToMessageId: poll_msg.MessageId,
-                              parseMode: ParseMode.Markdown));
+                    string igore_text = ignored > 0 ? string.Format(strManager["VOTEBAN_IGNORED"], ignored) : "";
 
-                    Logger.Log(LogType.Info, 
-                        $"<{chat.Title}>: Voteban poll status {forban}<>{againstban}, totalvotes: {recent_poll.TotalVoterCount}, ignored: {ignored}");
-                }
+                    if (legitvotes < min_vote_count)
+                    {
+                        await Bot.SendTextMessageAsync(
+                                  chatId: message.Chat.Id,
+                                  text: string.Format($"{strManager["VOTEBAN_NOTENOUGH"]}\n\n{igore_text}", legitvotes, min_vote_count,
+                                    forban, againstban),
+                                  replyToMessageId: poll_msg.MessageId,
+                                  parseMode: ParseMode.Markdown);
+                        Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Not enough votes");
+                        return;
+                    }
 
-                await Task.Delay(1000 * alert_period);
+                    double ratio = (double)forban / (double)legitvotes;
+                    if (ratio < vote_ratio)
+                    {
+                        await Bot.SendTextMessageAsync(
+                                  chatId: message.Chat.Id,
+                                  text: string.Format($"{strManager["VOTEBAN_RATIO"]}\n\n {igore_text}", ratio * 100),
+                                  replyToMessageId: poll_msg.MessageId,
+                                  parseMode: ParseMode.Markdown);
+                        Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Decided not to ban");
+                        return;
+                    }
 
-                await Bot.StopPollAsync(message.Chat.Id, poll_msg.MessageId);
-                bothelper.RemovePoll(poll_msg.Poll.Id);
-                votebanning_groups.Remove(e.Message.Chat.Id);
-                msg2delete.ForEach(m => Bot.DeleteMessageAsync(m.Chat.Id, m.MessageId));
+                    await FullyRestrictUserAsync(
+                        chatId: message.Chat.Id,
+                        userId: user.Id,
+                        forSeconds: 60 * 15);
 
-                forban = answers.Sum(a => a.OptionIds[0] == 0 ? 1 : 0);
-                againstban = answers.Sum(a => a.OptionIds[0] == 1 ? 1 : 0);
-                legitvotes = answers.Count;
-                ignored = recent_poll.TotalVoterCount - legitvotes;
+                    var restriction = new Db.Tables.Restrictionv2()
+                    {
+                        ChatId = e.Message.Chat.Id,
+                        Date = DateTime.Now,
+                        Until = DateTime.Now.AddSeconds(60 * 15),
+                        UserId = user.Id
+                    };
 
-                string igore_text = ignored > 0 ? string.Format(strManager["VOTEBAN_IGNORED"], ignored) : "";
+                    db.Restrictions.Add(restriction);
+                    db.SaveChanges();
 
-                if (legitvotes < min_vote_count)
-                {
                     await Bot.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
-                              text: string.Format($"{strManager["VOTEBAN_NOTENOUGH"]}\n\n{igore_text}", legitvotes, min_vote_count,
-                                forban, againstban),
-                              replyToMessageId: poll_msg.MessageId,
-                              parseMode: ParseMode.Markdown);
-                    Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Not enough votes");
-                    return;
+                                   chatId: message.Chat.Id,
+                                   text: string.Format($"{strManager["VOTEBAN_BANNED"]}\n\n {igore_text}", userlink,
+                                    forban, againstban),
+                                   replyToMessageId: poll_msg.MessageId,
+                                   parseMode: ParseMode.Markdown);
+
+                    Logger.Log(LogType.Info,
+                        $"<{chat.Title}>: Poll result: {forban}<>{againstban} The user has been banned!");
+
                 }
-
-                double ratio = (double)forban / (double)legitvotes;
-                if (ratio < vote_ratio)
-                {
-                    await Bot.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
-                              text: string.Format($"{strManager["VOTEBAN_RATIO"]}\n\n {igore_text}", ratio * 100),
-                              replyToMessageId: poll_msg.MessageId,
-                              parseMode: ParseMode.Markdown);
-                    Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Decided not to ban");
-                    return;
-                }
-
-                await FullyRestrictUserAsync(
-                    chatId: message.Chat.Id,
-                    userId: user.id,
-                    forSeconds: 60 * 15);
-
-                var restriction = new Db.Tables.Restriction()
-                {
-                    chat = new Db.Tables.Chat() { id = e.Message.Chat.Id },
-                    date = DateTime.Now,
-                    until = DateTime.Now.AddSeconds(60 * 15),
-                    user = user
-                };
-
-                await Bot.SendTextMessageAsync(
-                               chatId: message.Chat.Id,
-                               text: string.Format($"{strManager["VOTEBAN_BANNED"]}\n\n {igore_text}", userlink,
-                                forban, againstban),
-                               replyToMessageId: poll_msg.MessageId,
-                               parseMode: ParseMode.Markdown);
-
-                Logger.Log(LogType.Info, 
-                    $"<{chat.Title}>: Poll result: {forban}<>{againstban} The user has been banned!");
-
             }
             catch (Exception exp)
             {
@@ -1649,19 +1628,15 @@ namespace PerchikSharp
             try
             {
                 Chat telegram_chat = await Bot.GetChatAsync(message_args.Message.Chat.Id);
-                Db.Tables.Message pinnedmessage = null;
-                if(telegram_chat.PinnedMessage != null)
+                using (var db = PerchikDBv2.Context)
                 {
-                    pinnedmessage = new Db.Tables.Message() { id = telegram_chat.PinnedMessage.MessageId };
+                    db.AddOrUpdateChat(new Db.Tables.Chatv2()
+                    { 
+                        Id = telegram_chat.Id,
+                        Title = telegram_chat.Title,
+                        Description = telegram_chat.Description
+                    });
                 }
-                db.ChatCollFactory.Upsert(new Db.Tables.Chat()
-                {
-                    id = telegram_chat.Id,
-                    type = telegram_chat.Type,
-                    title = telegram_chat.Title,
-                    description = telegram_chat.Description,
-                    pinnedmessage = pinnedmessage
-                });
 
                 if (message_args.Message.From.IsBot)
                     return;
