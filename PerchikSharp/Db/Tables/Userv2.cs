@@ -11,12 +11,13 @@ namespace PerchikSharp.Db.Tables
         public string LastName { get; set; }
         public string UserName { get; set; }
         public List<ChatUserv2> ChatUsers { get; set; }
-        public int? RestrictionId { get; set; }
-        public Restrictionv2 Restriction { get; set; }
+        public bool Restricted { get; set; }
+        public List<Restrictionv2> Restrictions { get; set; }
 
         public Userv2()
         {
             ChatUsers = new List<ChatUserv2>();
+            Restrictions = new List<Restrictionv2>();
         }
     }
 }

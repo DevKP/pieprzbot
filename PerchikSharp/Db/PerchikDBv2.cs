@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,8 +21,7 @@ namespace PerchikSharp.Db
         private object _lock = new object();
         public PerchikDBv2()
         {
-                Database.EnsureCreated();
-
+            Database.EnsureCreated();
         }
         public static void Drop()
         {
@@ -44,8 +45,16 @@ namespace PerchikSharp.Db
                 .HasOne(cu => cu.User)
                 .WithMany(c => c.ChatUsers)
                 .HasForeignKey(cu => cu.UserId);
+
+           
         }
-        static public PerchikDBv2 Context { get { return new PerchikDBv2(); } }
+        static public PerchikDBv2 Context { 
+            get {
+                var obj = new PerchikDBv2();
+                //obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+                return obj;
+            }
+        }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseMySql("server=localhost;UserId=root;Password=AvtoBot12;database=pieprz;");
