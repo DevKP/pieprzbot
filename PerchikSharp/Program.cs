@@ -25,6 +25,7 @@ using PerchikSharp.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using PersikSharp;
 
 namespace PerchikSharp
 {
@@ -38,6 +39,7 @@ namespace PerchikSharp
         static StringManager tokens = new StringManager();
 
         public static PerchikDB db_;
+        static PerschikDB database;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -60,8 +62,9 @@ namespace PerchikSharp
             FileInfo file = new FileInfo("./Data/");
             file.Directory.Create();
 
-            db_ = new PerchikDB("./Data/database.db");
-            //dbv2_ = new PerchikDBv2();
+            database = new PerschikDB("./Data/database_old.db");
+            database.Create();
+
             Init();
 
             //Update Message to group and me
@@ -115,7 +118,7 @@ namespace PerchikSharp
 
             while (!exit_token.IsCancellationRequested)
             {
-                StartDatabaseCheck(null);
+               // StartDatabaseCheck(null);
                 Thread.Sleep(5000);
             }
 
@@ -179,7 +182,7 @@ namespace PerchikSharp
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
             perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
             perchik.AddCommandRegEx(@"погода\s([\w\s-]+)", onWeather);   //погода ГОРОД
-            perchik.AddCommandRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast); 
+            perchik.AddCommandRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast);
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
@@ -224,7 +227,7 @@ namespace PerchikSharp
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
-            bothelper.NativeCommand("db", async (_, e) => 
+            bothelper.NativeCommand("db", async (_, e) =>
             {
                 using (var dbv2 = PerchikDBv2.Context)
                 {
@@ -244,6 +247,107 @@ namespace PerchikSharp
                     }
                 }
             });
+
+            bothelper.NativeCommand("migrateхххх", (_, e) =>
+            {
+                var users_old = database.GetRows<PersikSharp.Tables.DbUser>();
+                var messages_old = database.GetRows<PersikSharp.Tables.DbMessage>();
+                var restriction_old = database.GetRows<PersikSharp.Tables.DbRestriction>();
+
+                using (var db = PerchikDBv2.Context)
+                {
+                    var new_chat = new Db.Tables.Chatv2()
+                    {
+                        Id = -1001125742098,
+                        Title = "OFFTOP",
+                        Description = "DESCRIPTION"
+                    };
+                    db.Add(new_chat);
+                    db.SaveChanges();
+                }
+
+                foreach (var user in users_old)
+                {
+                    try
+                    {
+                        using (var db = PerchikDBv2.Context)
+                        {
+                            var new_user = new Db.Tables.Userv2()
+                            {
+                                Id = user.Id,
+                                FirstName = user.FirstName,
+                                LastName = user.LastName,
+                                UserName = user.Username,
+                                Restricted = false
+                            };
+                            var existingUser = db.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+                            if (existingUser == null)
+                            {
+                                db.Users.Add(new_user);
+                                db.SaveChanges();
+                                db.ChatUsers.Add(new Db.Tables.ChatUserv2()
+                                {
+                                    ChatId = -1001125742098,
+                                    UserId = user.Id
+                                });
+                                db.SaveChanges();
+                                Logger.Log(LogType.Debug, $"User {user.FirstName}:{user.Id}");
+                            }
+                        }
+
+                    }
+                    catch (Exception x)
+                    {
+                        Logger.Log(LogType.Debug, $"ERROR {user.FirstName}:{user.Id}");
+                    }
+
+                }
+
+
+                foreach (var message in messages_old)
+                {
+                    try
+                    {
+                        using (var db = PerchikDBv2.Context)
+                        {
+                            if (db.Users.Where(x => x.Id == message.UserId).Count() > 0)
+                            {
+                                db.Messages.Add(new Db.Tables.Messagev2()
+                                {
+                                    MessageId = message.Id,
+                                    UserId = message.UserId,
+                                    ChatId = -1001125742098,
+                                    Text = message.Text,
+                                    Date = DateTime.Parse(message.DateTime)
+                                });
+                                db.SaveChanges();
+                                Logger.Log(LogType.Debug, $"Message ID {message.Id} : {message.Text}");
+                            }
+                        }
+                    }
+                    catch (Exception x)
+                    {
+                        Logger.Log(LogType.Debug, $"ERROR {message.Id} : {message.Text}");
+                    }
+                }
+
+                foreach (var restriction in restriction_old)
+                {
+                    using (var db = PerchikDBv2.Context)
+                    {
+                        db.Restrictions.Add(new Db.Tables.Restrictionv2()
+                        {
+                            ChatId = -1001125742098,
+                            UserId = restriction.UserId,
+                            Date = DateTime.Parse(restriction.DateTimeFrom),
+                            Until = DateTime.Parse(restriction.DateTimeTo)
+                        });
+                        Logger.Log(LogType.Debug, $"Restriction ID {restriction.Id} : {restriction.DateTimeFrom}");
+                    }
+                }
+
+            });
+
         }
 
         private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
@@ -1113,31 +1217,30 @@ namespace PerchikSharp
             using (var db = PerchikDBv2.Context)
             {
                 Message message = e.Message;
+                var users_activity = new Dictionary<int, double>();
+                var usersMessages = db.Users.ToList();
 
-                var users = db.Users.ToList();
-                var users_activity = new Dictionary<Db.Tables.Userv2, double>();
+                var totalTextLenght = db.Messages.Where(m => m.Date.Date == DateTime.Now.Date).Sum(m => m.Text.Length);
 
-                var messages_today = db.Messages.Where(m => m.Date.Date == DateTime.Now.Date);
-
-                IQueryable<Db.Tables.Messagev2> u_messages_today;
                 int total_symbols = 0;
-                foreach (var user in users)
+                foreach (var user in usersMessages)
                 {
-                    u_messages_today = messages_today.Where(m => m.UserId == user.Id && m.Date.Date == DateTime.Now.Date);
+                    var user_id = user.Id;
+                    var u_messages_today = user.Messages.Where(m => m.Date.Date == DateTime.Now.Date);
 
-                    if (u_messages_today.Count() == 0)
+                    if (u_messages_today.FirstOrDefault() == null)
                     {
                         continue;
                     }
 
                     double user_activity = 0;
-                    int total_text_length = messages_today.Where( m => m.Text != null).Sum(m =>m.Text.Length);
-                    total_symbols += total_text_length;
+                    int user_text_length = 0;
 
-                    int user_text_length = u_messages_today.Where(m => m.Text != null).Sum(m => m.Text.Length);
 
-                    user_activity = (double)user_text_length / total_text_length;
-                    users_activity.Add(user, user_activity);
+                    
+
+                    user_activity = (double)user_text_length / totalTextLenght;
+                    users_activity.Add(user_id, user_activity);
                 }
 
                 var users_inorder = users_activity.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
@@ -1145,8 +1248,8 @@ namespace PerchikSharp
                 for (int i = 0; i < 10 && i < users_inorder.Count; i++)
                 {
                     int dict_index = users_inorder.Count - 1 - i;
-
-                    Db.Tables.Userv2 user = users_inorder.ElementAt(dict_index).Key;
+                    
+                    Db.Tables.Userv2 user = db.Users.Find(users_inorder.ElementAt(dict_index).Key);
                     string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
                     string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
                     string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
@@ -1155,7 +1258,7 @@ namespace PerchikSharp
                     msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, activity * 100);
                 }
 
-                stopwatch.Stop();
+               stopwatch.Stop();
 
                 _ = Bot.SendTextMessageAsync(
                                 chatId: message.Chat.Id,
@@ -1577,32 +1680,33 @@ namespace PerchikSharp
                 //}
                 //db.AddMessageToChat(e.Chat.Id, message);
 
-                using(var db = PerchikDBv2.Context)
-                {
-                    db.AddOrUpdateChat(new Db.Tables.Chatv2()
-                    {
-                        Id = e.Chat.Id,
-                        Title = e.Chat.Title,
-                        Description = e.Chat.Description
-                    });
+                //using(var db = PerchikDBv2.Context)
+                //{
+                //    db.AddOrUpdateChat(new Db.Tables.Chatv2()
+                //    {
+                //        Id = e.Chat.Id,
+                //        Title = e.Chat.Title,
+                //        Description = e.Chat.Description
+                //    });
 
-                    db.AddOrUpdateUser(new Db.Tables.Userv2()
-                    { 
-                        Id = e.From.Id,
-                        FirstName = e.From.FirstName,
-                        LastName = e.From.LastName,
-                        UserName = e.From.Username,
-                    }, e.Chat.Id);
+                //    db.AddOrUpdateUser(new Db.Tables.Userv2()
+                //    { 
+                //        Id = e.From.Id,
+                //        FirstName = e.From.FirstName,
+                //        LastName = e.From.LastName,
+                //        UserName = e.From.Username,
+                //    }, e.Chat.Id);
 
-                    db.AddMessage(new Db.Tables.Messagev2()
-                    {
-                        MessageId = e.MessageId,
-                        UserId = e.From.Id,
-                        ChatId = e.Chat.Id,
-                        Text = e.Text,
-                        Date = e.Date
-                    });
-                }
+                //    db.AddMessage(new Db.Tables.Messagev2()
+                //    {
+                //        MessageId = e.MessageId,
+                //        UserId = e.From.Id,
+                //        ChatId = e.Chat.Id,
+                //        Text = e.Text,
+                //        Date = e.Date,
+                //        Type = e.Type
+                //    });
+                //}
             }
             catch (Exception ex)
             {

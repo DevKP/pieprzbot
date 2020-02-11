@@ -11,6 +11,7 @@ namespace PerchikSharp.Db.Tables
         public string LastName { get; set; }
         public string UserName { get; set; }
         public List<ChatUserv2> ChatUsers { get; set; }
+        public List<Messagev2> Messages { get; set; }
         public bool Restricted { get; set; }
         public List<Restrictionv2> Restrictions { get; set; }
 

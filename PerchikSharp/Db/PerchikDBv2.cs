@@ -23,14 +23,6 @@ namespace PerchikSharp.Db
         {
             Database.EnsureCreated();
         }
-        public static void Drop()
-        {
-            using (var c = Context)
-            {
-                c.Database.EnsureDeleted();
-                c.DisposeAsync();
-            }
-        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Tables.ChatUserv2>()
@@ -46,7 +38,7 @@ namespace PerchikSharp.Db
                 .WithMany(c => c.ChatUsers)
                 .HasForeignKey(cu => cu.UserId);
 
-           
+            
         }
         static public PerchikDBv2 Context { 
             get {
@@ -58,7 +50,7 @@ namespace PerchikSharp.Db
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseMySql("server=localhost;UserId=root;Password=AvtoBot12;database=pieprz;");
-
+            //optionsBuilder.EnableSensitiveDataLogging();
         }
         public void AddOrUpdateUser(Tables.Userv2 user, long chatId)
         {
