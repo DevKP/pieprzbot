@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace PerchikSharp.Db
 {
@@ -12,14 +13,37 @@ namespace PerchikSharp.Db
         public DbSet<Tables.Messagev2> Messages { get; set; }
         public DbSet<Tables.Restrictionv2> Restrictions { get; set; }
         public DbSet<Tables.Chatv2> Chats { get; set; }
+        public DbSet<Tables.ChatUserv2> ChatUsers { get; set; }
+
+
+        private object _lock = new object();
         public PerchikDBv2()
         {
-            //Database.EnsureDeleted();
-            Database.EnsureCreated();
+                Database.EnsureCreated();
+
+        }
+        public static void Drop()
+        {
+            using (var c = Context)
+            {
+                c.Database.EnsureDeleted();
+                c.DisposeAsync();
+            }
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Tables.ChatUserv2>()
+                .HasKey(t => new { t.ChatId, t.UserId });
 
+            modelBuilder.Entity<Tables.ChatUserv2>()
+                .HasOne(cu => cu.Chat)
+                .WithMany(c => c.ChatUsers)
+                .HasForeignKey(cu => cu.ChatId);
+
+            modelBuilder.Entity<Tables.ChatUserv2>()
+                .HasOne(cu => cu.User)
+                .WithMany(c => c.ChatUsers)
+                .HasForeignKey(cu => cu.UserId);
         }
         static public PerchikDBv2 Context { get { return new PerchikDBv2(); } }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -27,26 +51,51 @@ namespace PerchikSharp.Db
             optionsBuilder.UseMySql("server=localhost;UserId=root;Password=AvtoBot12;database=pieprz;");
 
         }
-        public void AddOrUpdateUser(Tables.Userv2 user)
+        public void AddOrUpdateUser(Tables.Userv2 user, long chatId)
         {
-            
-            var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
-            if (existingUser != null)
+            lock (_lock)
             {
-                this.Entry(existingUser).State = EntityState.Detached;
-                this.Entry(user).State = EntityState.Modified;
+                var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+                if (existingUser != null)
+                {
+                    this.Entry(existingUser).State = EntityState.Detached;
+                    this.Entry(user).State = EntityState.Modified;
+                }
+                else
+                {
+                    this.Users.Add(user);
+                    this.ChatUsers.Add(new Tables.ChatUserv2()
+                    {
+                        ChatId = chatId,
+                        UserId = user.Id
+                    });
+                }
+                this.SaveChanges();
             }
-            else
-            {
-                this.Users.Add(user);
-            }
-            this.SaveChanges();
         }
+
+        public void UpdateUser(Tables.Userv2 user)
+        {
+            lock (_lock)
+            {
+                var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+                if (existingUser != null)
+                {
+                    this.Entry(existingUser).State = EntityState.Detached;
+                    this.Entry(user).State = EntityState.Modified;
+                }
+                this.SaveChanges();
+            }
+        }
+
         public int AddMessage(Tables.Messagev2 msg)
         {
-            this.Messages.Add(msg);
-            this.SaveChanges();
-            return msg.Id;
+            lock (_lock)
+            {
+                this.Messages.Add(msg);
+                this.SaveChanges();
+                return msg.Id;
+            }
             //this.ChatMessages.Add(new Tables.ChatMessagev2()
             //{
             //    ChatId = msg.ChatId,
@@ -56,18 +105,20 @@ namespace PerchikSharp.Db
 
         public void AddOrUpdateChat(Tables.Chatv2 chat)
         {
-
-            var existingChat = this.Chats.Where(c => c.Id == chat.Id).FirstOrDefault();
-            if (existingChat != null)
+            lock (_lock)
             {
-                this.Entry(existingChat).State = EntityState.Detached;
-                this.Entry(chat).State = EntityState.Modified;
+                var existingChat = this.Chats.Where(c => c.Id == chat.Id).FirstOrDefault();
+                if (existingChat != null)
+                {
+                    this.Entry(existingChat).State = EntityState.Detached;
+                    this.Entry(chat).State = EntityState.Modified;
+                }
+                else
+                {
+                    this.Chats.Add(chat);
+                }
+                this.SaveChanges();
             }
-            else
-            {
-                this.Chats.Add(chat);
-            }
-            this.SaveChanges();
         }
 
         //public void InsertOrUpdate<TEnity>(DbContext context, DbSet entity)

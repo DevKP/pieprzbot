@@ -38,6 +38,7 @@ namespace PerchikSharp
         static StringManager tokens = new StringManager();
 
         public static PerchikDB db;
+        public static PerchikDBv2 dbv2_;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
         static CancellationToken exit_token = exitTokenSource.Token;
@@ -61,7 +62,7 @@ namespace PerchikSharp
             file.Directory.Create();
 
             db = new PerchikDB("./Data/database.db");
-
+            dbv2_ = new PerchikDBv2();
             Init();
 
             //Update Message to group and me
@@ -224,11 +225,10 @@ namespace PerchikSharp
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
-            bothelper.NativeCommand("db", (_, e) => 
+            bothelper.NativeCommand("db", async (_, e) => 
             {
                 using (var dbv2 = PerchikDBv2.Context)
                 {
-
                     var chat = new Db.Tables.Chatv2()
                     {
                         Id = e.Message.Chat.Id,
@@ -241,25 +241,24 @@ namespace PerchikSharp
                     {
                         Id = e.Message.From.Id,
                         FirstName = e.Message.From.FirstName,
-                        ChatId = e.Message.Chat.Id
                     };
-                    dbv2.AddOrUpdateUser(user);
+                    dbv2.AddOrUpdateUser(user, e.Message.Chat.Id);
 
                     var msg = new Db.Tables.Messagev2()
-                    { 
+                    {
                         MessageId = e.Message.MessageId,
-                        UserId =  e.Message.From.Id,
+                        UserId = e.Message.From.Id,
                         ChatId = e.Message.Chat.Id,
                         Text = e.Message.Text,
                         Date = e.Message.Date
                     };
                     dbv2.AddMessage(msg);
-                    dbv2.SaveChanges();
+                    await dbv2.SaveChangesAsync();
 
                     foreach (var c in dbv2.Chats.Include(c => c.Messages).ToList())
                     {
                         Logger.Log(LogType.Debug, $"Chat Title: {c.Title} Messages:");
-                        foreach(var m in c.Messages)
+                        foreach (var m in c.Messages)
                         {
                             Logger.Log(LogType.Debug, $"Name: {m.User.FirstName} Message: {m.Text}");
                         }
@@ -310,17 +309,16 @@ namespace PerchikSharp
                                     parseMode: ParseMode.Markdown);
                     }
                 }
-
-                using (var dbv = PerchikDBv2.Context)
+                using (var dbv2 = PerchikDBv2.Context)
                 {
-                    var users = dbv.Users.Where(u => u.RestrictionId != null).ToList();
+                    var users = dbv2.Users.Where(u => u.RestrictionId != null).ToList();
                     foreach (var user in users)
                     {
-                        var restriction = dbv.Restrictions.Where(r => r.Id == user.RestrictionId).First();
+                        var restriction = dbv2.Restrictions.Where(r => r.Id == user.RestrictionId).First();
                         if (DateTime.Now > restriction.Until)
                         {
                             user.RestrictionId = null;
-                            dbv.AddOrUpdateUser(user);
+                            dbv2.UpdateUser(user);
 
                             await Bot.SendTextMessageAsync(
                                     chatId: restriction.ChatId,
@@ -697,33 +695,26 @@ namespace PerchikSharp
 
                     using (var db = PerchikDBv2.Context)
                     {
+
                         db.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
-                        var chat = new Db.Tables.Chatv2()
-                        {
-                            Id = message.Chat.Id,
-                            Title = message.Chat.Title,
-                            Description = message.Chat.Description
-                        };
-                        db.AddOrUpdateChat(chat);
+
                         var restriction = new Db.Tables.Restrictionv2()
                         {
                             ChatId = message.Chat.Id,
                             Date = DateTime.Now,
                             Until = DateTime.Now.AddSeconds(seconds)
                         };
-                        db.Restrictions.Add(restriction);
-                        db.SaveChanges();
 
-                        var user = new Db.Tables.Userv2()
+                        var existingUser = db.Users.Where(x => x.Id == message.ReplyToMessage.From.Id).FirstOrDefault();
+                        if (existingUser != null)
                         {
-                            Id = message.ReplyToMessage.From.Id,
-                            FirstName = message.ReplyToMessage.From.FirstName,
-                            LastName = message.ReplyToMessage.From.LastName,
-                            UserName = message.ReplyToMessage.From.Username,
-                            ChatId = e.Message.Chat.Id,
-                            RestrictionId = restriction.Id
-                        };
-                        db.AddOrUpdateUser(user);
+                            
+                            db.Restrictions.Add(restriction);
+                            db.SaveChanges();
+                            existingUser.RestrictionId = restriction.Id;
+                            db.SaveChanges();
+                        }
+
                     }
 
 
@@ -743,14 +734,30 @@ namespace PerchikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        var restriction = new Db.Tables.Restriction()
+
+                        using (var db = PerchikDBv2.Context)
                         {
-                            chat = new Db.Tables.Chat() { id = message.Chat.Id },
-                            date = DateTime.Now,
-                            until = DateTime.Now.AddSeconds(seconds),
-                            user = new Db.Tables.User() { id = message.From.Id }
-                        };
-                        db.AddRestriction(restriction);
+
+                            db.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+
+                            var restriction = new Db.Tables.Restrictionv2()
+                            {
+                                ChatId = message.Chat.Id,
+                                Date = DateTime.Now,
+                                Until = DateTime.Now.AddSeconds(seconds)
+                            };
+
+                            var existingUser = db.Users.Where(x => x.Id == message.From.Id).FirstOrDefault();
+                            if (existingUser != null)
+                            {
+
+                                db.Restrictions.Add(restriction);
+                                db.SaveChanges();
+                                existingUser.RestrictionId = restriction.Id;
+                                db.SaveChanges();
+                            }
+
+                        }
                     }
                     else
                     {
@@ -763,14 +770,29 @@ namespace PerchikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        var restriction = new Db.Tables.Restriction()
+                        using (var db = PerchikDBv2.Context)
                         {
-                            chat = new Db.Tables.Chat() { id = message.Chat.Id },
-                            date = DateTime.Now,
-                            until = DateTime.Now.AddSeconds(40),
-                            user = new Db.Tables.User() { id = message.ReplyToMessage.From.Id }
-                        };
-                        db.AddRestriction(restriction);
+
+                            db.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+
+                            var restriction = new Db.Tables.Restrictionv2()
+                            {
+                                ChatId = message.Chat.Id,
+                                Date = DateTime.Now,
+                                Until = DateTime.Now.AddSeconds(40)
+                            };
+
+                            var existingUser = db.Users.Where(x => x.Id == message.ReplyToMessage.From.Id).FirstOrDefault();
+                            if (existingUser != null)
+                            {
+
+                                db.Restrictions.Add(restriction);
+                                db.SaveChanges();
+                                existingUser.RestrictionId = restriction.Id;
+                                db.SaveChanges();
+                            }
+
+                        }
                     }
 
                     _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
@@ -798,15 +820,21 @@ namespace PerchikSharp
                 var until = DateTime.Now.AddSeconds(1);
                 Perchik.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
-                var user = new Db.Tables.User()
+                using (var db = PerchikDBv2.Context)
                 {
-                    id = e.Message.ReplyToMessage.From.Id,
-                    firstname = e.Message.ReplyToMessage.From.FirstName,
-                    lastname = e.Message.ReplyToMessage.From.LastName,
-                    username = e.Message.ReplyToMessage.From.Username,
-                    restriction = null
-                };
-                db.UserCollFactory.Upsert(user);
+                    db.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+
+                    var existingUser = db.Users.Where(
+                        x => x.Id == message.ReplyToMessage.From.Id
+                        ).FirstOrDefault();
+
+                    if (existingUser != null)
+                    {
+                        existingUser.RestrictionId = null;
+                        db.SaveChanges();
+                    }
+
+                }
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
@@ -1644,23 +1672,22 @@ namespace PerchikSharp
 
                 using(var db = PerchikDBv2.Context)
                 {
-                    db.AddOrUpdateChat(new Db.Tables.Chatv2()
+                    PerchikDBv2.Context.AddOrUpdateChat(new Db.Tables.Chatv2()
                     {
                         Id = e.Chat.Id,
                         Title = e.Chat.Title,
                         Description = e.Chat.Description
                     });
 
-                    db.AddOrUpdateUser(new Db.Tables.Userv2()
+                    PerchikDBv2.Context.AddOrUpdateUser(new Db.Tables.Userv2()
                     { 
                         Id = e.From.Id,
                         FirstName = e.From.FirstName,
                         LastName = e.From.LastName,
                         UserName = e.From.Username,
-                        ChatId = e.Chat.Id
-                    });
+                    }, e.Chat.Id);
 
-                    db.AddMessage(new Db.Tables.Messagev2()
+                    PerchikDBv2.Context.AddMessage(new Db.Tables.Messagev2()
                     {
                         MessageId = e.MessageId,
                         UserId = e.From.Id,

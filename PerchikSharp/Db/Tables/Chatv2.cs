@@ -10,6 +10,11 @@ namespace PerchikSharp.Db.Tables
         public string Title { get; set; }
         public string Description { get; set; }
         public List<Messagev2> Messages { get; set; }
-        public List<Userv2> Users { get; set; }
+        public List<ChatUserv2> ChatUsers { get; set; }
+
+        public Chatv2()
+        {
+            ChatUsers = new List<ChatUserv2>();
+        }
     }
 }
