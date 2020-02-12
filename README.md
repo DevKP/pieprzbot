@@ -26,14 +26,15 @@ curl -sSL https://get.docker.com/ | sh
 {
   "TELEGRAM": [ "123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" ],
   "CLARIFAI": [ "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" ],
-  "ACCUWEATHER": [ "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" ]
+  "ACCUWEATHER": [ "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" ],
+  "MYSQL" : ["server=localhost;UserId=pieprz;Password=password;database=pieprz;"]
 }
 ```
 
 4. Mount custom **Data** volume and Run:
 
 ```
-docker -dit -v /patch/to/data:/bot/Data --restart=always --name=pieprzbot registry.gitlab.com/0kitty/persiksharp
+docker run -dit -v /patch/to/data:/bot/Data --restart=always --name=pieprzbot registry.gitlab.com/0kitty/persiksharp
 ```
 
 
