@@ -23,8 +23,6 @@ using System.Net.Http.Headers;
 using System.Web;
 using PerchikSharp.Db;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using PersikSharp;
 
 namespace PerchikSharp
@@ -1153,38 +1151,40 @@ namespace PerchikSharp
         {
             using (var db = PerchikDBv2.Context)
             {
+                var sw = new Stopwatch();
+                sw.Start();
 
-                string upper_name = search.ToUpper().Replace("@", "");
+                string upper_name = search.Replace("@", "");
 
-                var users = db.Users.Include(x => x.Restrictions).Where(u =>
-                    (u.FirstName.ToUpper().Contains(upper_name)) ||
-                    (u.LastName != null && u.LastName.ToUpper().Contains(upper_name)) ||
-                    (u.UserName != null && u.UserName.ToUpper().Contains(upper_name))
-                );
 
-                if (users.Count() == 0)
+                var user = db.Users.Include(x => x.Restrictions).Where(u =>
+                    (u.FirstName.Contains(upper_name, StringComparison.OrdinalIgnoreCase)) ||
+                    (u.LastName.Contains(upper_name, StringComparison.OrdinalIgnoreCase)) ||
+                    (u.UserName.Contains(upper_name, StringComparison.OrdinalIgnoreCase))
+                ).FirstOrDefault();
+                //var user = db.Users.Include(x => x.Restrictions).Where(u =>
+                //    (u.FirstName + u.LastName + u.UserName).Contains(upper_name, StringComparison.OrdinalIgnoreCase
+                //)).FirstOrDefault();
+
+                if (user == null)
                 {
                     throw new Exception($"*Пользователя \"{search}\" нет в базе.*");
                 }
 
-                var user = users.First();
-
                 var msgs_from_user = db.Messages.Where(m => m.UserId == user.Id);
-
-                var messages_today = db.Messages.Where(m => m.Date.Date == DateTime.Now.Date);
                 var u_messages_today = msgs_from_user.Where(m => m.Date.Date == DateTime.Now.Date);
 
-                int u_messages_lastday_count = msgs_from_user.Where(m => m.Date.Date == DateTime.Now.AddDays(-1).Date).Count();
-                int u_messages_today_count = u_messages_today.Count();
-                int u_messages_count = msgs_from_user.Count();
+                int u_messages_lastday_count = db.Messages.Count(m => m.UserId == user.Id && m.Date.Date == DateTime.Now.AddDays(-1).Date);
+                int u_messages_today_count = db.Messages.Count(m => m.UserId == user.Id && m.Date.Date == DateTime.Now.Date);
+                int u_messages_count = db.Messages.Count(m => m.UserId == user.Id);
                 int restrictions_count = user.Restrictions.Count;
 
                 double user_activity = 0;
                 if (u_messages_today_count != 0)
                 {
-                    messages_today = messages_today.Where(m => m.Text != null);
-                    u_messages_today = u_messages_today.Where(m => m.Text != null);
-                    int total_text_length = messages_today.Sum(m => m.Text.Length);
+                    //messages_today = messages_today.Where(m => m.Text != null);
+                    //u_messages_today = u_messages_today.Where(m => m.Text != null);
+                    int total_text_length = db.Messages.Where(m => m.Date.Date == DateTime.Now.Date).Sum(m => m.Text.Length);
                     int user_text_length = u_messages_today.Sum(m => m.Text.Length);
                     user_activity = (double)user_text_length / total_text_length;
                 }
@@ -1195,6 +1195,8 @@ namespace PerchikSharp
                     remaining = user.Restrictions.Last().Until - DateTime.Now;
                 }
 
+                sw.Stop();
+
                 return $"*Имя: {user.FirstName} {user.LastName}\n" +
                             $"ID: {user.Id}\n" +
                             $"Ник: {user.UserName}\n\n" +
@@ -1203,7 +1205,8 @@ namespace PerchikSharp
                             $"Сообщений вчера: { u_messages_lastday_count }\n" +
                             $"Всего сообщений: { u_messages_count }\n" +
                             $"Банов: { restrictions_count }\n\n*" +
-                            (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`" }\n" : "");
+                            (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`" }\n" : "") + 
+                            $"\n\n`{sw.ElapsedMilliseconds/1000.0}сек`";
             }
         }
 
@@ -1670,7 +1673,7 @@ namespace PerchikSharp
                 //    {
                 //        Id = e.From.Id
                 //    };
-                //    var users = dbv.Users.Where(u=> u.Id == e.From.Id);
+                //    var users = dbv.Users.Where(u => u.Id == e.From.Id);
                 //    if (users.Count() != 0)
                 //    {
                 //        user.RestrictionId = users.First().RestrictionId;
@@ -1680,33 +1683,33 @@ namespace PerchikSharp
                 //}
                 //db.AddMessageToChat(e.Chat.Id, message);
 
-                //using(var db = PerchikDBv2.Context)
-                //{
-                //    db.AddOrUpdateChat(new Db.Tables.Chatv2()
-                //    {
-                //        Id = e.Chat.Id,
-                //        Title = e.Chat.Title,
-                //        Description = e.Chat.Description
-                //    });
+                using (var db = PerchikDBv2.Context)
+                {
+                    db.AddOrUpdateChat(new Db.Tables.Chatv2()
+                    {
+                        Id = e.Chat.Id,
+                        Title = e.Chat.Title,
+                        Description = e.Chat.Description
+                    });
 
-                //    db.AddOrUpdateUser(new Db.Tables.Userv2()
-                //    { 
-                //        Id = e.From.Id,
-                //        FirstName = e.From.FirstName,
-                //        LastName = e.From.LastName,
-                //        UserName = e.From.Username,
-                //    }, e.Chat.Id);
+                    db.AddOrUpdateUser(new Db.Tables.Userv2()
+                    {
+                        Id = e.From.Id,
+                        FirstName = e.From.FirstName,
+                        LastName = e.From.LastName,
+                        UserName = e.From.Username,
+                    }, e.Chat.Id);
 
-                //    db.AddMessage(new Db.Tables.Messagev2()
-                //    {
-                //        MessageId = e.MessageId,
-                //        UserId = e.From.Id,
-                //        ChatId = e.Chat.Id,
-                //        Text = e.Text,
-                //        Date = e.Date,
-                //        Type = e.Type
-                //    });
-                //}
+                    db.AddMessage(new Db.Tables.Messagev2()
+                    {
+                        MessageId = e.MessageId,
+                        UserId = e.From.Id,
+                        ChatId = e.Chat.Id,
+                        Text = e.Text,
+                        Date = e.Date,
+                        Type = e.Type
+                    });
+                }
             }
             catch (Exception ex)
             {

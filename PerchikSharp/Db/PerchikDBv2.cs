@@ -43,13 +43,13 @@ namespace PerchikSharp.Db
         static public PerchikDBv2 Context { 
             get {
                 var obj = new PerchikDBv2();
-                //obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+                obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
                 return obj;
             }
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseMySql("server=localhost;UserId=root;Password=AvtoBot12;database=pieprz;");
+            optionsBuilder.UseMySql("server=192.168.1.202;UserId=pieprz;Password=AvtoBot12;database=pieprz;");
             //optionsBuilder.EnableSensitiveDataLogging();
         }
         public void AddOrUpdateUser(Tables.Userv2 user, long chatId)
