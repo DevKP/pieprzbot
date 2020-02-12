@@ -36,7 +36,6 @@ namespace PerchikSharp
         static StringManager strManager = new StringManager();
         static StringManager tokens = new StringManager();
 
-        public static PerchikDB db_;
         static PerschikDB database;
 
         static CancellationTokenSource exitTokenSource = new CancellationTokenSource();
@@ -227,7 +226,7 @@ namespace PerchikSharp
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
-            bothelper.NativeCommand("db", async (_, e) =>
+            bothelper.NativeCommand("db", (_, e) =>
             {
                 using (var dbv2 = PerchikDB.Context)
                 {
@@ -355,7 +354,7 @@ namespace PerchikSharp
                             Logger.Log(LogType.Debug, $"Restriction ID {restriction.Id} : {restriction.DateTimeFrom}");
                         }
                     }
-                    catch (Exception x)
+                    catch (Exception)
                     {
                         Logger.Log(LogType.Debug, $"Restriction ERROR");
                     }
