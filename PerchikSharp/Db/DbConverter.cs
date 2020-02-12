@@ -6,12 +6,12 @@ namespace PerchikSharp.Db
 {
     class DbConverter
     {
-        public static Tables.Userv2 GenUser(Telegram.Bot.Types.User user)
+        public static Tables.User GenUser(Telegram.Bot.Types.User user)
         {
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            return new Tables.Userv2()
+            return new Tables.User()
             {
                 Id = user.Id,
                 FirstName = user.FirstName,
@@ -19,24 +19,24 @@ namespace PerchikSharp.Db
                 Restricted = false
             };
         }
-        public static Tables.Chatv2 GenChat(Telegram.Bot.Types.Chat chat)
+        public static Tables.Chat GenChat(Telegram.Bot.Types.Chat chat)
         {
             if (chat == null)
                 throw new ArgumentNullException(nameof(chat));
 
-            return new Tables.Chatv2()
+            return new Tables.Chat()
             {
                 Id = chat.Id,
                 Title = chat.Title,
                 Description = chat.Description
             };
         }
-        public static Tables.Messagev2 GenMessage(Telegram.Bot.Types.Message message)
+        public static Tables.Message GenMessage(Telegram.Bot.Types.Message message)
         {
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
 
-            return new Tables.Messagev2()
+            return new Tables.Message()
             {
                MessageId = message.MessageId,
                UserId = message.From.Id,
@@ -46,12 +46,12 @@ namespace PerchikSharp.Db
                Type = message.Type
             };
         }
-        public static Tables.Restrictionv2 GenRestriction(Telegram.Bot.Types.Message message, DateTime until)
+        public static Tables.Restriction GenRestriction(Telegram.Bot.Types.Message message, DateTime until)
         {
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
 
-            return new Tables.Restrictionv2()
+            return new Tables.Restriction()
             {
                 ChatId = message.Chat.Id,
                 UserId = message.From.Id,

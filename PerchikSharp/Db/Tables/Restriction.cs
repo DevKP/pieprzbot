@@ -1,5 +1,4 @@
-﻿using LiteDB;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -7,13 +6,12 @@ namespace PerchikSharp.Db.Tables
 {
     class Restriction
     {
-        [BsonId]
-        public int id { get; set; }
-        [BsonRef("Chats")]
-        public Chat chat { get; set; }
-        public DateTime date { get; set; }
-        public DateTime until { get; set; }
-        [BsonRef("Users")]
-        public User user { get; set; }
+        public int Id { get; set; }
+        public long ChatId { get; set; }
+        public Chat Chat { get; set; }
+        public int UserId { get; set; }
+        public User User { get; set; }
+        public DateTime Date { get; set; }
+        public DateTime Until { get; set; }
     }
 }

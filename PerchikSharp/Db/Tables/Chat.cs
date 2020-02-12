@@ -1,19 +1,21 @@
-﻿using LiteDB;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Db.Tables
 {
     class Chat
     {
-        [BsonId]
-        public long id { get; set; }
-        public ChatType type { get; set; }
-        public string title { get; set; }
-        public string description { get; set; }
-        [BsonRef("Messages")]
-        public Message pinnedmessage { get; set; }
+        public long Id { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public List<Message> Messages { get; set; }
+        public List<ChatUser> ChatUsers { get; set; }
+
+        public Chat()
+        {
+            ChatUsers = new List<ChatUser>();
+            Messages = new List<Message>();
+        }
     }
 }

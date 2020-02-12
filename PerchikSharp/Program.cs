@@ -63,6 +63,8 @@ namespace PerchikSharp
             database = new PerschikDB("./Data/database_old.db");
             database.Create();
 
+            PerchikDB.ConnectionString = tokens["MYSQL"];
+
             Init();
 
             //Update Message to group and me
@@ -227,7 +229,7 @@ namespace PerchikSharp
 
             bothelper.NativeCommand("db", async (_, e) =>
             {
-                using (var dbv2 = PerchikDBv2.Context)
+                using (var dbv2 = PerchikDB.Context)
                 {
 
                     foreach (var c in dbv2.Chats.Include(c => c.ChatUsers).ThenInclude(c => c.User).ToList())
@@ -340,9 +342,9 @@ namespace PerchikSharp
                     try
                     {
 
-                        using (var db = PerchikDBv2.Context)
+                        using (var db = PerchikDB.Context)
                         {
-                            db.Restrictions.Add(new Db.Tables.Restrictionv2()
+                            db.Restrictions.Add(new Db.Tables.Restriction()
                             {
                                 ChatId = -1001125742098,
                                 UserId = restriction.UserId,
@@ -383,7 +385,7 @@ namespace PerchikSharp
         {
             try
             {
-                using (var dbv2 = PerchikDBv2.Context)
+                using (var dbv2 = PerchikDB.Context)
                 {
                     var users = dbv2.Users.Include(x => x.Restrictions).Where(u => u.Restricted).ToList();
                     foreach (var user in users)
@@ -727,7 +729,7 @@ namespace PerchikSharp
                             parseMode: ParseMode.Markdown);
                     }
 
-                    using (var db = PerchikDBv2.Context)
+                    using (var db = PerchikDB.Context)
                     {
 
                         
@@ -762,7 +764,7 @@ namespace PerchikSharp
                             parseMode: ParseMode.Markdown);
 
 
-                        using (var db = PerchikDBv2.Context)
+                        using (var db = PerchikDB.Context)
                         {
 
 
@@ -789,7 +791,7 @@ namespace PerchikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        using (var db = PerchikDBv2.Context)
+                        using (var db = PerchikDB.Context)
                         {
 
                             var existingUser = db.Users.Where(x => x.Id == message.ReplyToMessage.From.Id).FirstOrDefault();
@@ -830,7 +832,7 @@ namespace PerchikSharp
                 var until = DateTime.Now.AddSeconds(1);
                 Perchik.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
-                using (var db = PerchikDBv2.Context)
+                using (var db = PerchikDB.Context)
                 {
 
 
@@ -927,7 +929,7 @@ namespace PerchikSharp
                         return;
 
 
-                using (var db = PerchikDBv2.Context)
+                using (var db = PerchikDB.Context)
                 {
                     var users = db.Users.ToList();
                     string message_str = string.Empty;
@@ -1149,7 +1151,7 @@ namespace PerchikSharp
 
         private static string getStatisticsText(string search)
         {
-            using (var db = PerchikDBv2.Context)
+            using (var db = PerchikDB.Context)
             {
                 var sw = new Stopwatch();
                 sw.Start();
@@ -1212,11 +1214,8 @@ namespace PerchikSharp
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-
-            //var uCollection = db.UserCollFactory;
-            //var mCollection = db.MessageCollFactory;
             
-            using (var db = PerchikDBv2.Context)
+            using (var db = PerchikDB.Context)
             {
                 Message message = e.Message;
 
@@ -1266,7 +1265,7 @@ namespace PerchikSharp
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            using (var db = PerchikDBv2.Context)
+            using (var db = PerchikDB.Context)
             {
                 Message message = e.Message;
 
@@ -1348,7 +1347,7 @@ namespace PerchikSharp
 
                 string username = e.Text.Replace("@", "").ToLower();
 
-                using (var db = PerchikDBv2.Context)
+                using (var db = PerchikDB.Context)
                 {
 
                     var user = db.Users.Where(u =>
@@ -1664,7 +1663,7 @@ namespace PerchikSharp
                 //}
                 //db.AddMessageToChat(e.Chat.Id, message);
 
-                using (var db = PerchikDBv2.Context)
+                using (var db = PerchikDB.Context)
                 {
 
                     db.AddOrUpdateChat(DbConverter.GenChat(msg.Chat));
@@ -1698,7 +1697,7 @@ namespace PerchikSharp
             try
             {
                 Chat telegram_chat = await Bot.GetChatAsync(message_args.Message.Chat.Id);
-                using (var db = PerchikDBv2.Context)
+                using (var db = PerchikDB.Context)
                 {
                     db.AddOrUpdateChat(DbConverter.GenChat(telegram_chat));
                 }
