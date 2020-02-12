@@ -38,19 +38,64 @@ namespace PerchikSharp.Db
                 .WithMany(c => c.ChatUsers)
                 .HasForeignKey(cu => cu.UserId);
 
-            
+            modelBuilder.Entity<Tables.Messagev2>()
+                .HasKey(x => new { x.Id, x.Date});
+
+            modelBuilder.Entity<Tables.Messagev2>()
+                .Property(x => x.Id)
+                .ValueGeneratedOnAdd();
         }
         static public PerchikDBv2 Context { 
             get {
                 var obj = new PerchikDBv2();
-                obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+                //obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
                 return obj;
             }
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            //StringManager.
             optionsBuilder.UseMySql("server=192.168.1.202;UserId=pieprz;Password=AvtoBot12;database=pieprz;");
             //optionsBuilder.EnableSensitiveDataLogging();
+        }
+        /// <summary>
+        /// Converts the given date value to epoch time.
+        /// </summary>
+        public static long ToEpochTime(DateTime dateTime)
+        {
+            var date = dateTime.ToUniversalTime();
+            var ticks = date.Ticks - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).Ticks;
+            var ts = ticks / TimeSpan.TicksPerSecond;
+            return ts;
+        }
+
+        /// <summary>
+        /// Converts the given date value to epoch time.
+        /// </summary>
+        public static long ToEpochTime(DateTimeOffset dateTime)
+        {
+            var date = dateTime.ToUniversalTime();
+            var ticks = date.Ticks - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero).Ticks;
+            var ts = ticks / TimeSpan.TicksPerSecond;
+            return ts;
+        }
+
+        /// <summary>
+        /// Converts the given epoch time to a <see cref="DateTime"/> with <see cref="DateTimeKind.Utc"/> kind.
+        /// </summary>
+        public static DateTime ToDateTimeFromEpoch(long intDate)
+        {
+            var timeInTicks = intDate * TimeSpan.TicksPerSecond;
+            return new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddTicks(timeInTicks);
+        }
+
+        /// <summary>
+        /// Converts the given epoch time to a UTC <see cref="DateTimeOffset"/>.
+        /// </summary>
+        public static DateTimeOffset ToDateTimeOffsetFromEpoch(long intDate)
+        {
+            var timeInTicks = intDate * TimeSpan.TicksPerSecond;
+            return new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero).AddTicks(timeInTicks);
         }
         public void AddOrUpdateUser(Tables.Userv2 user, long chatId)
         {
