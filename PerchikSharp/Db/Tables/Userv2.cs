@@ -19,6 +19,7 @@ namespace PerchikSharp.Db.Tables
         {
             ChatUsers = new List<ChatUserv2>();
             Restrictions = new List<Restrictionv2>();
+            Messages = new List<Messagev2>();
         }
     }
 }

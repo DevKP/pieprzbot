@@ -733,13 +733,7 @@ namespace PerchikSharp
                         
 
                         var existingUser = db.Users.Where(x => x.Id == message.ReplyToMessage.From.Id).FirstOrDefault();
-                        var restriction = new Db.Tables.Restrictionv2()
-                        {
-                            ChatId = message.Chat.Id,
-                            Date = DateTime.Now,
-                            Until = DateTime.Now.AddSeconds(seconds),
-                            UserId = message.ReplyToMessage.From.Id
-                        };
+                        var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(seconds));
 
                         if (existingUser != null)
                         {
@@ -773,13 +767,7 @@ namespace PerchikSharp
 
 
                             var existingUser = db.Users.Where(x => x.Id == message.From.Id).FirstOrDefault();
-                            var restriction = new Db.Tables.Restrictionv2()
-                            {
-                                ChatId = message.Chat.Id,
-                                Date = DateTime.Now,
-                                Until = DateTime.Now.AddSeconds(seconds),
-                                UserId = message.From.Id
-                            };
+                            var restriction = DbConverter.GenRestriction(message, DateTime.Now.AddSeconds(seconds));
                             if (existingUser != null)
                             {
 
@@ -805,13 +793,7 @@ namespace PerchikSharp
                         {
 
                             var existingUser = db.Users.Where(x => x.Id == message.ReplyToMessage.From.Id).FirstOrDefault();
-                            var restriction = new Db.Tables.Restrictionv2()
-                            {
-                                ChatId = message.Chat.Id,
-                                Date = DateTime.Now,
-                                Until = DateTime.Now.AddSeconds(40),
-                                UserId = message.ReplyToMessage.From.Id
-                            };
+                            var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(40));
 
                             if (existingUser != null)
                             {
@@ -1174,8 +1156,8 @@ namespace PerchikSharp
 
                 string name = search.Replace("@", "");
 
-                long today = PerchikDBv2.ToEpochTime(DateTime.Now.Date);
-                long lastday = PerchikDBv2.ToEpochTime(DateTime.Now.AddDays(-1).Date);
+                long today = DbConverter.ToEpochTime(DateTime.Now.Date);
+                long lastday = DbConverter.ToEpochTime(DateTime.Now.AddDays(-1).Date);
 
                 var user = db.Users
                     .AsNoTracking()
@@ -1238,8 +1220,8 @@ namespace PerchikSharp
             {
                 Message message = e.Message;
 
-                long datenow = PerchikDBv2.ToEpochTime(DateTime.Now.Date);
-                long now = PerchikDBv2.ToEpochTime(DateTime.Now);
+                long datenow = DbConverter.ToEpochTime(DateTime.Now.Date);
+                long now = DbConverter.ToEpochTime(DateTime.Now);
 
                 var users = db.Users
                     .AsNoTracking()
@@ -1505,14 +1487,7 @@ namespace PerchikSharp
                         userId: user.Id,
                         forSeconds: 60 * 15);
 
-                    var restriction = new Db.Tables.Restrictionv2()
-                    {
-                        ChatId = e.Message.Chat.Id,
-                        Date = DateTime.Now,
-                        Until = DateTime.Now.AddSeconds(60 * 15),
-                        UserId = user.Id
-                    };
-
+                    var restriction = DbConverter.GenRestriction(e.Message, DateTime.Now.AddSeconds(60 * 15));
                     db.Restrictions.Add(restriction);
                     db.SaveChanges();
 
@@ -1669,7 +1644,7 @@ namespace PerchikSharp
             //DatabaseUpdate(sender, message_args.Message);
         }
 
-        private static void DatabaseUpdate(object s, Message e)
+        private static void DatabaseUpdate(object s, Message msg)
         {
             try
             {
@@ -1691,30 +1666,12 @@ namespace PerchikSharp
 
                 using (var db = PerchikDBv2.Context)
                 {
-                    db.AddOrUpdateChat(new Db.Tables.Chatv2()
-                    {
-                        Id = e.Chat.Id,
-                        Title = e.Chat.Title,
-                        Description = e.Chat.Description
-                    });
 
-                    db.AddOrUpdateUser(new Db.Tables.Userv2()
-                    {
-                        Id = e.From.Id,
-                        FirstName = e.From.FirstName,
-                        LastName = e.From.LastName,
-                        UserName = e.From.Username,
-                    }, e.Chat.Id);
+                    db.AddOrUpdateChat(DbConverter.GenChat(msg.Chat));
 
-                    db.AddMessage(new Db.Tables.Messagev2()
-                    {
-                        MessageId = e.MessageId,
-                        UserId = e.From.Id,
-                        ChatId = e.Chat.Id,
-                        Text = e.Text,
-                        Date = PerchikDBv2.ToEpochTime(e.Date),
-                        Type = e.Type
-                    });
+                    db.AddOrUpdateUser(DbConverter.GenUser(msg.From), msg.Chat.Id);
+
+                    db.AddMessage(DbConverter.GenMessage(msg));
                 }
             }
             catch (Exception ex)
@@ -1743,12 +1700,7 @@ namespace PerchikSharp
                 Chat telegram_chat = await Bot.GetChatAsync(message_args.Message.Chat.Id);
                 using (var db = PerchikDBv2.Context)
                 {
-                    db.AddOrUpdateChat(new Db.Tables.Chatv2()
-                    { 
-                        Id = telegram_chat.Id,
-                        Title = telegram_chat.Title,
-                        Description = telegram_chat.Description
-                    });
+                    db.AddOrUpdateChat(DbConverter.GenChat(telegram_chat));
                 }
 
                 if (message_args.Message.From.IsBot)

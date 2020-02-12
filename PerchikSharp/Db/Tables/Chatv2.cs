@@ -15,6 +15,7 @@ namespace PerchikSharp.Db.Tables
         public Chatv2()
         {
             ChatUsers = new List<ChatUserv2>();
+            Messages = new List<Messagev2>();
         }
     }
 }
