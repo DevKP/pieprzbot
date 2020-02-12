@@ -60,8 +60,7 @@ namespace PerchikSharp.Db
 
         public void AddOrUpdateUser(Tables.User user, long chatId)
         {
-            lock (_lock)
-            {
+
                 var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
                 if (existingUser != null)
                 {
@@ -78,13 +77,12 @@ namespace PerchikSharp.Db
                     });
                 }
                 this.SaveChanges();
-            }
+           
         }
 
         public void UpdateUser(Tables.User user)
         {
-            lock (_lock)
-            {
+         
                 var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
                 if (existingUser != null)
                 {
@@ -92,17 +90,16 @@ namespace PerchikSharp.Db
                     this.Entry(user).State = EntityState.Modified;
                 }
                 this.SaveChanges();
-            }
+            
         }
 
         public int AddMessage(Tables.Message msg)
         {
-            lock (_lock)
-            {
+           
                 this.Messages.Add(msg);
                 this.SaveChanges();
                 return msg.Id;
-            }
+            
             //this.ChatMessages.Add(new Tables.ChatMessagev2()
             //{
             //    ChatId = msg.ChatId,
@@ -112,8 +109,7 @@ namespace PerchikSharp.Db
 
         public void AddOrUpdateChat(Tables.Chat chat)
         {
-            lock (_lock)
-            {
+            
                 var existingChat = this.Chats.Where(c => c.Id == chat.Id).FirstOrDefault();
                 if (existingChat != null)
                 {
@@ -125,7 +121,7 @@ namespace PerchikSharp.Db
                     this.Chats.Add(chat);
                 }
                 this.SaveChanges();
-            }
+            
         }
 
         //public void InsertOrUpdate<TEnity>(DbContext context, DbSet entity)

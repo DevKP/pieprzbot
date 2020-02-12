@@ -1116,16 +1116,19 @@ namespace PerchikSharp
                             replyMarkup: inlineKeyboard,
                             parseMode: ParseMode.Markdown);
 
-                object _lock = new object();
+                bool generating = false;
                 bothelper.RegisterCallbackQuery(update_button.CallbackData, e.Message.From.Id, async (_, o) => 
                 {
+                    if (generating)
+                        return;
+
+                    generating = true;
+
                     string new_text = string.Empty;
                     try
                     {
-                        lock (_lock)
-                        {
-                            new_text = getStatisticsText(name);
-                        }
+                        new_text = getStatisticsText(name);
+                        
                     }
                     catch (Exception ex)
                     {
@@ -1134,13 +1137,21 @@ namespace PerchikSharp
 
                     if (!new_text.Equals(text))
                     {
-                        await Bot.EditMessageTextAsync(
+                        try
+                        {
+                            await Bot.EditMessageTextAsync(
                                 chatId: msg.Chat.Id,
                                 messageId: o.Callback.Message.MessageId,
                                 replyMarkup: inlineKeyboard,
                                 text: new_text,
                                 parseMode: ParseMode.Markdown);
+                        }
+                        catch (Exception)
+                        {
+
+                        }
                     }
+                    generating = false;
                 });
             }
             catch (Exception exp)
