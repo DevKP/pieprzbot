@@ -386,14 +386,24 @@ namespace PerchikSharp
             {
                 using (var dbv2 = PerchikDB.Context)
                 {
-                    var users = dbv2.Users.Include(x => x.Restrictions).Where(u => u.Restricted).ToList();
+                    var users = dbv2.Users
+                        .AsNoTracking()
+                        .Include(x => x.Restrictions)
+                        .Where(u => u.Restricted)
+                        .ToList();
+
                     foreach (var user in users)
                     {
                         var restriction = user.Restrictions.LastOrDefault();
                         if (DateTime.Now > restriction.Until)
                         {
                             user.Restricted = false;
-                            dbv2.Users.Where(u => u.Id == user.Id).FirstOrDefault().Restricted = false;
+
+                            dbv2.Users
+                                .Where(u => u.Id == user.Id)
+                                .FirstOrDefault()
+                                .Restricted = false;
+
                             dbv2.SaveChanges();
 
                             await Bot.SendTextMessageAsync(
@@ -730,21 +740,9 @@ namespace PerchikSharp
 
                     using (var db = PerchikDB.Context)
                     {
-
-                        
-
-                        var existingUser = db.Users.Where(x => x.Id == message.ReplyToMessage.From.Id).FirstOrDefault();
                         var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(seconds));
-
-                        if (existingUser != null)
-                        {
-                            db.Restrictions.Add(restriction);
-                            existingUser.Restricted = true;
-                            db.SaveChanges();
-                        }
-
+                        db.AddRestriction(restriction);
                     }
-
 
                     _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
@@ -762,21 +760,10 @@ namespace PerchikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
 
-
                         using (var db = PerchikDB.Context)
                         {
-
-
-                            var existingUser = db.Users.Where(x => x.Id == message.From.Id).FirstOrDefault();
                             var restriction = DbConverter.GenRestriction(message, DateTime.Now.AddSeconds(seconds));
-                            if (existingUser != null)
-                            {
-
-                                db.Restrictions.Add(restriction);;
-                                existingUser.Restricted = true;
-                                db.SaveChanges();
-                            }
-
+                            db.AddRestriction(restriction);
                         }
                     }
                     else
@@ -792,17 +779,8 @@ namespace PerchikSharp
 
                         using (var db = PerchikDB.Context)
                         {
-
-                            var existingUser = db.Users.Where(x => x.Id == message.ReplyToMessage.From.Id).FirstOrDefault();
                             var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(40));
-
-                            if (existingUser != null)
-                            {
-                                db.Restrictions.Add(restriction);
-                                existingUser.Restricted = true;
-                                db.SaveChanges();
-                            }
-
+                            db.AddRestriction(restriction);
                         }
                     }
 
@@ -923,8 +901,8 @@ namespace PerchikSharp
 
                 int[] users_whitelist = { 204678400
                                          /*тут огурец*/ };
-                if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
-                    if (!users_whitelist.Any(id => id == message.From.Id))
+                if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id) &&
+                    !users_whitelist.Any(id => id == message.From.Id))
                         return;
 
 
@@ -1650,35 +1628,18 @@ namespace PerchikSharp
 
 
             onPerchikReplyTrigger(sender, message_args);
-            //DatabaseUpdate(sender, message_args.Message);
         }
 
         private static void DatabaseUpdate(object s, Message msg)
         {
             try
             {
-                //using (PerchikDBv2 dbv = PerchikDBv2.DBFactory)
-                //{
-                //    var user = new Db.Tables.Userv2()
-                //    {
-                //        Id = e.From.Id
-                //    };
-                //    var users = dbv.Users.Where(u => u.Id == e.From.Id);
-                //    if (users.Count() != 0)
-                //    {
-                //        user.RestrictionId = users.First().RestrictionId;
-                //    }
-                //    dbv.Users.Update(user);
-                //    dbv.SaveChanges();
-                //}
-                //db.AddMessageToChat(e.Chat.Id, message);
-
                 using (var db = PerchikDB.Context)
                 {
 
-                    db.AddOrUpdateChat(DbConverter.GenChat(msg.Chat));
+                    db.UpsertChat(DbConverter.GenChat(msg.Chat));
 
-                    db.AddOrUpdateUser(DbConverter.GenUser(msg.From), msg.Chat.Id);
+                    db.UpsertUser(DbConverter.GenUser(msg.From), msg.Chat.Id);
 
                     db.AddMessage(DbConverter.GenMessage(msg));
                 }
@@ -1709,7 +1670,7 @@ namespace PerchikSharp
                 Chat telegram_chat = await Bot.GetChatAsync(message_args.Message.Chat.Id);
                 using (var db = PerchikDB.Context)
                 {
-                    db.AddOrUpdateChat(DbConverter.GenChat(telegram_chat));
+                    db.UpsertChat(DbConverter.GenChat(telegram_chat));
                 }
 
                 if (message_args.Message.From.IsBot)

@@ -18,7 +18,7 @@ namespace PerchikSharp.Db
         public DbSet<Tables.ChatUser> ChatUsers { get; set; }
 
         public static string ConnectionString { get; set; }
-        private object _lock = new object();
+
         public PerchikDB()
         {
             Database.EnsureCreated();
@@ -48,88 +48,93 @@ namespace PerchikSharp.Db
         static public PerchikDB Context { 
             get {
                 var obj = new PerchikDB();
-                //obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+                obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
                 return obj;
             }
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseMySql(ConnectionString);
-            //optionsBuilder.EnableSensitiveDataLogging();
-        }
-
-        public void AddOrUpdateUser(Tables.User user, long chatId)
-        {
-
-                var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
-                if (existingUser != null)
-                {
-                    this.Entry(existingUser).State = EntityState.Detached;
-                    this.Entry(user).State = EntityState.Modified;
-                }
-                else
-                {
-                    this.Users.Add(user);
-                    this.ChatUsers.Add(new Tables.ChatUser()
-                    {
-                        ChatId = chatId,
-                        UserId = user.Id
-                    });
-                }
-                this.SaveChanges();
-           
+            optionsBuilder.EnableSensitiveDataLogging();
         }
 
         public void UpdateUser(Tables.User user)
         {
-         
-                var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
-                if (existingUser != null)
-                {
-                    this.Entry(existingUser).State = EntityState.Detached;
-                    this.Entry(user).State = EntityState.Modified;
-                }
-                this.SaveChanges();
-            
+
+            var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+            if (existingUser != null)
+            {
+                this.Entry(existingUser).State = EntityState.Detached;
+                this.Entry(user).State = EntityState.Modified;
+            }
+            this.SaveChanges();
+
         }
 
-        public int AddMessage(Tables.Message msg)
+        public void AddMessage(Tables.Message msg)
         {
-           
-                this.Messages.Add(msg);
-                this.SaveChanges();
-                return msg.Id;
-            
-            //this.ChatMessages.Add(new Tables.ChatMessagev2()
-            //{
-            //    ChatId = msg.ChatId,
-            //    MessageId = msg.Id
-            //});
+            this.Messages.Add(msg);
+            this.SaveChanges();
         }
-
-        public void AddOrUpdateChat(Tables.Chat chat)
+        public void AddRestriction(Tables.Restriction restr)
         {
-            
-                var existingChat = this.Chats.Where(c => c.Id == chat.Id).FirstOrDefault();
-                if (existingChat != null)
-                {
-                    this.Entry(existingChat).State = EntityState.Detached;
-                    this.Entry(chat).State = EntityState.Modified;
-                }
-                else
-                {
-                    this.Chats.Add(chat);
-                }
-                this.SaveChanges();
-            
+            var existingUser = Users.Where(x => x.Id == restr.UserId).FirstOrDefault();
+            if (existingUser != null)
+            {
+                Restrictions.Add(restr);
+                existingUser.Restricted = true;
+                SaveChanges();
+            }
         }
 
-        //public void InsertOrUpdate<TEnity>(DbContext context, DbSet entity)
-        //{
-        //    context.Entry(entity).State = entity.Id == 0 ?
-        //                                   EntityState.Added :
-        //                                   EntityState.Modified;
-        //    context.SaveChanges();
-        //}
+        public void UpsertChat(Tables.Chat chat)
+        {
+
+            var existingChat = this.Chats.Where(c => c.Id == chat.Id).FirstOrDefault();
+            if (existingChat != null)
+            {
+                this.Entry(existingChat).State = EntityState.Detached;
+                this.Entry(chat).State = EntityState.Modified;
+            }
+            else
+            {
+                this.Chats.Add(chat);
+            }
+            this.SaveChanges();
+
+        }
+        public void UpsertUser(Tables.User user, long chatId)
+        {
+            var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+            if (existingUser != null)
+            {
+                this.Entry(existingUser).State = EntityState.Detached;
+                this.Entry(user).State = EntityState.Modified;
+            }
+            else
+            {
+                this.Users.Add(user);
+                this.ChatUsers.Add(new Tables.ChatUser()
+                {
+                    ChatId = chatId,
+                    UserId = user.Id
+                });
+            }
+            this.SaveChanges();
+        }
+        public void UpsertMessage(Tables.Message message)
+        {
+            var existingMsg = this.Messages.Where(x => x.MessageId == message.MessageId).FirstOrDefault();
+            if (existingMsg != null)
+            {
+                this.Entry(existingMsg).State = EntityState.Detached;
+                this.Entry(message).State = EntityState.Modified;
+            }
+            else
+            {
+                this.Messages.Add(message);
+            }
+            this.SaveChanges();
+        }
     }
 }
