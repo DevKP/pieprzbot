@@ -59,7 +59,7 @@ namespace PerchikSharp
             FileInfo file = new FileInfo("./Data/");
             file.Directory.Create();
 
-            database = new PerschikDB("./Data/database_old.db");
+            database = new PerschikDB("./Data/database.db");
             database.Create();
 
             PerchikDB.ConnectionString = tokens["MYSQL"];
@@ -232,88 +232,88 @@ namespace PerchikSharp
                 var messages_old = database.GetRows<PersikSharp.Tables.DbMessage>();
                 var restriction_old = database.GetRows<PersikSharp.Tables.DbRestriction>();
 
-                //using (var db = PerchikDBv2.Context)
-                //{
-                //    var existingChat = db.Chats.Where(x => x.Id == -1001125742098).FirstOrDefault();
-                //    var new_chat = new Db.Tables.Chatv2()
-                //    {
-                //        Id = -1001125742098,
-                //        Title = "OFFTOP",
-                //        Description = "DESCRIPTION"
-                //    };
-                //    if (existingChat == null)
-                //    {
-                //        db.Add(new_chat);
-                //        db.SaveChanges();
-                //    }
-                //}
+                using (var db = PerchikDB.Context)
+                {
+                    var existingChat = db.Chats.Where(x => x.Id == -1001125742098).FirstOrDefault();
+                    var new_chat = new Db.Tables.Chat()
+                    {
+                        Id = -1001125742098,
+                        Title = "OFFTOP",
+                        Description = "DESCRIPTION"
+                    };
+                    if (existingChat == null)
+                    {
+                        db.Add(new_chat);
+                        db.SaveChanges();
+                    }
+                }
 
-                //foreach (var user in users_old)
-                //{
-                //    try
-                //    {
-                //        using (var db = PerchikDBv2.Context)
-                //        {
-                //            var new_user = new Db.Tables.Userv2()
-                //            {
-                //                Id = user.Id,
-                //                FirstName = user.FirstName,
-                //                LastName = user.LastName,
-                //                UserName = user.Username,
-                //                Restricted = false
-                //            };
-                //            var existingUser = db.Users.Where(x => x.Id == user.Id).FirstOrDefault();
-                //            if (existingUser == null)
-                //            {
-                //                db.Users.Add(new_user);
-                //                db.SaveChanges();
-                //                db.ChatUsers.Add(new Db.Tables.ChatUserv2()
-                //                {
-                //                    ChatId = -1001125742098,
-                //                    UserId = user.Id
-                //                });
-                //                db.SaveChanges();
-                //                Logger.Log(LogType.Debug, $"User {user.FirstName}:{user.Id}");
-                //            }
-                //        }
+                foreach (var user in users_old)
+                {
+                    try
+                    {
+                        using (var db = PerchikDB.Context)
+                        {
+                            var new_user = new Db.Tables.User()
+                            {
+                                Id = user.Id,
+                                FirstName = user.FirstName,
+                                LastName = user.LastName,
+                                UserName = user.Username,
+                                Restricted = false
+                            };
+                            var existingUser = db.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+                            if (existingUser == null)
+                            {
+                                db.Users.Add(new_user);
+                                db.SaveChanges();
+                                db.ChatUsers.Add(new Db.Tables.ChatUser()
+                                {
+                                    ChatId = -1001125742098,
+                                    UserId = user.Id
+                                });
+                                db.SaveChanges();
+                                Logger.Log(LogType.Debug, $"User {user.FirstName}:{user.Id}");
+                            }
+                        }
 
-                //    }
-                //    catch (Exception x)
-                //    {
-                //        Logger.Log(LogType.Debug, $"ERROR {user.FirstName}:{user.Id}");
-                //    }
+                    }
+                    catch (Exception x)
+                    {
+                        Logger.Log(LogType.Debug, $"ERROR {user.FirstName}:{user.Id}");
+                    }
 
-                //}
-                
-                //foreach (var message in messages_old)
-                //{
-                //    try
-                //    {
-                //        using (var db = PerchikDBv2.Context)
-                //        {
-                            
-                //            //db.Database.AutoDetectChangesEnabled = false;
-                //            if (db.Users.AsNoTracking().Where(x => x.Id == message.UserId).FirstOrDefault() != null)
-                //            {
-                //                db.Messages.Add(new Db.Tables.Messagev2()
-                //                {
-                //                    MessageId = message.Id,
-                //                    UserId = message.UserId,
-                //                    ChatId = -1001125742098,
-                //                    Text = message.Text,
-                //                    Date = PerchikDBv2.ToEpochTime(DateTime.Parse(message.DateTime))
-                //                });
-                //                db.SaveChanges();
-                //                //Logger.Log(LogType.Debug, $"Message ID {message.Id} : {message.Text}");
-                //            }
-                //            //db.AutoDetectChangesEnabled = false;
-                //        }
-                //    }
-                //    catch (Exception x)
-                //    {
-                //        Logger.Log(LogType.Debug, $"ERROR {message.Id} : {message.Text}");
-                //    }
-                //}
+                }
+
+                foreach (var message in messages_old)
+                {
+                    try
+                    {
+                        using (var db = PerchikDB.Context)
+                        {
+
+                            //db.Database.AutoDetectChangesEnabled = false;
+                            if (db.Users.AsNoTracking().Where(x => x.Id == message.UserId).FirstOrDefault() != null)
+                            {
+                                db.Messages.Add(new Db.Tables.Message()
+                                {
+                                    MessageId = message.Id,
+                                    UserId = message.UserId,
+                                    ChatId = -1001125742098,
+                                    Text = message.Text,
+                                    Date = DbConverter.ToEpochTime(DateTime.Parse(message.DateTime))
+                                });
+                                db.SaveChanges();
+                                //Logger.Log(LogType.Debug, $"Message ID {message.Id} : {message.Text}");
+                            }
+                            //db.AutoDetectChangesEnabled = false;
+                        }
+                    }
+                    catch (Exception x)
+                    {
+                        Logger.Log(LogType.Debug, $"ERROR {message.Id} : {message.Text}");
+                    }
+                }
 
                 foreach (var restriction in restriction_old)
                 {
@@ -1492,7 +1492,7 @@ namespace PerchikSharp
 
                 Bot.RestrictChatMemberAsync(
                     chatId: offtopia_id,
-                    userId: via_tcp_Id,
+                    userId: e.Message.From.Id,
                     untilDate: DateTime.Now.AddSeconds(40),
                     permissions: permissions);
             }
