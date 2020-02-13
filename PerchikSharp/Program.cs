@@ -305,8 +305,9 @@ namespace PerchikSharp
                                     Date = DbConverter.ToEpochTime(DateTime.Parse(message.DateTime))
                                 });
                                 db.SaveChanges();
-                                if(i % 50 == 0) 
-                                    Logger.Log(LogType.Debug, $"Message #{i++} ID {message.Id} : {message.Text}");
+                                if(i++ % 10 == 0) 
+                                    Logger.Log(LogType.Debug, $"Message #{i} ID {message.Id} : {message.Text}");
+
                             }
                             //db.AutoDetectChangesEnabled = false;
                         }
