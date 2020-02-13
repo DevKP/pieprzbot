@@ -19,12 +19,13 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Net.Http;
 using System.Diagnostics;
 using System.Reflection;
-using PersikSharp.Tables;
 using System.Net.Http.Headers;
 using System.Web;
-using PerchikSharp;
+using PerchikSharp.Db;
+using Microsoft.EntityFrameworkCore;
+using PersikSharp;
 
-namespace PersikSharp
+namespace PerchikSharp
 {
     class Program
     {
@@ -51,15 +52,17 @@ namespace PersikSharp
         {
 
             Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
-            //CloseAnotherInstance();
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
 
             FileInfo file = new FileInfo("./Data/");
             file.Directory.Create();
-            database = new PerschikDB("./Data/database.db");
+
+            database = new PerschikDB("./Data/database_old.db");
             database.Create();
+
+            PerchikDB.ConnectionString = tokens["MYSQL"];
 
             Init();
 
@@ -178,7 +181,7 @@ namespace PersikSharp
             perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
             perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
             perchik.AddCommandRegEx(@"погода\s([\w\s-]+)", onWeather);   //погода ГОРОД
-            perchik.AddCommandRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast); 
+            perchik.AddCommandRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast);
             perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
             perchik.AddCommandRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
             perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
@@ -203,6 +206,7 @@ namespace PersikSharp
             bothelper.onStickerMessage += onStickerMessage;
             bothelper.onChatMembersAddedMessage += onChatMembersAddedMessage;
             bothelper.onDocumentMessage += onDocumentMessage;
+            Bot.OnMessage += Bot_OnMessage;
 
             bothelper.NativeCommand("start", onStartCommand);
             bothelper.NativeCommand("info", onInfoCommand);
@@ -222,6 +226,126 @@ namespace PersikSharp
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
+            bothelper.NativeCommand("migr", (_, e) =>
+            {
+                var users_old = database.GetRows<PersikSharp.Tables.DbUser>();
+                var messages_old = database.GetRows<PersikSharp.Tables.DbMessage>();
+                var restriction_old = database.GetRows<PersikSharp.Tables.DbRestriction>();
+
+                //using (var db = PerchikDBv2.Context)
+                //{
+                //    var existingChat = db.Chats.Where(x => x.Id == -1001125742098).FirstOrDefault();
+                //    var new_chat = new Db.Tables.Chatv2()
+                //    {
+                //        Id = -1001125742098,
+                //        Title = "OFFTOP",
+                //        Description = "DESCRIPTION"
+                //    };
+                //    if (existingChat == null)
+                //    {
+                //        db.Add(new_chat);
+                //        db.SaveChanges();
+                //    }
+                //}
+
+                //foreach (var user in users_old)
+                //{
+                //    try
+                //    {
+                //        using (var db = PerchikDBv2.Context)
+                //        {
+                //            var new_user = new Db.Tables.Userv2()
+                //            {
+                //                Id = user.Id,
+                //                FirstName = user.FirstName,
+                //                LastName = user.LastName,
+                //                UserName = user.Username,
+                //                Restricted = false
+                //            };
+                //            var existingUser = db.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+                //            if (existingUser == null)
+                //            {
+                //                db.Users.Add(new_user);
+                //                db.SaveChanges();
+                //                db.ChatUsers.Add(new Db.Tables.ChatUserv2()
+                //                {
+                //                    ChatId = -1001125742098,
+                //                    UserId = user.Id
+                //                });
+                //                db.SaveChanges();
+                //                Logger.Log(LogType.Debug, $"User {user.FirstName}:{user.Id}");
+                //            }
+                //        }
+
+                //    }
+                //    catch (Exception x)
+                //    {
+                //        Logger.Log(LogType.Debug, $"ERROR {user.FirstName}:{user.Id}");
+                //    }
+
+                //}
+                
+                //foreach (var message in messages_old)
+                //{
+                //    try
+                //    {
+                //        using (var db = PerchikDBv2.Context)
+                //        {
+                            
+                //            //db.Database.AutoDetectChangesEnabled = false;
+                //            if (db.Users.AsNoTracking().Where(x => x.Id == message.UserId).FirstOrDefault() != null)
+                //            {
+                //                db.Messages.Add(new Db.Tables.Messagev2()
+                //                {
+                //                    MessageId = message.Id,
+                //                    UserId = message.UserId,
+                //                    ChatId = -1001125742098,
+                //                    Text = message.Text,
+                //                    Date = PerchikDBv2.ToEpochTime(DateTime.Parse(message.DateTime))
+                //                });
+                //                db.SaveChanges();
+                //                //Logger.Log(LogType.Debug, $"Message ID {message.Id} : {message.Text}");
+                //            }
+                //            //db.AutoDetectChangesEnabled = false;
+                //        }
+                //    }
+                //    catch (Exception x)
+                //    {
+                //        Logger.Log(LogType.Debug, $"ERROR {message.Id} : {message.Text}");
+                //    }
+                //}
+
+                foreach (var restriction in restriction_old)
+                {
+                    try
+                    {
+
+                        using (var db = PerchikDB.Context)
+                        {
+                            db.Restrictions.Add(new Db.Tables.Restriction()
+                            {
+                                ChatId = -1001125742098,
+                                UserId = restriction.UserId,
+                                Date = DateTime.Parse(restriction.DateTimeFrom),
+                                Until = DateTime.Parse(restriction.DateTimeTo)
+                            });
+                            db.SaveChanges();
+                            Logger.Log(LogType.Debug, $"Restriction ID {restriction.Id} : {restriction.DateTimeFrom}");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        Logger.Log(LogType.Debug, $"Restriction ERROR");
+                    }
+                }
+
+            });
+
+        }
+
+        private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
+        {
+            DatabaseUpdate(sender, e.Message);
         }
 
         static void StartDatabaseCheck(object s)
@@ -239,31 +363,30 @@ namespace PersikSharp
         {
             try
             {
-                var users = database.GetRowsByFilterAsync<DbUser>(u => u.RestrictionId != null).Result;
-                if (users.Count != 0)
+                using (var dbv2 = PerchikDB.Context)
                 {
-                    foreach (DbUser user in users)
-                    {
-                        var restrictions = await database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId);
-                        if (restrictions.Count != 0)
-                        {
-                            DbRestriction restriction = restrictions[0];
-                            DateTime to = DateTime.Parse(restriction.DateTimeTo);
+                    var users = dbv2.Users
+                        .AsNoTracking()
+                        .Include(x => x.Restrictions)
+                        .Where(u => u.Restricted)
+                        .ToList();
 
-                            if (DateTime.Now > to)
-                            {
-                                user.RestrictionId = null;
-                                _ = database.InsertOrReplaceRowAsync(user);
-                                _ = Bot.SendTextMessageAsync(
+                    foreach (var user in users)
+                    {
+                        var restriction = user.Restrictions.LastOrDefault();
+                        if (DateTime.Now > restriction.Until)
+                        {
+                            dbv2.Users
+                                .Where(u => u.Id == user.Id)
+                                .FirstOrDefault()
+                                .Restricted = false;
+
+                            dbv2.SaveChanges();
+
+                            await Bot.SendTextMessageAsync(
                                     chatId: restriction.ChatId,
                                     text: string.Format(strManager["UNBANNED"], $"[{user.FirstName}](tg://user?id={user.Id})"),
                                     parseMode: ParseMode.Markdown);
-                            }
-                        }
-                        else
-                        {
-                            user.RestrictionId = null;
-                            _ = database.InsertOrReplaceRowAsync(user);
                         }
                     }
                 }
@@ -571,37 +694,6 @@ namespace PersikSharp
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
                         return;
 
-
-
-                    //CAUTION
-                    //Диверсия, убрать, очень опасно#########################################
-                    //await FullyRestrictUserAsync(
-                    //               chatId: message.Chat.Id,
-                    //               userId: message.ReplyToMessage.From.Id,
-                    //               forSeconds: int.MaxValue);
-
-                    //await Bot.SendTextMessageAsync(
-                    //    chatId: message.Chat.Id,
-                    //    text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
-                    //    parseMode: ParseMode.Markdown);
-
-                    //_ = database.AddRestrictionAsync(new DbUser()
-                    //{
-                    //    Id = e.Message.ReplyToMessage.From.Id,
-                    //    FirstName = e.Message.ReplyToMessage.From.FirstName,
-                    //    LastName = e.Message.ReplyToMessage.From.LastName,
-                    //    Username = e.Message.ReplyToMessage.From.Username,
-                    //    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                    //}, e.Message.Chat.Id, int.MaxValue);
-
-                    //_ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
-
-                    //return;
-
-                    //#######################################################################
-
-
-
                     await FullyRestrictUserAsync(
                             chatId: message.Chat.Id,
                             userId: message.ReplyToMessage.From.Id,
@@ -623,14 +715,11 @@ namespace PersikSharp
                             parseMode: ParseMode.Markdown);
                     }
 
-                    _ = database.AddRestrictionAsync(new DbUser()
+                    using (var db = PerchikDB.Context)
                     {
-                        Id = e.Message.ReplyToMessage.From.Id,
-                        FirstName = e.Message.ReplyToMessage.From.FirstName,
-                        LastName = e.Message.ReplyToMessage.From.LastName,
-                        Username = e.Message.ReplyToMessage.From.Username,
-                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-                    }, e.Message.Chat.Id, seconds);
+                        var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(seconds));
+                        db.AddRestriction(restriction);
+                    }
 
                     _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
@@ -648,14 +737,11 @@ namespace PersikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        _ = database.AddRestrictionAsync(new DbUser()
+                        using (var db = PerchikDB.Context)
                         {
-                            Id = e.Message.From.Id,
-                            FirstName = e.Message.From.FirstName,
-                            LastName = e.Message.From.LastName,
-                            Username = e.Message.From.Username,
-                            LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        }, e.Message.Chat.Id, seconds);
+                            var restriction = DbConverter.GenRestriction(message, DateTime.Now.AddSeconds(seconds));
+                            db.AddRestriction(restriction);
+                        }
                     }
                     else
                     {
@@ -668,14 +754,11 @@ namespace PersikSharp
                             text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        _ = database.AddRestrictionAsync(new DbUser()
+                        using (var db = PerchikDB.Context)
                         {
-                            Id = e.Message.From.Id,
-                            FirstName = e.Message.From.FirstName,
-                            LastName = e.Message.From.LastName,
-                            Username = e.Message.From.Username,
-                            LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        }, e.Message.Chat.Id, 40);
+                            var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(40));
+                            db.AddRestriction(restriction);
+                        }
                     }
 
                     _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
@@ -703,15 +786,21 @@ namespace PersikSharp
                 var until = DateTime.Now.AddSeconds(1);
                 Perchik.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
-                _ = database.InsertOrReplaceRowAsync(new DbUser()
+                using (var db = PerchikDB.Context)
                 {
-                    Id = e.Message.ReplyToMessage.From.Id,
-                    FirstName = e.Message.ReplyToMessage.From.FirstName,
-                    LastName = e.Message.ReplyToMessage.From.LastName,
-                    Username = e.Message.ReplyToMessage.From.Username,
-                    LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    RestrictionId = null
-                });
+
+
+                    var existingUser = db.Users.Where(
+                        x => x.Id == message.ReplyToMessage.From.Id
+                        ).FirstOrDefault();
+
+                    if (existingUser != null)
+                    {
+                        existingUser.Restricted = false;
+                        db.SaveChanges();
+                    }
+
+                }
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
@@ -789,38 +878,44 @@ namespace PersikSharp
 
                 int[] users_whitelist = { 204678400
                                          /*тут огурец*/ };
-                if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
-                    if (!users_whitelist.Any( id => id == message.From.Id))
+                if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id) &&
+                    !users_whitelist.Any(id => id == message.From.Id))
                         return;
 
 
-                var users = database.GetRows<DbUser>();
-                string message_str = string.Empty;
-
-                int max_users_in_message = 10;
-                List<Message> sended_messages = new List<Message>();
-
-                for (int i = 0; i < users.Count; i++)
+                using (var db = PerchikDB.Context)
                 {
-                    string firstname = users[i].FirstName.Replace('[', '<').Replace(']', '>');
-                    message_str += $"[{firstname}](tg://user?id={users[i].Id})\n";
-                    if (i % max_users_in_message == 0 || i == users.Count - 1)
+                    var users = db.Users.ToList();
+                    string message_str = string.Empty;
+
+                    int max_users_in_message = 10;
+                    List<Message> sended_messages = new List<Message>();
+
+                    int i = 0;
+                    foreach (var user in users)
                     {
-                        var msg = Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: message_str,
-                            parseMode: ParseMode.Markdown).Result;
-                        sended_messages.Add(msg);
-                        message_str = string.Empty;
-                    }
-                }
+                        string firstname = user.FirstName.Replace('[', '<').Replace(']', '>');
+                        message_str += $"[{firstname}](tg://user?id={user.Id})\n";
+                        if (i % max_users_in_message == 0 || i == users.Count() - 1)
+                        {
+                            var msg = Bot.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: message_str,
+                                parseMode: ParseMode.Markdown).Result;
+                            sended_messages.Add(msg);
+                            message_str = string.Empty;
+                        }
 
-                Thread.Sleep(5000);
-                foreach (var m in sended_messages)
-                {
-                    Bot.DeleteMessageAsync(
-                           chatId: message.Chat.Id,
-                           messageId: m.MessageId);
+                        i++;
+                    }
+
+                    Thread.Sleep(5000);
+                    foreach (var m in sended_messages)
+                    {
+                        Bot.DeleteMessageAsync(
+                               chatId: message.Chat.Id,
+                               messageId: m.MessageId);
+                    }
                 }
             }
             catch (Exception ex)
@@ -975,28 +1070,42 @@ namespace PersikSharp
                             replyMarkup: inlineKeyboard,
                             parseMode: ParseMode.Markdown);
 
-
+                bool generating = false;
                 bothelper.RegisterCallbackQuery(update_button.CallbackData, e.Message.From.Id, async (_, o) => 
                 {
+                    if (generating)
+                        return;
+
+                    generating = true;
+
                     string new_text = string.Empty;
                     try
                     {
                         new_text = getStatisticsText(name);
+                        
                     }
                     catch (Exception ex)
                     {
                         new_text = ex.Message;
                     }
 
-                    if (new_text != text)
+                    if (!new_text.Equals(text))
                     {
-                        await Bot.EditMessageTextAsync(
+                        try
+                        {
+                            await Bot.EditMessageTextAsync(
                                 chatId: msg.Chat.Id,
-                                messageId: msg.MessageId,
+                                messageId: o.Callback.Message.MessageId,
                                 replyMarkup: inlineKeyboard,
                                 text: new_text,
                                 parseMode: ParseMode.Markdown);
+                        }
+                        catch (Exception)
+                        {
+
+                        }
                     }
+                    generating = false;
                 });
             }
             catch (Exception exp)
@@ -1007,132 +1116,113 @@ namespace PersikSharp
 
         private static string getStatisticsText(string search)
         {
-            string upper_name = search.ToUpper().Replace("@", "");
-
-            var all_users = database.GetRows<DbUser>();
-            var users = all_users.Where(u =>
+            using (var db = PerchikDB.Context)
             {
-                if (u.FirstName != null && u.FirstName.ToUpper().Contains(upper_name))
-                    return true;
-                if (u.LastName != null && u.LastName.ToUpper().Contains(upper_name))
-                    return true;
-                if (u.Username != null && u.Username.ToUpper().Contains(upper_name))
-                    return true;
+                var sw = new Stopwatch();
+                sw.Start();
 
-                return false;
-            });
+                string name = search.Replace("@", "");
 
+                long today = DbConverter.ToEpochTime(DateTime.Now.Date);
+                long lastday = DbConverter.ToEpochTime(DateTime.Now.AddDays(-1).Date);
 
-            if (users.Count() == 0)
-            {
-                throw new Exception($"*Пользователя \"{search}\" нет в базе.*");
+                var user = db.Users
+                    .AsNoTracking()
+                    .Where(u =>
+                        (u.FirstName.Contains(name, StringComparison.OrdinalIgnoreCase)) ||
+                        (u.LastName.Contains(name, StringComparison.OrdinalIgnoreCase)) ||
+                        (u.UserName.Contains(name, StringComparison.OrdinalIgnoreCase)))
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.Restricted,
+                        x.FirstName,
+                        x.LastName,
+                        x.UserName,
+                        x.Restrictions.OrderByDescending(x => x.Until).FirstOrDefault().Until,
+                        msgLastday = x.Messages.Where(m => m.Date > lastday && m.Date < today).Count(),
+                        msgToday = x.Messages.Where(m => m.Date > today).Count(),
+                        msgTotal = x.Messages.Count,
+                        RestrictionCount = x.Restrictions.Count,
+                        activity = x.Messages.Where(m => m.Date > today).Sum(m => m.Text.Length) /
+                                   (double)db.Messages.Where(m => m.Date > today).Sum(m => m.Text.Length)
+                    })
+                    .FirstOrDefault();
+
+                if (user == null)
+                {
+                    throw new Exception($"*Пользователя \"{search}\" нет в базе.*");
+                }
+
+                TimeSpan remaining = new TimeSpan(0);
+                if (user.Restricted)
+                {
+                    remaining = user.Until - DateTime.Now;
+                }
+
+                sw.Stop();
+
+                return $"*Имя: {user.FirstName} {user.LastName}\n" +
+                            $"ID: {user.Id}\n" +
+                            $"Ник: {user.UserName}\n\n" +
+                            string.Format("Активность: {0:F2}%\n", user.activity * 100) +
+                            $"Сообщений сегодня: { user.msgToday }\n" +
+                            $"Сообщений вчера: { user.msgLastday }\n" +
+                            $"Всего сообщений: { user.msgTotal }\n" +
+                            $"Банов: { user.RestrictionCount }\n\n*" +
+                            (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`\n" }" : "") + 
+                            $"`{sw.ElapsedMilliseconds/1000.0}сек`";
             }
-
-            DbUser user = users.First();
-
-            var messages = database.GetRowsByFilterAsync<DbMessage>(m => m.Text != null).Result;
-            var msgs_from_user = database.GetRowsByFilterAsync<DbMessage>(m => m.UserId == user.Id && m.Text != null).Result;
-
-            var date = DateTime.Now.ToString("yyyy-MM-dd");
-
-            var messages_today = messages.Where(m => m.DateTime.Substring(0, 10) == date);
-            var u_messages_today = msgs_from_user.Where(m => m.DateTime.Substring(0, 10) == date);
-
-            int u_messages_lastday_count = msgs_from_user.Where(m => DateTime.Parse(m.DateTime).Day == DateTime.Now.Day - 1).Count(); //TODO: FIX
-            int u_messages_today_count = u_messages_today.Count();
-            int u_messages_count = msgs_from_user.Count();
-            int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
-
-            double user_activity = 0;
-            if (u_messages_today_count != 0)
-            {
-                int total_text_length = messages_today.Sum(m => m.Text.Length);
-                int user_text_length = u_messages_today.Sum(m => m.Text.Length);
-                user_activity = (double)user_text_length / total_text_length;
-            }
-
-            TimeSpan remaining = new TimeSpan(0);
-            if (user.RestrictionId != null)
-            {
-                List<DbRestriction> restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
-                DateTime unban_time = DateTime.Parse(restriction?.First().DateTimeTo);
-
-                remaining = unban_time - DateTime.Now;
-            }
-
-            return $"*Имя: {user.FirstName} {user.LastName}\n" +
-                        $"ID: {user.Id}\n" +
-                        $"Ник: {user.Username}\n\n" +
-                        string.Format("Активность: {0:F2}%\n", user_activity * 100) +
-                        $"Сообщений сегодня: { u_messages_today_count }\n" +
-                        $"Сообщений вчера: { u_messages_lastday_count }\n" +
-                        $"Всего сообщений: { u_messages_count }\n" +
-                        $"Банов: { restrictions_count }\n\n*" +
-                        (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`" }\n" : "");
         }
 
         private static void onTopCommand(object sender, CommandEventArgs e)
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-
-            Message message = e.Message;
-
-            var users = database.GetRows<DbUser>();
-            Dictionary<DbUser, double> users_activity = new Dictionary<DbUser, double>();
-
-            var date = DateTime.Now.ToString("yyyy-MM-dd");
-            var messages_today = database.GetRowsByFilterAsync<DbMessage>(m => m.DateTime.Contains(date)).Result;
-
-            IEnumerable<DbMessage> u_messages_today;
-            int total_symbols = 0;
-
-            foreach (var user in users)
+            
+            using (var db = PerchikDB.Context)
             {
-                u_messages_today = messages_today.Where(m => m.UserId == user.Id && m.DateTime.Substring(0, 10) == date);
+                Message message = e.Message;
 
-                if (u_messages_today.Count() == 0)
-                {
-                    continue;
+                long datenow = DbConverter.ToEpochTime(DateTime.Now.Date);
+                long now = DbConverter.ToEpochTime(DateTime.Now);
+
+                var users = db.Users
+                    .AsNoTracking()
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.FirstName,
+                        x.LastName,
+                        activity = x.Messages.Where(m => m.Date > datenow).Sum(m => m.Text.Length) /
+                                   (double)db.Messages.Where(m => m.Date > datenow).Sum(m => m.Text.Length)
+                    })
+                    .ToList();
+
+                var usersDescending = users.OrderByDescending(x => x.activity);
+                string msg_string = "*Топ 10 по активности за сегодня:*\n";
+                for (int i = 0; i < 10 && i < users.Count; i++)
+                {               
+                    var user = usersDescending.ElementAt(i);
+
+                    if (user.activity == 0)
+                        continue;
+
+                    //var user = users.ElementAt(i);
+                    string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
+                    string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
+                    string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
+
+                    msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, user.activity * 100);
                 }
 
-                double user_activity = 0;
-                int total_text_length = messages_today.Sum(m =>
-                {
-                    return m.Text?.Length ?? 0;
-                });
-                total_symbols += total_text_length;
+               stopwatch.Stop();
 
-                int user_text_length = u_messages_today.Sum(m =>
-                {
-                    return m.Text?.Length ?? 0;
-                });
-
-                user_activity = (double)user_text_length / total_text_length;
-                users_activity.Add(user, user_activity);
+                _ = Bot.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
+                                parseMode: ParseMode.Markdown).Result;
             }
-
-            var users_inorder = users_activity.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
-            string msg_string = "*Топ 10 по активности за сегодня:*\n";
-            for (int i = 0; i < 10 && i < users_inorder.Count; i++)
-            {
-                int dict_index = users_inorder.Count - 1 - i;
-
-                DbUser user = users_inorder.ElementAt(dict_index).Key;
-                string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
-                string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
-                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
-                double activity = users_inorder.ElementAt(dict_index).Value;
-
-                msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, activity * 100);
-            }
-
-            stopwatch.Stop();
-
-            _ = Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: $"{msg_string}\n`Всего символов:{total_symbols}\n{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
-                            parseMode: ParseMode.Markdown).Result;
         }
 
         private static void onTopBansCommand(object sender, CommandEventArgs e)
@@ -1140,36 +1230,41 @@ namespace PersikSharp
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            Message message = e.Message;
-
-            var users = database.GetRows<DbUser>();
-            Dictionary<DbUser, int> users_bans = new Dictionary<DbUser, int>();
-            foreach (var user in users)
+            using (var db = PerchikDB.Context)
             {
-                int restrictions_count = database.ExecuteScalarAsync<int>("SELECT count(*) FROM Restrictions WHERE UserId = ?", user.Id).Result;
-                users_bans.Add(user, restrictions_count);
-            }
-            var user_bans_ordered = users_bans.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
-            string msg_string = "*Топ 10 по банам:*\n";
-            for (int i = 0; i < 10 && i < user_bans_ordered.Count; i++)
-            {
-                int dict_index = user_bans_ordered.Count - 1 - i;
-                DbUser user = user_bans_ordered.ElementAt(dict_index).Key;
-                string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
-                string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
-                string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
-                int bans = user_bans_ordered.ElementAt(dict_index).Value;
-                msg_string += $"{i + 1}. {full_name} -- {bans}\n";
-            }
+                Message message = e.Message;
 
-            stopwatch.Stop();
+                var users = db.Users
+                    //.Include(x => x.Restrictions)
+                    .OrderByDescending(x => x.Restrictions.Count)
+                    .Take(10)
+                    .Select(x => new
+                    {
+                        x.Id,
+                        x.FirstName,
+                        x.LastName,
+                        x.Restrictions.Count 
+                    })
+                    .ToList();
 
-            _ = Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
-                            parseMode: ParseMode.Markdown).Result;
+                string msg_string = "*Топ 10 по банам:*\n";
+                int i = 1;
+                foreach (var user in users)
+                {
+                    string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
+                    string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
+                    string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
+                    msg_string += $"{i++}. {full_name} -- {user.Count}\n";
+                }
+
+                stopwatch.Stop();
+
+                _ = Bot.SendTextMessageAsync(
+                                chatId: message.Chat.Id,
+                                text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
+                                parseMode: ParseMode.Markdown).Result;
+            }
         }
-
         private static void onPromoteCommand(object sender, CommandEventArgs e)
         {
             if (e.Message.Chat.Type == ChatType.Private)
@@ -1215,149 +1310,162 @@ namespace PersikSharp
                 const double vote_ratio = 0.7;
                 const int alert_period = 30;
 
-                DbUser user = database.FindUser(e.Text.Replace("@",""))?.LastOrDefault();
-                if(user == null)
+                string username = e.Text.Replace("@", "").ToLower();
+
+                using (var db = PerchikDB.Context)
                 {
-                    await Bot.SendTextMessageAsync(
-                              chatId: e.Message.Chat.Id,
-                              text: $"*Пользователя \"{e.Text}\" нет в базе.*",
-                              parseMode: ParseMode.Markdown);
-                    return;
-                }
 
-                string username = $"@{user.Username}" ?? user.FirstName;
-                username = username.Replace('[', '<').Replace(']', '>');
-                string userlink = $"[{username}](tg://user?id={user.Id})";
+                    var user = db.Users.Where(u =>
+                        (u.FirstName.ToLower().Contains(username)) ||
+                        (u.LastName != null && u.LastName.ToLower().Contains(username)) ||
+                        (u.UserName != null && u.UserName.ToLower().Contains(username))
+                    ).FirstOrDefault();
 
-                Message message = e.Message;
-                string[] opts = { "За", "Против" };
-                var poll_msg = await Bot.SendPollAsync(
-                    chatId: message.Chat.Id,
-                    question: string.Format(strManager["VOTEBAN_QUESTION"], username),
-                    options: opts,
-                    disableNotification: false,
-                    isAnonymous: false);
-
-                var chat = await Bot.GetChatAsync(message.Chat.Id);
-                Logger.Log(LogType.Info, $"<{chat.Title}>: Voteban poll started for {username}:{user.Id}");
-
-                int legitvotes = 0, ignored = 0;
-                int forban = 0, againstban = 0;
-                
-                Poll recent_poll = poll_msg.Poll;
-                List<PollAnswer> answers = new List<PollAnswer>();
-                votebanning_groups.Add(e.Message.Chat.Id);
-
-
-                bothelper.RegisterPoll(poll_msg.Poll.Id, async (_, p) =>
-                {
-                    if (p.pollAnswer == null)
-                        return;
-
-                    recent_poll = p.poll;
-                    var pollanswer = p.pollAnswer;
-                    int exist = await database.ExecuteScalarAsync<int>($"SELECT count(*) FROM Users WHERE Id={pollanswer?.User.Id}");
-                    if(exist == 1)
+                    if (user == null)
                     {
-                        if (pollanswer.OptionIds.Length > 0)
+                        await Bot.SendTextMessageAsync(
+                                  chatId: e.Message.Chat.Id,
+                                  text: $"*Пользователя \"{e.Text}\" нет в базе.*",
+                                  parseMode: ParseMode.Markdown);
+                        return;
+                    }
+
+                    username = user.FirstName.Replace('[', '<').Replace(']', '>');
+                    string userlink = $"[{username}](tg://user?id={user.Id})";
+
+                    Message message = e.Message;
+                    string[] opts = { "За", "Против" };
+                    var poll_msg = await Bot.SendPollAsync(
+                        chatId: message.Chat.Id,
+                        question: string.Format(strManager["VOTEBAN_QUESTION"], username),
+                        options: opts,
+                        disableNotification: false,
+                        isAnonymous: false);
+
+                    var chat = await Bot.GetChatAsync(message.Chat.Id);
+                    Logger.Log(LogType.Info, $"<{chat.Title}>: Voteban poll started for {username}:{user.Id}");
+
+                    int legitvotes = 0, ignored = 0;
+                    int forban = 0, againstban = 0;
+
+                    Poll recent_poll = poll_msg.Poll;
+                    List<PollAnswer> answers = new List<PollAnswer>();
+                    votebanning_groups.Add(e.Message.Chat.Id);
+
+
+                    bothelper.RegisterPoll(poll_msg.Poll.Id, (_, p) =>
+                    {
+                        if (p.pollAnswer == null)
+                            return;
+
+                        recent_poll = p.poll;
+                        var pollanswer = p.pollAnswer;
+                        var existingUser = db.Users.Where(x => x.Id == pollanswer.User.Id).FirstOrDefault();
+                        if (existingUser != null)
                         {
-                            answers.Add(pollanswer);
-                            Logger.Log(LogType.Info,
-                                        $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} voted {pollanswer.OptionIds[0]}");
+                            if (pollanswer.OptionIds.Length > 0)
+                            {
+                                answers.Add(pollanswer);
+                                Logger.Log(LogType.Info,
+                                            $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} voted {pollanswer.OptionIds[0]}");
+                            }
+                            else
+                            {
+                                answers.RemoveAll(a => a.User.Id == pollanswer.User.Id);
+                                Logger.Log(LogType.Info,
+                                            $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} retracted vote");
+                            }
                         }
                         else
                         {
-                            answers.RemoveAll(a => a.User.Id == pollanswer.User.Id);
                             Logger.Log(LogType.Info,
-                                        $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} retracted vote");
+                                $"<{chat.Title}>: Voteban ignored user from another chat {pollanswer?.User.FirstName}:{pollanswer?.User.Id}");
                         }
-                    }
-                    else
+                    });
+
+
+                    List<Message> msg2delete = new List<Message>();
+
+                    int alerts_count = time_secs / alert_period;
+                    for (int alerts = 1; alerts < alerts_count; alerts++)
                     {
+                        await Task.Delay(1000 * alert_period);
+
+                        forban = answers.Sum(a => a.OptionIds[0] == 0 ? 1 : 0);
+                        againstban = answers.Sum(a => a.OptionIds[0] == 1 ? 1 : 0);
+                        legitvotes = answers.Count;
+                        ignored = recent_poll.TotalVoterCount - legitvotes;
+
+                        msg2delete.Add(await Bot.SendTextMessageAsync(
+                                  chatId: message.Chat.Id,
+                                  text: string.Format(strManager["VOTEBAN_ALERT"],
+                                    user.FirstName, time_secs - alerts * alert_period, legitvotes, min_vote_count,
+                                    forban, againstban),
+                                  replyToMessageId: poll_msg.MessageId,
+                                  parseMode: ParseMode.Markdown));
+
                         Logger.Log(LogType.Info,
-                            $"<{chat.Title}>: Voteban ignored user from another chat {pollanswer?.User.FirstName}:{pollanswer?.User.Id}");
+                            $"<{chat.Title}>: Voteban poll status {forban}<>{againstban}, totalvotes: {recent_poll.TotalVoterCount}, ignored: {ignored}");
                     }
-                });
-                
 
-                List<Message> msg2delete = new List<Message>();
-
-                int alerts_count = time_secs / alert_period;
-                for (int alerts = 1; alerts < alerts_count; alerts++)
-                {
                     await Task.Delay(1000 * alert_period);
+
+                    await Bot.StopPollAsync(message.Chat.Id, poll_msg.MessageId);
+                    bothelper.RemovePoll(poll_msg.Poll.Id);
+                    votebanning_groups.Remove(e.Message.Chat.Id);
+                    msg2delete.ForEach(m => Bot.DeleteMessageAsync(m.Chat.Id, m.MessageId));
 
                     forban = answers.Sum(a => a.OptionIds[0] == 0 ? 1 : 0);
                     againstban = answers.Sum(a => a.OptionIds[0] == 1 ? 1 : 0);
                     legitvotes = answers.Count;
                     ignored = recent_poll.TotalVoterCount - legitvotes;
 
-                    msg2delete.Add(await Bot.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
-                              text: string.Format(strManager["VOTEBAN_ALERT"],
-                                userlink, time_secs - alerts * alert_period, legitvotes, min_vote_count,
-                                forban, againstban),
-                              replyToMessageId: poll_msg.MessageId,
-                              parseMode: ParseMode.Markdown));
+                    string igore_text = ignored > 0 ? string.Format(strManager["VOTEBAN_IGNORED"], ignored) : "";
 
-                    Logger.Log(LogType.Info, 
-                        $"<{chat.Title}>: Voteban poll status {forban}<>{againstban}, totalvotes: {recent_poll.TotalVoterCount}, ignored: {ignored}");
-                }
+                    if (legitvotes < min_vote_count)
+                    {
+                        await Bot.SendTextMessageAsync(
+                                  chatId: message.Chat.Id,
+                                  text: string.Format($"{strManager["VOTEBAN_NOTENOUGH"]}\n\n{igore_text}", legitvotes, min_vote_count,
+                                    forban, againstban),
+                                  replyToMessageId: poll_msg.MessageId,
+                                  parseMode: ParseMode.Markdown);
+                        Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Not enough votes");
+                        return;
+                    }
 
-                await Task.Delay(1000 * alert_period);
+                    double ratio = (double)forban / (double)legitvotes;
+                    if (ratio < vote_ratio)
+                    {
+                        await Bot.SendTextMessageAsync(
+                                  chatId: message.Chat.Id,
+                                  text: string.Format($"{strManager["VOTEBAN_RATIO"]}\n\n {igore_text}", ratio * 100),
+                                  replyToMessageId: poll_msg.MessageId,
+                                  parseMode: ParseMode.Markdown);
+                        Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Decided not to ban");
+                        return;
+                    }
 
-                await Bot.StopPollAsync(message.Chat.Id, poll_msg.MessageId);
-                bothelper.RemovePoll(poll_msg.Poll.Id);
-                votebanning_groups.Remove(e.Message.Chat.Id);
-                msg2delete.ForEach(m => Bot.DeleteMessageAsync(m.Chat.Id, m.MessageId));
+                    await FullyRestrictUserAsync(
+                        chatId: message.Chat.Id,
+                        userId: user.Id,
+                        forSeconds: 60 * 15);
 
-                forban = answers.Sum(a => a.OptionIds[0] == 0 ? 1 : 0);
-                againstban = answers.Sum(a => a.OptionIds[0] == 1 ? 1 : 0);
-                legitvotes = answers.Count;
-                ignored = recent_poll.TotalVoterCount - legitvotes;
+                    var restriction = DbConverter.GenRestriction(e.Message, DateTime.Now.AddSeconds(60 * 15));
+                    db.Restrictions.Add(restriction);
+                    db.SaveChanges();
 
-                string igore_text = ignored > 0 ? string.Format(strManager["VOTEBAN_IGNORED"], ignored) : "";
-
-                if (legitvotes < min_vote_count)
-                {
                     await Bot.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
-                              text: string.Format($"{strManager["VOTEBAN_NOTENOUGH"]}\n\n{igore_text}", legitvotes, min_vote_count,
-                                forban, againstban),
-                              replyToMessageId: poll_msg.MessageId,
-                              parseMode: ParseMode.Markdown);
-                    Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Not enough votes");
-                    return;
+                                   chatId: message.Chat.Id,
+                                   text: string.Format($"{strManager["VOTEBAN_BANNED"]}\n\n {igore_text}", userlink,
+                                    forban, againstban),
+                                   replyToMessageId: poll_msg.MessageId,
+                                   parseMode: ParseMode.Markdown);
+
+                    Logger.Log(LogType.Info,
+                        $"<{chat.Title}>: Poll result: {forban}<>{againstban} The user has been banned!");
+
                 }
-
-                double ratio = (double)forban / (double)legitvotes;
-                if (ratio < vote_ratio)
-                {
-                    await Bot.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
-                              text: string.Format($"{strManager["VOTEBAN_RATIO"]}\n\n {igore_text}", ratio * 100),
-                              replyToMessageId: poll_msg.MessageId,
-                              parseMode: ParseMode.Markdown);
-                    Logger.Log(LogType.Info, $"<{chat.Title}>: {forban}<>{againstban} Poll result: Decided not to ban");
-                    return;
-                }
-
-                await FullyRestrictUserAsync(
-                    chatId: message.Chat.Id,
-                    userId: user.Id,
-                    forSeconds: 60 * 15);
-
-                await database.AddRestrictionAsync(user, e.Message.Chat.Id, 60 * 15);
-
-                await Bot.SendTextMessageAsync(
-                               chatId: message.Chat.Id,
-                               text: string.Format($"{strManager["VOTEBAN_BANNED"]}\n\n {igore_text}", userlink,
-                                forban, againstban),
-                               parseMode: ParseMode.Markdown);
-
-                Logger.Log(LogType.Info, 
-                    $"<{chat.Title}>: Poll result: {forban}<>{againstban} The user has been banned!");
-
             }
             catch (Exception exp)
             {
@@ -1497,37 +1605,21 @@ namespace PersikSharp
 
 
             onPerchikReplyTrigger(sender, message_args);
-            DatabaseUpdate(sender, message_args.Message);
         }
 
-        private static void DatabaseUpdate(object s, Message e)
+        private static void DatabaseUpdate(object s, Message msg)
         {
             try
             {
-                DateTime myDateTime = DateTime.Now;
-                string sqlFormattedDate = myDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-
-                database.InsertRowAsync(new DbMessage()
+                using (var db = PerchikDB.Context)
                 {
-                    Id = e.MessageId,
-                    UserId = e.From.Id,
-                    Text = e.Text,
-                    DateTime = sqlFormattedDate
-                });
 
+                    db.UpsertChat(DbConverter.GenChat(msg.Chat));
 
-                var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == e.From.Id).Result;
-                int? restrictionId = user.Count != 0 ? user.First().RestrictionId : null;
+                    db.UpsertUser(DbConverter.GenUser(msg.From), msg.Chat.Id);
 
-                database.InsertOrReplaceRowAsync(new DbUser()
-                {
-                    Id = e.From.Id,
-                    FirstName = e.From.FirstName,
-                    LastName = e.From.LastName,
-                    Username = e.From.Username,
-                    LastMessage = sqlFormattedDate,
-                    RestrictionId = restrictionId
-                });
+                    db.AddMessage(DbConverter.GenMessage(msg));
+                }
             }
             catch (Exception ex)
             {
@@ -1548,10 +1640,16 @@ namespace PersikSharp
 
         }
 
-        private static void onChatMembersAddedMessage(object sender, MessageArgs message_args)
+        private static async void onChatMembersAddedMessage(object sender, MessageArgs message_args)
         {
             try
             {
+                Chat telegram_chat = await Bot.GetChatAsync(message_args.Message.Chat.Id);
+                using (var db = PerchikDB.Context)
+                {
+                    db.UpsertChat(DbConverter.GenChat(telegram_chat));
+                }
+
                 if (message_args.Message.From.IsBot)
                     return;
 
@@ -1571,124 +1669,15 @@ namespace PersikSharp
                 if(message.From.Id == via_tcp_Id)
                 {
                     Thread.Sleep(2000);
-                    Bot.PromoteChatMemberAsync(message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
+                    _ = Bot.PromoteChatMemberAsync(message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
                 }
 
 
-                //remove to enable
-                return;
-
-
-                var user = database.GetRowsByFilterAsync<DbUser>(u => u.Id == message.From.Id).Result;
-                if (user.Count == 0)
-                {
-                    database.InsertOrReplaceRowAsync(new DbUser()
-                    {
-                        Id = message.From.Id,
-                        FirstName = message.From.FirstName,
-                        LastName = message.From.LastName,
-                        Username = message.From.Username,
-                        LastMessage = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        RestrictionId = null
-                    });
-                }
-
-                Perchik.RestrictUserAsync(message.Chat.Id, message.From.Id, DateTime.Now.AddYears(420));
-
-
-                var human_button = new InlineKeyboardButton();
-                human_button.CallbackData = Path.GetRandomFileName();
-                human_button.Text = strManager["CAPTCHA_HUMAN_BTN"];
-
-                var bot_button = new InlineKeyboardButton();
-                bot_button.CallbackData = Path.GetRandomFileName();
-                bot_button.Text = strManager["CAPTCHA_BOT_BTN"];
-
-                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { human_button, bot_button } });
-
-                var captcha_msg = Bot.SendTextMessageAsync(
-                     chatId: message_args.Message.Chat.Id,
-                     replyMarkup: inlineKeyboard,
-                     text: string.Format(strManager["CAPTCHA"], Perchik.MakeUserLink(message.From)),
-                     parseMode: ParseMode.Markdown).Result;
-
-                bothelper.RegisterCallbackQuery(human_button.CallbackData, message.From.Id, onBotCheckButtonNoBot);
-                bothelper.RegisterCallbackQuery(bot_button.CallbackData, message.From.Id, onBotCheckButtonBot);
-
-                //Thread.Sleep(1000 * 60);
-
-                //CallbackQuery fake_button_callback = new CallbackQuery();
-                //fake_button_callback.From = message.From;
-                //fake_button_callback.Message = message;
-
-                //onBotCheckButtonBot(sender, new CallbackQueryArgs(fake_button_callback, message.From.Id));
             }
             catch (Exception ex)
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
             }
-        }
-
-        private static void onBotCheckButtonNoBot(object sender, CallbackQueryArgs c)
-        {
-            try
-            {
-                Message message = c.Callback.Message;
-
-                Bot.DeleteMessageAsync(
-                chatId: message.Chat.Id,
-                messageId: message.MessageId);
-
-                var users = database.GetRowsByFilterAsync<DbUser>(u => u.Id == c.Callback.From.Id).Result;
-                if (users.Count != 0 && users.First().RestrictionId != null)
-                {
-                    DbUser user = users.First();
-                    var restriction = database.GetRowsByFilterAsync<DbRestriction>(r => r.Id == user.RestrictionId).Result;
-                    var until = DateTime.Parse(restriction.First().DateTimeTo);
-                    Perchik.RestrictUserAsync(message.Chat.Id, c.Callback.From.Id, until);
-
-                }
-                else
-                {
-                    Perchik.RestrictUserAsync(message.Chat.Id, c.Callback.From.Id, DateTime.Now.AddSeconds(1), canWriteMessages: true);
-                }
-
-                string username = "Ноунейм";
-                username = $"@{c.Callback.From.Username}" ?? c.Callback.From.FirstName;
-
-                string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
-                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string);
-
-                bothelper.RemoveCallbackQuery(c.Callback.Data);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
-            }
-        }
-
-        private static void onBotCheckButtonBot(object sender, CallbackQueryArgs c)
-        {
-            Message message = c.Callback.Message;
-
-            Bot.DeleteMessageAsync(
-                chatId: message.Chat.Id,
-                messageId: message.MessageId);
-
-            Bot.KickChatMemberAsync(
-                chatId: message.Chat.Id,
-                userId: c.Callback.From.Id);
-
-            Bot.UnbanChatMemberAsync(
-                chatId: message.Chat.Id,
-                userId: c.Callback.From.Id);
-
-            Bot.SendTextMessageAsync(
-                  chatId: message.Chat.Id,
-                  text: string.Format(strManager["CAPTCHA_HUMAN"], Perchik.MakeUserLink(message.From)),
-                  parseMode: ParseMode.Markdown);
-
-            bothelper.RemoveCallbackQuery(c.Callback.Data);
         }
 
         //=======Bot commands========

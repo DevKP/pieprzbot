@@ -11,7 +11,7 @@ using System.Threading;
 using PerchikSharp;
 using System.Net.Http;
 
-namespace PersikSharp
+namespace PerchikSharp
 {
     class BotHelper
     {

@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 
-namespace PersikSharp
+namespace PerchikSharp
 {
     class Perchik
     {
