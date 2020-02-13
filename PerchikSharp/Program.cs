@@ -285,6 +285,7 @@ namespace PerchikSharp
 
                 }
 
+                int i = 0;
                 foreach (var message in messages_old)
                 {
                     try
@@ -304,7 +305,8 @@ namespace PerchikSharp
                                     Date = DbConverter.ToEpochTime(DateTime.Parse(message.DateTime))
                                 });
                                 db.SaveChanges();
-                                //Logger.Log(LogType.Debug, $"Message ID {message.Id} : {message.Text}");
+                                if(i % 50 == 0) 
+                                    Logger.Log(LogType.Debug, $"Message #{i++} ID {message.Id} : {message.Text}");
                             }
                             //db.AutoDetectChangesEnabled = false;
                         }
