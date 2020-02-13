@@ -226,27 +226,6 @@ namespace PerchikSharp
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
-            bothelper.NativeCommand("db", (_, e) =>
-            {
-                using (var dbv2 = PerchikDB.Context)
-                {
-
-                    foreach (var c in dbv2.Chats.Include(c => c.ChatUsers).ThenInclude(c => c.User).ToList())
-                    {
-                        Logger.Log(LogType.Debug, $"Chat Title: {c.Title} Users:");
-                        foreach (var cu in c.ChatUsers)
-                        {
-                            Logger.Log(LogType.Debug, $"Name: {cu.User.FirstName} Id: {cu.User.Id}");
-                        }
-                    }
-
-                    foreach (var u in dbv2.Users.ToList())
-                    {
-                        Logger.Log(LogType.Debug, $"{u.Id}:{u.FirstName}");
-                    }
-                }
-            });
-
             bothelper.NativeCommand("migr", (_, e) =>
             {
                 var users_old = database.GetRows<PersikSharp.Tables.DbUser>();
@@ -397,8 +376,6 @@ namespace PerchikSharp
                         var restriction = user.Restrictions.LastOrDefault();
                         if (DateTime.Now > restriction.Until)
                         {
-                            user.Restricted = false;
-
                             dbv2.Users
                                 .Where(u => u.Id == user.Id)
                                 .FirstOrDefault()
