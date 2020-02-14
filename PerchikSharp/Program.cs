@@ -1045,9 +1045,17 @@ namespace PerchikSharp
                 string name = e.Match.Groups["name"]?.Value;
                 if (name == null || name.Length == 0)
                 {
-                    name = message.From.Username ?? name;//Can be null
+                    if (message.ReplyToMessage == null)
+                    {
+                        name = message.From.Username ?? name;//Can be null
 
-                    name = message.From.FirstName ?? name;//But FirstName can't
+                        name = message.From.FirstName ?? name;//But FirstName can't
+                    }else
+                    {
+                        name = message.ReplyToMessage.From.Username ?? name;//Can be null
+
+                        name = message.ReplyToMessage.From.FirstName ?? name;//But FirstName can't
+                    }
 
                 }                                         // Last name isn't required, this will be unreachable code
 
