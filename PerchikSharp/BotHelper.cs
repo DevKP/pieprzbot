@@ -149,9 +149,9 @@ namespace PerchikSharp
         /// </summary>
         /// <param name="data">Callback data, see. Telegram API</param>
         /// <param name="c">Method to be called.</param>
-        public void RegisterCallbackQuery(string data, int userid, EventHandler<CallbackQueryArgs> c)
+        public void RegisterCallbackQuery(string data, int userid, object arg, EventHandler<CallbackQueryArgs> c)
         {
-            this.queryHandlers.Add(new InlineButton(data, userid), c);
+            this.queryHandlers.Add(new InlineButton(data, userid, arg), c);
         }
 
         /// <summary>
@@ -209,11 +209,11 @@ namespace PerchikSharp
                 if (buttonEventPair.Key.UserId != 0)
                 {
                     if (buttonEventPair.Key.UserId == a.CallbackQuery.From.Id)
-                        buttonEventPair.Value.Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
+                        buttonEventPair.Value.Invoke(this, new CallbackQueryArgs(a.CallbackQuery, obj: buttonEventPair.Key.Arg));
                 }
                 else
                 {
-                    buttonEventPair.Value.Invoke(this, new CallbackQueryArgs(a.CallbackQuery));
+                    buttonEventPair.Value.Invoke(this, new CallbackQueryArgs(a.CallbackQuery, obj: buttonEventPair.Key.Arg));
                 }
 
             }

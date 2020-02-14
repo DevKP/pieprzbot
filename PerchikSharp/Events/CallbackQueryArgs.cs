@@ -7,15 +7,17 @@ namespace PerchikSharp
 {
     public class CallbackQueryArgs : EventArgs
     {
-        public CallbackQueryArgs(CallbackQuery m, int userid = 0)
-        { Callback = m; UserId = userid; }
-        public CallbackQueryArgs(Message m, int userid = 0)
+        public CallbackQueryArgs(CallbackQuery m, int userid = 0, object obj = null)
+        { Callback = m; UserId = userid; this.obj = obj; }
+        public CallbackQueryArgs(Message m, int userid = 0, object obj = null)
         {
             Callback = new CallbackQuery();
             Callback.Message = m;
             UserId = userid;
+            this.obj = obj;
         }
         public CallbackQuery Callback { get; }
         public int UserId { get; }
+        public object obj { get; }
     }
 }

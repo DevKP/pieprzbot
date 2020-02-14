@@ -1052,7 +1052,7 @@ namespace PerchikSharp
                 }                                         // Last name isn't required, this will be unreachable code
 
                 var update_button = new InlineKeyboardButton();
-                update_button.CallbackData = "stats-update";
+                update_button.CallbackData = "stats-" + Guid.NewGuid().ToString("n").Substring(0, 8);
                 update_button.Text = strManager["RATE_UPDATE_BTN"];
 
                 var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { update_button } });
@@ -1073,18 +1073,12 @@ namespace PerchikSharp
                             replyMarkup: inlineKeyboard,
                             parseMode: ParseMode.Markdown);
 
-                bool generating = false;
-                bothelper.RegisterCallbackQuery(update_button.CallbackData, e.Message.From.Id, async (_, o) => 
+                bothelper.RegisterCallbackQuery(update_button.CallbackData, 0, name, async (_, o) => 
                 {
-                    if (generating)
-                        return;
-
-                    generating = true;
-
                     string new_text = string.Empty;
                     try
                     {
-                        new_text = getStatisticsText(name);
+                        new_text = getStatisticsText(o.obj as string);
                         
                     }
                     catch (Exception ex)
@@ -1092,23 +1086,19 @@ namespace PerchikSharp
                         new_text = ex.Message;
                     }
 
-                    if (!new_text.Equals(text))
+                    try
                     {
-                        try
-                        {
-                            await Bot.EditMessageTextAsync(
-                                chatId: msg.Chat.Id,
-                                messageId: o.Callback.Message.MessageId,
-                                replyMarkup: inlineKeyboard,
-                                text: new_text,
-                                parseMode: ParseMode.Markdown);
-                        }
-                        catch (Exception)
-                        {
-
-                        }
+                        await Bot.EditMessageTextAsync(
+                            chatId: msg.Chat.Id,
+                            messageId: o.Callback.Message.MessageId,
+                            replyMarkup: inlineKeyboard,
+                            text: new_text,
+                            parseMode: ParseMode.Markdown);
                     }
-                    generating = false;
+                    catch (Exception)
+                    {
+
+                    }
                 });
             }
             catch (Exception exp)
