@@ -134,19 +134,19 @@ namespace PerchikSharp
             catch (FileNotFoundException fe)
             {
                 Logger.Log(LogType.Fatal, $"No dictionary file found! Exception: {fe.Message}");
-                Console.ReadKey();
+                Console.Read();
                 Environment.Exit(1);
             }
             catch (JsonReaderException jre)
             {
                 Logger.Log(LogType.Fatal, $"Error parsing dictionary file! Exception: {jre.Message}");
-                Console.ReadKey();
+                Console.Read();
                 Environment.Exit(1);
             }
             catch (Exception e)
             {
                 Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
-                Console.ReadKey();
+                Console.Read();
                 Environment.Exit(1);
             }
         }
@@ -278,7 +278,7 @@ namespace PerchikSharp
                         }
 
                     }
-                    catch (Exception x)
+                    catch (Exception)
                     {
                         Logger.Log(LogType.Debug, $"ERROR {user.FirstName}:{user.Id}");
                     }
@@ -411,7 +411,7 @@ namespace PerchikSharp
 
                 var names = await PredictImage(message.ReplyToMessage.Photo[message.ReplyToMessage.Photo.Length - 1]);
 
-                _ = Bot.SendTextMessageAsync(
+                await Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
                         text: String.Format(strManager.GetSingle("PREDICTION"), message.From.FirstName, names[0], names[1], names[2]),
                         parseMode: ParseMode.Markdown,
@@ -538,7 +538,7 @@ namespace PerchikSharp
 
         
 
-        private static void onWeatherForecast(object sender, RegExArgs a)//Переделать под другой АПИ
+        private static async void onWeatherForecast(object sender, RegExArgs a)//Переделать под другой АПИ
         {
             Message message = a.Message;
             Match weather_match = a.Match;
@@ -553,7 +553,7 @@ namespace PerchikSharp
                 string respone_str = BotHelper.HttpRequestAsync(search_url).Result;
                 if (respone_str.Contains("The allowed number of requests has been exceeded."))
                 {
-                    _ = Bot.SendTextMessageAsync(
+                    await Bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
                          text: $"*Количество запросов превышено!*",
                          parseMode: ParseMode.Markdown,
@@ -569,7 +569,7 @@ namespace PerchikSharp
 
                 weather_json = JsonConvert.DeserializeObject(respone_str);
 
-                _ = Bot.SendTextMessageAsync(
+                await Bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
                           text:
                           string.Format(strManager["WEATHER_FORECAST_MESSAGE"],
@@ -584,7 +584,7 @@ namespace PerchikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
 
-                _ = Bot.SendTextMessageAsync(
+                await Bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
                           text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
                           parseMode: ParseMode.Markdown,
@@ -592,7 +592,7 @@ namespace PerchikSharp
             }
             catch (WebException w)
             {
-                _ = Bot.SendTextMessageAsync(
+                await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
                               text: $"*{w.Message}*",
                               parseMode: ParseMode.Markdown,
@@ -604,7 +604,7 @@ namespace PerchikSharp
                     StreamReader reader = new StreamReader(resStream);
                     if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
                     {
-                        _ = Bot.SendTextMessageAsync(
+                        await Bot.SendTextMessageAsync(
                                chatId: message.Chat.Id,
                                text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
                                parseMode: ParseMode.Markdown,
@@ -613,7 +613,7 @@ namespace PerchikSharp
                     }
 
                     Logger.Log(LogType.Error, $"Exception: {w.Message}");
-                    _ = Bot.SendTextMessageAsync(
+                    await Bot.SendTextMessageAsync(
                                 chatId: message.Chat.Id,
                                 text: w.Message,
                                 parseMode: ParseMode.Markdown,
@@ -626,10 +626,10 @@ namespace PerchikSharp
             }
         }
 
-        private static void onNoneCommandMatched(object sender, RegExArgs e)
+        private static async void onNoneCommandMatched(object sender, RegExArgs e)
         {
             Logger.Log(LogType.Info, $"<Perchik>({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
-            _ = Bot.SendTextMessageAsync(
+            await Bot.SendTextMessageAsync(
                        chatId: e.Message.Chat.Id,
                        text: strManager.GetRandom("HELLO"),
                        parseMode: ParseMode.Markdown,
@@ -724,7 +724,7 @@ namespace PerchikSharp
                         db.AddRestriction(restriction);
                     }
 
-                    _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                    await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
                 else
                 {
@@ -764,7 +764,7 @@ namespace PerchikSharp
                         }
                     }
 
-                    _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                    await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
                 }
             }
             catch (Exception exp)
@@ -793,9 +793,9 @@ namespace PerchikSharp
                 {
 
 
-                    var existingUser = db.Users.Where(
-                        x => x.Id == message.ReplyToMessage.From.Id
-                        ).FirstOrDefault();
+                    var existingUser = db.Users
+                        .Where(x => x.Id == message.ReplyToMessage.From.Id)
+                        .FirstOrDefault();
 
                     if (existingUser != null)
                     {
@@ -1074,6 +1074,8 @@ namespace PerchikSharp
                     inlineKeyboard = null;
                     text = ex.Message;
                 }
+
+                Logger.Log(LogType.Info, $"User {message.From.FirstName}:{message.From.Id} created info message with Data: {update_button.CallbackData}");
 
                 Message msg = await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,

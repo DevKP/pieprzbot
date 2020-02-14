@@ -341,3 +341,5 @@ healthchecksdb
 /PersikSharp/tokens.json
 /PersikSharp/ClassDiagram1.cd
 /.gitlab-ci.yml_
+/PerchikSharp/Data
+/.vscode
