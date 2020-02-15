@@ -24,7 +24,7 @@ namespace PerchikSharp.Commands
 
                 int[] users_whitelist = { 204678400
                                          /*тут огурец*/ };
-                if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id) &&
+                if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id) &&
                     !users_whitelist.Any(id => id == message.From.Id))
                     return;
 

@@ -54,7 +54,7 @@ namespace PerchikSharp.Commands
                 }
                 else
                 {
-                    if (Perchik.FindTextCommand(e.Message.Text, "stop"))
+                    if (BotHelper.FindTextCommand(e.Message.Text, "stop"))
                     {
                         await Program.Bot.SendTextMessageAsync(
                            chatId: e.Message.Chat.Id,

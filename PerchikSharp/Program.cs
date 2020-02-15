@@ -31,11 +31,13 @@ namespace PerchikSharp
     class Program
     {
         public static TelegramBotClient Bot;
-        static Perchik perchik;
         static ClarifaiClient clarifai;
         static BotHelper bothelper;
         public static StringManager strManager = new StringManager();
         static StringManager tokens = new StringManager();
+
+        static RegExParser perchikregex;
+        static RegExParser commands;
 
         static PerschikDB database;
 
@@ -52,7 +54,7 @@ namespace PerchikSharp
         static void Main(string[] args)
         {
 
-            Logger.Log(LogType.Info, $"Bot version: {Perchik.BotVersion}");
+            Logger.Log(LogType.Info, $"Bot version: {BotHelper.BotVersion}");
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
@@ -62,8 +64,10 @@ namespace PerchikSharp
 
             database = new PerschikDB("./Data/database.db");
             database.Create();
-
             PerchikDB.ConnectionString = tokens["MYSQL"];
+
+            perchikregex = new RegExParser();
+            commands = new RegExParser();
 
             Init();
 
@@ -156,7 +160,6 @@ namespace PerchikSharp
         {
             try
             {
-                perchik = new Perchik();
                 Bot = new TelegramBotClient(tokens["TELEGRAM"]);
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
                 if (clarifai.HttpClient.ApiKey == string.Empty)
@@ -177,24 +180,22 @@ namespace PerchikSharp
                 Environment.Exit(1);
             }
 
-            perchik.AddCommandRegEx(@"(?<ban>\b(за)?бань?\b)\s?(?<number>\d{1,9})?\s?(?<letter>[смчд](\w+)?)?\s?(?<comment>[\w\W\s]+)?", onPersikBanCommand);                                    //забань
-            perchik.AddCommandRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
-            perchik.AddCommandRegEx(@"\bкик\b", onKickCommand);
-            perchik.AddCommandRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
-            perchik.AddCommandRegEx(@"погода\s([\w\s-]+)", onWeather);   //погода ГОРОД
-            perchik.AddCommandRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast);
-            perchik.AddCommandRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
-            perchik.AddCommandRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
-            perchik.AddCommandRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            perchik.AddCommandRegEx(@"инфо\s?(?<name>[\w\W\s]+)?", onStatisticsCommand);
-            perchik.onNoneMatched += onNoneCommandMatched;
+            perchikregex.AddRegEx(strManager["BOT_REGX"], (_, o) => commands.CheckMessage(o.Message));
+            commands.AddRegEx(@"(?<ban>\b(за)?бань?\b)\s?(?<number>\d{1,9})?\s?(?<letter>[смчд](\w+)?)?\s?(?<comment>[\w\W\s]+)?", onPersikBanCommand);                                    //забань
+            commands.AddRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
+            commands.AddRegEx(@"\bкик\b", onKickCommand);
+            commands.AddRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
+            commands.AddRegEx(@"погода\s([\w\s-]+)", onWeather);   //погода ГОРОД
+            commands.AddRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast);
+            commands.AddRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
+            commands.AddRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
+            commands.AddRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
+            commands.AddRegEx(@"инфо\s?(?<name>[\w\W\s]+)?", onStatisticsCommand);
+            commands.AddRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
+            commands.onNoneMatched += onNoneCommandMatched;
 
 
-            bothelper.AddRegEx(strManager["BOT_REGX"], onPersikCommand);
-            bothelper.AddRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
-            
-
-            bothelper.AddRegEx("\b(420|трав(к)?а|шишки|марихуана)\b", (_, e) =>
+            commands.AddRegEx("\b(420|трав(к)?а|шишки|марихуана)\b", (_, e) =>
             {
                 Bot.SendStickerAsync(e.Message.Chat.Id,
                     "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
@@ -359,7 +360,7 @@ namespace PerchikSharp
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.Now.AddSeconds(forSeconds);
-            return Perchik.RestrictUserAsync(chatId.Identifier, userId, until);
+            return BotHelper.RestrictUserAsync(chatId.Identifier, userId, until);
         }
 
         static async void HandleDbRestrictions()
@@ -423,7 +424,7 @@ namespace PerchikSharp
             }
 
             if (message.ReplyToMessage?.From.Id != bothelper.Me.Id)
-                perchik.ParseMessage(message);
+                perchikregex.CheckMessage(message);
         }
 
         private static void onPerchikReplyTrigger(object sender, MessageArgs e)
@@ -434,7 +435,7 @@ namespace PerchikSharp
                 return;
 
             if (e.Message.ReplyToMessage.From.Id == Bot.GetMeAsync().Result.Id)
-                perchik.ParseMessage(e.Message);
+                perchikregex.CheckMessage(e.Message);
         }
 
         private static void onWeather(object sender, RegExArgs a)//Переделать под другой АПИ
@@ -691,7 +692,7 @@ namespace PerchikSharp
             {
                 if (message.ReplyToMessage != null)
                 {
-                    if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
+                    if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
                         return;
 
                     if (message.ReplyToMessage.From.Id == Bot.BotId)
@@ -706,7 +707,7 @@ namespace PerchikSharp
                     {
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: string.Format(strManager.GetSingle("BANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment, Perchik.MakeUserLink(message.From)),
+                            text: string.Format(strManager.GetSingle("BANNED"), BotHelper.MakeUserLink(message.ReplyToMessage.From), number, word, comment, BotHelper.MakeUserLink(message.From)),
                             parseMode: ParseMode.Markdown);
                     }
                     else
@@ -714,7 +715,7 @@ namespace PerchikSharp
                         seconds = int.MaxValue;
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: string.Format(strManager.GetSingle("SELF_PERMANENT"), Perchik.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
+                            text: string.Format(strManager.GetSingle("SELF_PERMANENT"), BotHelper.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
                     }
 
@@ -737,7 +738,7 @@ namespace PerchikSharp
 
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), number, word, comment),
+                            text: String.Format(strManager.GetSingle("SELF_BANNED"), BotHelper.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
 
                         using (var db = PerchikDB.Context)
@@ -754,7 +755,7 @@ namespace PerchikSharp
 
                         await Bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), Perchik.MakeUserLink(message.From), 40, word, comment),
+                            text: String.Format(strManager.GetSingle("SELF_BANNED"), BotHelper.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
 
                         using (var db = PerchikDB.Context)
@@ -779,7 +780,7 @@ namespace PerchikSharp
 
             if (message.Chat.Type == ChatType.Private)
                 return;
-            if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
+            if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
                 return;
             if (message.ReplyToMessage == null)
                 return;
@@ -787,7 +788,7 @@ namespace PerchikSharp
             try
             {
                 var until = DateTime.Now.AddSeconds(1);
-                Perchik.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
+                BotHelper.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
                 using (var db = PerchikDB.Context)
                 {
@@ -807,7 +808,7 @@ namespace PerchikSharp
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetRandom("UNBANNED"), Perchik.MakeUserLink(message.ReplyToMessage.From)),
+                        text: string.Format(strManager.GetRandom("UNBANNED"), BotHelper.MakeUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)
@@ -822,7 +823,7 @@ namespace PerchikSharp
 
             if (message.Chat.Type == ChatType.Private)
                 return;
-            if (!Perchik.isUserAdmin(message.Chat.Id, message.From.Id))
+            if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
                 return;
             if (message.ReplyToMessage == null)
                 return;
@@ -835,7 +836,7 @@ namespace PerchikSharp
 
                 _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetRandom("KICK"), Perchik.MakeUserLink(message.ReplyToMessage.From)),
+                        text: string.Format(strManager.GetRandom("KICK"), BotHelper.MakeUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown).Result;
             }
             catch (Exception ex)
@@ -949,19 +950,19 @@ namespace PerchikSharp
                 if (rand.Next(0, 6) == 3)
                 {
                     var until = DateTime.Now.AddSeconds(10 * 60); //10 minutes
-                    Perchik.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
+                    BotHelper.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
 
                     _ = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetRandom("ROULETTEBAN"), Perchik.MakeUserLink(message.From)),
+                        text: String.Format(strManager.GetRandom("ROULETTEBAN"), BotHelper.MakeUserLink(message.From)),
                         parseMode: ParseMode.Markdown).Result;
                 }
                 else
                 {
                     var msg = Bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetRandom("ROULETTEMISS"), Perchik.MakeUserLink(message.From)),
+                        text: String.Format(strManager.GetRandom("ROULETTEMISS"), BotHelper.MakeUserLink(message.From)),
                         parseMode: ParseMode.Markdown).Result;
 
                     Thread.Sleep(10 * 1000); //wait 10 seconds
@@ -1160,7 +1161,7 @@ namespace PerchikSharp
 
                 if ((float)nsfw_val > 0.7)
                 {
-                    await Perchik.SaveFileAsync(file.FileId, "./Data/nsfw");
+                    await BotHelper.SaveFileAsync(file.FileId, "./Data/nsfw");
 
                     if (ENABLE_FILTER)
                     {
@@ -1169,7 +1170,7 @@ namespace PerchikSharp
                         if (message.Chat.Type != ChatType.Private)
                         {
                             var until = DateTime.Now.AddSeconds(120);
-                            _ = Perchik.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
+                            _ = BotHelper.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
                             await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
@@ -1180,7 +1181,7 @@ namespace PerchikSharp
                 }
                 else
                 {
-                    await Perchik.SaveFileAsync(file.FileId, "./Data/photos");
+                    await BotHelper.SaveFileAsync(file.FileId, "./Data/photos");
                 }
             }
             catch (Exception exp)
@@ -1197,7 +1198,7 @@ namespace PerchikSharp
 
             try
             {
-                await Perchik.SaveFileAsync(message.Document.FileId, "./Data/documents", message.Document.FileName);
+                await BotHelper.SaveFileAsync(message.Document.FileId, "./Data/documents", message.Document.FileName);
             }
             catch (Exception exp)
             {
@@ -1213,7 +1214,7 @@ namespace PerchikSharp
             //Message to superchat from privat Example: !Hello World
             if (m.Chat.Type == ChatType.Private && m.Text[0] == '!')
             {
-                if (Perchik.isUserAdmin(offtopia_id, m.From.Id))
+                if (BotHelper.isUserAdmin(offtopia_id, m.From.Id))
                 {
                     string msg = m.Text.Substring(1, m.Text.Length - 1);
                     _ = Bot.SendTextMessageAsync(offtopia_id, $"*{msg}*", ParseMode.Markdown);
@@ -1279,7 +1280,7 @@ namespace PerchikSharp
                 {
                     username = $"@{message.From.Username}";
                 }
-                else { username = Perchik.MakeUserLink(message.From); }
+                else { username = BotHelper.MakeUserLink(message.From); }
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
                 _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string, ParseMode.Markdown);

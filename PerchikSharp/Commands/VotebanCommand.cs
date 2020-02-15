@@ -210,7 +210,7 @@ namespace PerchikSharp.Commands
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.Now.AddSeconds(forSeconds);
-            return Perchik.RestrictUserAsync(chatId.Identifier, userId, until);
+            return BotHelper.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PerchikSharp;
+using PerchikSharp.Commands;
+using System;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -14,7 +16,7 @@ namespace PerchikSharp.Commands
             {
                 await bot.SendTextMessageAsync(
                        chatId: command.Message.Chat.Id,
-                       text: $"*Version: {Perchik.BotVersion}*",
+                       text: $"*Version: {BotHelper.BotVersion}*",
                        parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)

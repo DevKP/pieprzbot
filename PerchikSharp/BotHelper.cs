@@ -11,11 +11,15 @@ using System.Threading;
 using PerchikSharp;
 using System.Net.Http;
 using PerchikSharp.Commands;
+using System.IO;
+using System.Diagnostics;
 
 namespace PerchikSharp
 {
     class BotHelper
     {
+        public static string BotVersion = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
+
         public event EventHandler<MessageArgs> onTextMessage;
         public event EventHandler<MessageArgs> onStickerMessage;
         public event EventHandler<MessageArgs> onPhotoMessage;
@@ -106,7 +110,6 @@ namespace PerchikSharp
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
         }
-
 
         public void RegisterPoll(string pollId, EventHandler<PollArgs> p)
         {
@@ -406,6 +409,153 @@ namespace PerchikSharp
                 {
                     return null;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Checks if there is a specified command in the string.
+        /// </summary>
+        /// <returns>
+        /// Boolean.
+        /// </returns>
+        /// <param name="text">Text.</param>
+        /// <param name="command">Command to find.</param>
+        public static bool FindTextCommand(string text, string command)
+        {
+            var bot_username = Program.Bot.GetMeAsync().Result.Username;
+            var match = Regex.Match(text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
+
+            if (match.Success)
+                return match.Groups["command"].Value.Equals(command);
+            else
+                return false;
+        }
+
+        /// <summary>
+        /// Checks if the user has administrator rights in the chat.
+        /// </summary>
+        /// <returns>
+        /// Boolean.
+        /// </returns>
+        /// <param name="chatId">Chat ID.</param>
+        /// <param name="userId">User ID.</param>
+        public static bool isUserAdmin(long chatId, int userId)
+        {
+            try
+            {
+                ChatMember[] chat_members = Program.Bot.GetChatAdministratorsAsync(chatId).Result;
+                if (Array.Find(chat_members, e => e.User.Id == userId) != null)
+                    return true;
+                else
+                    return false;
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Generates clickable text link to user profile.
+        /// </summary>
+        /// <param name="user">User object.</param>
+        /// <returns>
+        /// Formated text string.
+        /// </returns>
+        public static string MakeUserLink(User user)
+        {
+            try
+            {
+                return string.Format("[{0}](tg://user?id={1})", user.FirstName.Replace('[', '<').Replace(']', '>'), user.Id);
+            }
+            catch (NullReferenceException)//If FirstName is null using id as name
+            {
+                return string.Format("[{0}](tg://user?id={1})", user.Id, user.Id);
+            }
+
+        }
+
+        /// <summary>
+        /// Resctricts user.
+        /// </summary>
+        /// <param name="chatid">Chat id.</param>
+        /// <param name="userid">User id.</param>
+        /// <param name="until">Rescrict until.</param>
+        /// <param name="userid">Can write messages or not.</param>
+        public static Task RestrictUserAsync(long chatid, int userid, DateTime until, bool canWriteMessages = false)
+        {
+            try
+            {
+                ChatPermissions permissions = new ChatPermissions();
+                permissions.CanAddWebPagePreviews = canWriteMessages;
+                permissions.CanChangeInfo = canWriteMessages;
+                permissions.CanInviteUsers = canWriteMessages;
+                permissions.CanPinMessages = canWriteMessages;
+                permissions.CanSendMediaMessages = canWriteMessages;
+                permissions.CanSendMessages = canWriteMessages;
+                permissions.CanSendOtherMessages = canWriteMessages;
+                permissions.CanSendPolls = canWriteMessages;
+
+                return Program.Bot.RestrictChatMemberAsync(
+                    chatId: chatid,
+                    userId: userid,
+                    untilDate: until,
+                    permissions: permissions);
+            }
+            catch (Exception exp)
+            {
+                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
+                return null;
+            }
+
+        }
+
+        public static Task SaveFileAsync(string fileId, string folder, string fileName = null)
+        {
+            return Task.Run(() => SaveFile(fileId, folder, fileName));
+        }
+
+        private static async void SaveFile(string fileId, string folder, string fileName = null)
+        {
+            try
+            {
+                var file = Program.Bot.GetFileAsync(fileId).Result;
+                MemoryStream docu = new MemoryStream();
+
+                const int attempts = 5;
+                for (int a = 0; a < attempts; a++)
+                {
+                    try
+                    {
+                        await Program.Bot.DownloadFileAsync(file.FilePath, docu);
+                        break;
+                    }
+                    catch (HttpRequestException)
+                    {
+                        Logger.Log(LogType.Info, $"<Downloader>: Bad Request, attempt #{a}");
+                        continue;
+                    }
+                }
+
+
+                string file_ext = file.FilePath.Split('.')[1];
+                fileName = fileName ?? $"{fileId}.{file_ext}";
+
+                if (!Directory.Exists($"./{folder}/"))
+                    Directory.CreateDirectory($"./{folder}/");
+                using (FileStream file_stream = new FileStream($"./{folder}/{fileName}",
+                    FileMode.Create, FileAccess.Write))
+                {
+                    docu.WriteTo(file_stream);
+                    file_stream.Flush();
+                    file_stream.Close();
+                }
+                Logger.Log(LogType.Info, $"<Downloader>: Filename: {fileName} saved.");
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
         }
     }
