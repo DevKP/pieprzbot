@@ -117,6 +117,11 @@ namespace PerchikSharp
             dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
         }
 
+        public static StringManager Create(string json_path)
+        {
+            return new StringManager(json_path);
+        }
+
         /// <summary>
         /// Returns all strings of the specified key.
         /// </summary>

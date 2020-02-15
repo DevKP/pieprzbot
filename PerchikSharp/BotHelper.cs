@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using PerchikSharp;
 using System.Net.Http;
+using PerchikSharp.Commands;
 
 namespace PerchikSharp
 {
@@ -25,6 +26,8 @@ namespace PerchikSharp
         public event EventHandler<MessageArgs> onVideoNoteMessage;
         public event EventHandler<MessageArgs> onTextEdited;
         public event EventHandler<PollAnswer> onPollAnswer;
+
+        public Dictionary<INativeCommand, EventHandler<CommandEventArgs>> NativeCommands;
 
         public Dictionary<string, EventHandler<CommandEventArgs>> commandHandlers;
         public Dictionary<InlineButton, EventHandler<CallbackQueryArgs>> queryHandlers; 
@@ -46,6 +49,7 @@ namespace PerchikSharp
             this.nextstepHandlers = new List<BotEventHandlerUnit>();
             this.pollAnswersCache = new List<PollAnswer>();
 
+            this.NativeCommands = new Dictionary<INativeCommand, EventHandler<CommandEventArgs>>();
         }
         public BotHelper(TelegramBotClient bot) : this()
         {
@@ -123,6 +127,17 @@ namespace PerchikSharp
         {
             this.commandHandlers.Add(command, c);
         }
+
+        /// <summary>
+        /// Registers a callback for chat command. (e.g. test )
+        /// </summary>
+        /// <param name="command">Command without slash.</param>
+        /// <param name="c">Method to be called.</param>
+        public void NativeCommand(INativeCommand command)
+        {
+            this.NativeCommands.Add(command, (s, x) => command.OnExecution(s, Program.Bot, x));
+        }
+
 
         /// <summary>
         /// Register patterns for searching in messages.
@@ -360,6 +375,11 @@ namespace PerchikSharp
                     }
 
                     CommandEventArgs cmdargs = new CommandEventArgs(message, command, text);
+                    this.NativeCommands
+                        .Where(nc => nc.Key.Command == match.Groups["command"].Value)
+                        .FirstOrDefault()
+                        .Value
+                        .Invoke(this, cmdargs);
                     this.commandHandlers[match.Groups["command"].Value]?.Invoke(this, cmdargs);
                 }
             }catch(KeyNotFoundException)

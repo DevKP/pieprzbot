@@ -16,6 +16,7 @@ namespace PerchikSharp.Db
                 Id = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
+                UserName = user.Username,
                 Restricted = false
             };
         }
