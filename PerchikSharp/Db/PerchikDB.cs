@@ -48,14 +48,14 @@ namespace PerchikSharp.Db
         static public PerchikDB Context { 
             get {
                 var obj = new PerchikDB();
-                obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+                //obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
                 return obj;
             }
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseMySql(ConnectionString);
-            optionsBuilder.EnableSensitiveDataLogging();
+            //optionsBuilder.EnableSensitiveDataLogging();
         }
 
         public void UpdateUser(Tables.User user)
