@@ -49,7 +49,7 @@ namespace PerchikSharp.Commands
                     string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
                     string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
                     //string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
-                    string full_name = string.Format("{0} {1}", first_name, last_name);
+                    string full_name = string.Format("`{0} {1}`", first_name, last_name);
 
                     msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, user.activity * 100);
                 }
