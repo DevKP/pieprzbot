@@ -191,7 +191,7 @@ namespace PerchikSharp
 
             bothelper.AddRegEx(strManager["BOT_REGX"], onPersikCommand);
             bothelper.AddRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
-            bothelper.AddRegEx(@"#оффтоп", onEveryoneCommand);
+            
 
             bothelper.AddRegEx("\b(420|трав(к)?а|шишки|марихуана)\b", (_, e) =>
             {
@@ -220,6 +220,7 @@ namespace PerchikSharp
             bothelper.NativeCommand("top", onTopCommand);
             bothelper.NativeCommand("voteban", onVoteban);
             bothelper.NativeCommand("offtopunban", onOfftopUnban);
+            bothelper.NativeCommand("everyone", onEveryoneCommand);
             bothelper.CallbackQuery("update_rate", onRateUpdate);
 
             bothelper.NativeCommand("promote", onPromoteCommand);
@@ -870,7 +871,7 @@ namespace PerchikSharp
             }
         }
 
-        private static void onEveryoneCommand(object sender, RegExArgs e)
+        private static void onEveryoneCommand(object sender, CommandEventArgs e)
         {
             try
             {
