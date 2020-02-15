@@ -1,30 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
-using Telegram.Bot;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types;
-using System.Text.RegularExpressions;
-using Clarifai.API;
-using Clarifai.DTOs.Inputs;
-using System.IO;
+﻿using Clarifai.API;
 using Clarifai.API.Requests.Models;
+using Clarifai.DTOs.Inputs;
 using Clarifai.DTOs.Predictions;
-using Newtonsoft.Json;
-using System.Net;
-using Telegram.Bot.Types.ReplyMarkups;
-using System.Net.Http;
-using System.Diagnostics;
-using System.Reflection;
-using System.Net.Http.Headers;
-using System.Web;
-using PerchikSharp.Db;
 using Microsoft.EntityFrameworkCore;
-using PersikSharp;
+using Newtonsoft.Json;
 using PerchikSharp.Commands;
+using PerchikSharp.Db;
+using PersikSharp;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Telegram.Bot;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp
 {
@@ -44,10 +38,6 @@ namespace PerchikSharp
 
         const long offtopia_id = -1001125742098;
         const int via_tcp_Id = 204678400;
-        static string ApplicationFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-
-
-        static List<long> votebanning_groups = new List<long>();
 
         static void Main(string[] args)
         {
@@ -126,32 +116,6 @@ namespace PerchikSharp
             Bot.StopReceiving();
         }
 
-        private static void LoadDictionary()
-        {
-            try
-            {
-                strManager.Open("./Configs/dict.json");
-                tokens.Open(strManager["TOKENS_PATH"]);
-            }
-            catch (FileNotFoundException fe)
-            {
-                Logger.Log(LogType.Fatal, $"No dictionary file found! Exception: {fe.Message}");
-                Console.Read();
-                Environment.Exit(1);
-            }
-            catch (JsonReaderException jre)
-            {
-                Logger.Log(LogType.Fatal, $"Error parsing dictionary file! Exception: {jre.Message}");
-                Console.Read();
-                Environment.Exit(1);
-            }
-            catch (Exception e)
-            {
-                Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
-                Console.Read();
-                Environment.Exit(1);
-            }
-        }
 
         private static void Init()
         {
@@ -159,6 +123,7 @@ namespace PerchikSharp
             {
                 Bot = new TelegramBotClient(tokens["TELEGRAM"]);
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
+
                 if (clarifai.HttpClient.ApiKey == string.Empty)
                     throw new ArgumentException("CLARIFAI token isn't valid!");
 
@@ -195,8 +160,8 @@ namespace PerchikSharp
             bothelper.RegExCommand(new KickCommand());
             bothelper.RegExCommand(new PraiseCommand());
             bothelper.RegExCommand(new InsultingCommand());
-            bothelper.RegExCommand(new ByWordCommand());
-            bothelper.onNoneRegexMatched += onPersikCommand;
+            bothelper.RegExCommand(new ByWordCommand());           
+            bothelper.onNoneRegexMatched += onPerchikCommand;
 
 
             bothelper.NativeCommand(new StartCommand());
@@ -211,6 +176,7 @@ namespace PerchikSharp
             bothelper.NativeCommand(new VotebanCommand());
             bothelper.NativeCommand(new OfftopUnbanCommand());
             bothelper.NativeCommand(new EveryoneCommand());
+            bothelper.NativeCommand(new UserDescriptionCommand());
 
             bothelper.NativeCommand(new TestCommand());
 
@@ -303,14 +269,14 @@ namespace PerchikSharp
                                     Date = DbConverter.ToEpochTime(DateTime.Parse(message.DateTime))
                                 });
                                 db.SaveChanges();
-                                if(i++ % 10 == 0) 
+                                if (i++ % 10 == 0)
                                     Logger.Log(LogType.Debug, $"Message #{i} ID {message.Id} : {message.Text}");
 
                             }
                             //db.AutoDetectChangesEnabled = false;
                         }
                     }
-                    catch (Exception x)
+                    catch (Exception)
                     {
                         Logger.Log(LogType.Debug, $"ERROR {message.Id} : {message.Text}");
                     }
@@ -344,14 +310,41 @@ namespace PerchikSharp
 
         }
 
+        private static void LoadDictionary()
+        {
+            try
+            {
+                strManager.Open("./Configs/dict.json");
+                tokens.Open(strManager["TOKENS_PATH"]);
+            }
+            catch (FileNotFoundException fe)
+            {
+                Logger.Log(LogType.Fatal, $"No dictionary file found! Exception: {fe.Message}");
+                Console.Read();
+                Environment.Exit(1);
+            }
+            catch (JsonReaderException jre)
+            {
+                Logger.Log(LogType.Fatal, $"Error parsing dictionary file! Exception: {jre.Message}");
+                Console.Read();
+                Environment.Exit(1);
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Fatal, $"<{e.Source}> {e.Message}");
+                Console.Read();
+                Environment.Exit(1);
+            }
+        }
+
         private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
-            DatabaseUpdate(sender, e.Message);
+            //AddMsgToDatabase(sender, e.Message);
         }
 
         static void StartDatabaseCheck(object s)
         {
-            HandleDbRestrictions();
+            //CheckUserRestrictions();
         }
 
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
@@ -360,7 +353,7 @@ namespace PerchikSharp
             return BotHelper.RestrictUserAsync(chatId.Identifier, userId, until);
         }
 
-        static async void HandleDbRestrictions()
+        static async void CheckUserRestrictions()
         {
             try
             {
@@ -399,7 +392,7 @@ namespace PerchikSharp
         }
 
         //=====Persik Commands======
-        private static async void onPersikCommand(object s, RegExArgs e)
+        private static async void onPerchikCommand(object s, RegExArgs e)
         {
             Message message = e.Message;
             if (message.ReplyToMessage?.Type == MessageType.Photo)
@@ -515,26 +508,26 @@ namespace PerchikSharp
         }
 
 
-        private static void onTextMessage(object sender, MessageArgs message_args)
+        private static async void onTextMessage(object sender, MessageArgs message_args)
         {
             Message m = message_args.Message;
 
             //Message to superchat from privat Example: !Hello World
             if (m.Chat.Type == ChatType.Private && m.Text[0] == '!')
             {
-                if (BotHelper.isUserAdmin(offtopia_id, m.From.Id))
-                {
+                //if (BotHelper.isUserAdmin(offtopia_id, m.From.Id))
+                //{
                     string msg = m.Text.Substring(1, m.Text.Length - 1);
-                    _ = Bot.SendTextMessageAsync(offtopia_id, $"*{msg}*", ParseMode.Markdown);
+                    await Bot.SendTextMessageAsync(offtopia_id, $"*{msg}*", ParseMode.Markdown);
 
                     Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id})(DM): {msg}");
-                }
+                //}
             }
 
             commands.CheckMessage(m);
         }
 
-        private static void DatabaseUpdate(object s, Message msg)
+        private static void AddMsgToDatabase(object s, Message msg)
         {
             try
             {

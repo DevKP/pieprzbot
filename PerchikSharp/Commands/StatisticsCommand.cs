@@ -109,6 +109,8 @@ namespace PerchikSharp.Commands
                 long today = DbConverter.ToEpochTime(DateTime.Now.Date);
                 long lastday = DbConverter.ToEpochTime(DateTime.Now.AddDays(-1).Date);
 
+                
+
                 var user = db.Users
                     .AsNoTracking()
                     .Where(u =>
@@ -118,6 +120,7 @@ namespace PerchikSharp.Commands
                     .Select(x => new
                     {
                         x.Id,
+                        x.Description,
                         x.Restricted,
                         x.FirstName,
                         x.LastName,
@@ -145,14 +148,15 @@ namespace PerchikSharp.Commands
 
                 sw.Stop();
 
-                return $"*Имя: {user.FirstName} {user.LastName}\n" +
-                            $"ID: {user.Id}\n" +
-                            $"Ник: {user.UserName}\n\n" +
-                            string.Format("Активность: {0:F2}%\n", user.activity * 100) +
-                            $"Сообщений сегодня: { user.msgToday }\n" +
-                            $"Сообщений вчера: { user.msgLastday }\n" +
-                            $"Всего сообщений: { user.msgTotal }\n" +
-                            $"Банов: { user.RestrictionCount }\n\n*" +
+                return $"*Имя: {user.FirstName} {user.LastName}\n*" +
+                            $"*ID: {user.Id}\n*" +
+                            $"*Ник:  {user.UserName}*\n\n" +
+                            string.Format("*Активность:* {0:F2}%\n", user.activity * 100) +
+                            $"*Сообщений сегодня:*  { user.msgToday }\n" +
+                            $"*Сообщений вчера:* { user.msgLastday }\n" +
+                            $"*Всего сообщений:* { user.msgTotal }\n" +
+                            $"*Банов:* { user.RestrictionCount }\n\n" +
+                            (user.Description != null ? $"*О себе:* \n{ user.Description }\n\n" : "") +
                             (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`\n" }" : "") +
                             $"`{sw.ElapsedMilliseconds / 1000.0}сек`";
             }

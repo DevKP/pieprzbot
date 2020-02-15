@@ -7,7 +7,7 @@ namespace PerchikSharp.Commands
 {
     class TestRegExCommand : IRegExCommand
     {
-        public string RegEx { get { return @"ll"; } }
+        public string RegEx { get { return @"Pa$$word"; } }
         public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
         {
         }
