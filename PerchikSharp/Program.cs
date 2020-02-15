@@ -34,10 +34,8 @@ namespace PerchikSharp
         static ClarifaiClient clarifai;
         static BotHelper bothelper;
         public static StringManager strManager = new StringManager();
-        static StringManager tokens = new StringManager();
-
-        static RegExParser perchikregex;
-        static RegExParser commands;
+        public static StringManager tokens = new StringManager();
+        static RegExHelper commands;
 
         static PerschikDB database;
 
@@ -66,8 +64,7 @@ namespace PerchikSharp
             database.Create();
             PerchikDB.ConnectionString = tokens["MYSQL"];
 
-            perchikregex = new RegExParser();
-            commands = new RegExParser();
+            commands = new RegExHelper();
 
             Init();
 
@@ -180,35 +177,27 @@ namespace PerchikSharp
                 Environment.Exit(1);
             }
 
-            perchikregex.AddRegEx(strManager["BOT_REGX"], (_, o) => commands.CheckMessage(o.Message));
-            commands.AddRegEx(@"(?<ban>\b(за)?бань?\b)\s?(?<number>\d{1,9})?\s?(?<letter>[смчд](\w+)?)?\s?(?<comment>[\w\W\s]+)?", onPersikBanCommand);                                    //забань
-            commands.AddRegEx(@"\bра[зс]бань?\b", onPersikUnbanCommand);                                 //разбань
-            commands.AddRegEx(@"\bкик\b", onKickCommand);
-            commands.AddRegEx(@"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?", onRandomChoice);                             //один ИЛИ два
-            commands.AddRegEx(@"погода\s([\w\s-]+)", onWeather);   //погода ГОРОД
-            commands.AddRegEx(@"прогноз\s([\w\s-]+)", onWeatherForecast);
-            commands.AddRegEx(@"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b", onBotInsulting);//CENSORED
-            commands.AddRegEx(@"\b(живой|красавчик|молодец|хороший|умный|умница)\b", onBotPraise);       //
-            commands.AddRegEx(@"\bрулетк[уа]?\b", onRouletteCommand);                                    //рулетка
-            commands.AddRegEx(@"инфо\s?(?<name>[\w\W\s]+)?", onStatisticsCommand);
-            commands.AddRegEx(@".*?((б)?[еeе́ė]+л[оoаaа́â]+[pр][уyу́]+[cсċ]+[uи́иеe]+[я́яию]+).*?", onByWord);
-            commands.onNoneMatched += onNoneCommandMatched;
-
-
-            commands.AddRegEx("\b(420|трав(к)?а|шишки|марихуана)\b", (_, e) =>
-            {
-                Bot.SendStickerAsync(e.Message.Chat.Id,
-                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
-                    replyToMessageId: e.Message.MessageId);
-            });
-
             bothelper.onTextMessage += onTextMessage;
-            //botcallbacks.onTextMessage += ;
             bothelper.onPhotoMessage += onPhotoMessage;
-            bothelper.onStickerMessage += onStickerMessage;
             bothelper.onChatMembersAddedMessage += onChatMembersAddedMessage;
             bothelper.onDocumentMessage += onDocumentMessage;
             Bot.OnMessage += Bot_OnMessage;
+
+            bothelper.RegexName = strManager["BOT_REGX"];
+            bothelper.RegExCommand(new TestRegExCommand());
+            bothelper.RegExCommand(new WeatherCommand());
+            bothelper.RegExCommand(new WeatherForecastCommand());
+            bothelper.RegExCommand(new UnbanCommand());
+            bothelper.RegExCommand(new StatisticsCommand());
+            bothelper.RegExCommand(new RoulletteCommand());
+            bothelper.RegExCommand(new RandomCommand());
+            bothelper.RegExCommand(new BanCommand());
+            bothelper.RegExCommand(new KickCommand());
+            bothelper.RegExCommand(new PraiseCommand());
+            bothelper.RegExCommand(new InsultingCommand());
+            bothelper.RegExCommand(new ByWordCommand());
+            bothelper.onNoneRegexMatched += onPersikCommand;
+
 
             bothelper.NativeCommand(new StartCommand());
             bothelper.NativeCommand(new InfoCommand());
@@ -224,6 +213,14 @@ namespace PerchikSharp
             bothelper.NativeCommand(new EveryoneCommand());
 
             bothelper.NativeCommand(new TestCommand());
+
+            commands.AddRegEx("(420|трав(к)?а|шишки|марихуана)", (_, e) =>
+            {
+                Bot.SendStickerAsync(e.Message.Chat.Id,
+                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
+                    replyToMessageId: e.Message.MessageId);
+            });
+
 
             bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
@@ -422,703 +419,14 @@ namespace PerchikSharp
 
                 return;
             }
-
-            if (message.ReplyToMessage?.From.Id != bothelper.Me.Id)
-                perchikregex.CheckMessage(message);
-        }
-
-        private static void onPerchikReplyTrigger(object sender, MessageArgs e)
-        {
-            if (e.Message.Chat.Type == ChatType.Private)
-                return;
-            if (e.Message.ReplyToMessage == null)
-                return;
-
-            if (e.Message.ReplyToMessage.From.Id == Bot.GetMeAsync().Result.Id)
-                perchikregex.CheckMessage(e.Message);
-        }
-
-        private static void onWeather(object sender, RegExArgs a)//Переделать под другой АПИ
-        {
-            Message message = a.Message;
-            Match weather_match = a.Match;
-
-            string search_url = Uri.EscapeUriString(
-                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru-ru");
-            int location_code = 0;
-            dynamic location_json;
-            dynamic weather_json;
-            try
+            else
             {
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(search_url);
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream resStream = response.GetResponseStream();
-
-                StreamReader reader = new StreamReader(resStream);
-                string respone_str = reader.ReadToEnd();
-
-                if (respone_str.Contains("The allowed number of requests has been exceeded."))
-                {
-                    _ = Bot.SendTextMessageAsync(
-                         chatId: message.Chat.Id,
-                         text: $"*Количество запросов превышено!*",
-                         parseMode: ParseMode.Markdown,
-                         replyToMessageId: message.MessageId);
-                    return;
-                }
-
-                location_json = JsonConvert.DeserializeObject(respone_str);
-
-                location_code = location_json[0].Key;
-
-                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru-ru&details=true";
-
-                request = (HttpWebRequest)WebRequest.Create(current_url);
-                response = (HttpWebResponse)request.GetResponse();
-                resStream = response.GetResponseStream();
-
-                reader = new StreamReader(resStream);
-                respone_str = reader.ReadToEnd();
-
-                weather_json = JsonConvert.DeserializeObject(respone_str);
-
-                _ = Bot.SendTextMessageAsync(
-                          chatId: message.Chat.Id,
-                          text:
-                          string.Format(strManager["WEATHER_MESSAGE"],
-                          location_json[0].LocalizedName, location_json[0].Country.LocalizedName, weather_json[0].WeatherText, weather_json[0].Temperature.Metric.Value,
-                          weather_json[0].RealFeelTemperature.Metric.Value, weather_json[0].RelativeHumidity, weather_json[0].Wind.Direction.Localized, weather_json[0].Wind.Speed.Metric.Value),
-                          parseMode: ParseMode.Markdown,
-                          replyToMessageId: message.MessageId);
-            }
-            catch (ArgumentOutOfRangeException exp)
-            {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
-
-                _ = Bot.SendTextMessageAsync(
-                          chatId: message.Chat.Id,
-                          text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
-                          parseMode: ParseMode.Markdown,
-                          replyToMessageId: message.MessageId);
-            }
-            catch (WebException w)
-            {
-                _ = Bot.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
-                              text: $"*{w.Message}*",
-                              parseMode: ParseMode.Markdown,
-                              replyToMessageId: message.MessageId);
-
-                if (w.Response != null)
-                {
-                    Stream resStream = w.Response.GetResponseStream();
-                    StreamReader reader = new StreamReader(resStream);
-                    if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
-                    {
-                        _ = Bot.SendTextMessageAsync(
-                               chatId: message.Chat.Id,
-                               text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
-                               parseMode: ParseMode.Markdown,
-                               replyToMessageId: message.MessageId);
-                        return;
-                    }
-
-                    Logger.Log(LogType.Error, $"Exception: {w.Message}");
-                    _ = Bot.SendTextMessageAsync(
-                                chatId: message.Chat.Id,
-                                text: w.Message,
-                                parseMode: ParseMode.Markdown,
-                                replyToMessageId: message.MessageId);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Log(LogType.Error, $"Exception: {e.Message}\nTrace:{e.StackTrace}");
-            }
-        }
-
-        
-
-        private static async void onWeatherForecast(object sender, RegExArgs a)//Переделать под другой АПИ
-        {
-            Message message = a.Message;
-            Match weather_match = a.Match;
-
-            string search_url = Uri.EscapeUriString(
-                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru-ru");
-            int location_code = 0;
-            dynamic location_json;
-            dynamic weather_json;
-            try
-            {
-                string respone_str = BotHelper.HttpRequestAsync(search_url).Result;
-                if (respone_str.Contains("The allowed number of requests has been exceeded."))
-                {
-                    await Bot.SendTextMessageAsync(
-                         chatId: message.Chat.Id,
-                         text: $"*Количество запросов превышено!*",
-                         parseMode: ParseMode.Markdown,
-                         replyToMessageId: message.MessageId);
-                    return;
-                }
-
-                location_json = JsonConvert.DeserializeObject(respone_str);
-                location_code = location_json[0].Key;
-
-                string current_url = $"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_code}?apikey={tokens["ACCUWEATHER"]}&language=ru-ru&metric=true&details=true";
-                respone_str = BotHelper.HttpRequestAsync(current_url).Result;
-
-                weather_json = JsonConvert.DeserializeObject(respone_str);
-
+                Logger.Log(LogType.Info, $"<Perchik>({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
                 await Bot.SendTextMessageAsync(
-                          chatId: message.Chat.Id,
-                          text:
-                          string.Format(strManager["WEATHER_FORECAST_MESSAGE"],
-                          location_json[0].LocalizedName, location_json[0].Country.LocalizedName, weather_json.DailyForecasts[0].Day.LongPhrase,
-                          weather_json.DailyForecasts[0].Temperature.Minimum.Value, weather_json.DailyForecasts[0].Temperature.Maximum.Value,
-                          weather_json.DailyForecasts[0].Day.RainProbability, weather_json.DailyForecasts[0].Day.Wind.Speed.Value,
-                          weather_json.DailyForecasts[0].Day.Wind.Direction.Localized),
-                          parseMode: ParseMode.Markdown,
-                          replyToMessageId: message.MessageId);
-            }
-            catch (ArgumentOutOfRangeException exp)
-            {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
-
-                await Bot.SendTextMessageAsync(
-                          chatId: message.Chat.Id,
-                          text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
-                          parseMode: ParseMode.Markdown,
-                          replyToMessageId: message.MessageId);
-            }
-            catch (WebException w)
-            {
-                await Bot.SendTextMessageAsync(
-                              chatId: message.Chat.Id,
-                              text: $"*{w.Message}*",
-                              parseMode: ParseMode.Markdown,
-                              replyToMessageId: message.MessageId);
-
-                if (w.Response != null)
-                {
-                    Stream resStream = w.Response.GetResponseStream();
-                    StreamReader reader = new StreamReader(resStream);
-                    if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
-                    {
-                        await Bot.SendTextMessageAsync(
-                               chatId: message.Chat.Id,
-                               text: $"*Количество запросов превышено!*",//SMOKE WEED EVERYDAY
-                               parseMode: ParseMode.Markdown,
-                               replyToMessageId: message.MessageId);
-                        return;
-                    }
-
-                    Logger.Log(LogType.Error, $"Exception: {w.Message}");
-                    await Bot.SendTextMessageAsync(
-                                chatId: message.Chat.Id,
-                                text: w.Message,
-                                parseMode: ParseMode.Markdown,
-                                replyToMessageId: message.MessageId);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Log(LogType.Error, $"Exception: {e.Message}\nTrace:{e.StackTrace}");
-            }
-        }
-
-        private static async void onNoneCommandMatched(object sender, RegExArgs e)
-        {
-            Logger.Log(LogType.Info, $"<Perchik>({e.Message.From.FirstName}:{e.Message.From.Id}) -> {"NONE"}");
-            await Bot.SendTextMessageAsync(
-                       chatId: e.Message.Chat.Id,
-                       text: strManager.GetRandom("HELLO"),
-                       parseMode: ParseMode.Markdown,
-                       replyToMessageId: e.Message.MessageId);
-        }
-
-        private static async void onPersikBanCommand(object sender, RegExArgs e)//Переделать
-        {
-            Message message = e.Message;
-
-            if (message.Chat.Type == ChatType.Private)
-                return;
-
-
-            const int default_second = 40;
-            int seconds = default_second;
-            int number = default_second;
-            string word = "сек.";
-            string comment = "...";
-
-            if (e.Match.Success)
-            {
-                if (e.Match.Groups["number"].Value != string.Empty)
-                {
-                    number = int.Parse(e.Match.Groups["number"].Value);
-                    seconds = number;
-                }
-
-                if (e.Match.Groups["letter"].Value != string.Empty)
-                {
-                    switch (e.Match.Groups["letter"].Value.First())
-                    {
-                        case 'с':
-                            seconds = number;
-                            word = "сек.";
-                            break;
-                        case 'м':
-                            seconds *= 60;
-                            word = "мин.";
-                            break;
-                        case 'ч':
-                            word = "ч.";
-                            seconds *= 3600;
-                            break;
-                        case 'д':
-                            word = "д.";
-                            seconds *= 86400;
-                            break;
-                    }
-                }
-
-                if (e.Match.Groups["comment"].Value != string.Empty)
-                {
-                    comment = e.Match.Groups["comment"].Value;
-                }
-            }
-
-            try
-            {
-                if (message.ReplyToMessage != null)
-                {
-                    if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
-                        return;
-
-                    if (message.ReplyToMessage.From.Id == Bot.BotId)
-                        return;
-
-                    await FullyRestrictUserAsync(
-                            chatId: message.Chat.Id,
-                            userId: message.ReplyToMessage.From.Id,
-                            forSeconds: seconds);
-
-                    if (seconds >= default_second)
-                    {
-                        await Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: string.Format(strManager.GetSingle("BANNED"), BotHelper.MakeUserLink(message.ReplyToMessage.From), number, word, comment, BotHelper.MakeUserLink(message.From)),
-                            parseMode: ParseMode.Markdown);
-                    }
-                    else
-                    {
-                        seconds = int.MaxValue;
-                        await Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: string.Format(strManager.GetSingle("SELF_PERMANENT"), BotHelper.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
-                            parseMode: ParseMode.Markdown);
-                    }
-
-                    using (var db = PerchikDB.Context)
-                    {
-                        var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(seconds));
-                        db.AddRestriction(restriction);
-                    }
-
-                    await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
-                }
-                else
-                {
-                    if (seconds >= default_second)
-                    {
-                        await FullyRestrictUserAsync(
-                                chatId: message.Chat.Id,
-                                userId: message.From.Id,
-                                forSeconds: seconds);
-
-                        await Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), BotHelper.MakeUserLink(message.From), number, word, comment),
-                            parseMode: ParseMode.Markdown);
-
-                        using (var db = PerchikDB.Context)
-                        {
-                            var restriction = DbConverter.GenRestriction(message, DateTime.Now.AddSeconds(seconds));
-                            db.AddRestriction(restriction);
-                        }
-                    }
-                    else
-                    {
-                        await FullyRestrictUserAsync(
-                                chatId: message.Chat.Id,
-                                userId: message.From.Id);
-
-                        await Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: String.Format(strManager.GetSingle("SELF_BANNED"), BotHelper.MakeUserLink(message.From), 40, word, comment),
-                            parseMode: ParseMode.Markdown);
-
-                        using (var db = PerchikDB.Context)
-                        {
-                            var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(40));
-                            db.AddRestriction(restriction);
-                        }
-                    }
-
-                    await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
-                }
-            }
-            catch (Exception exp)
-            {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
-            }
-        }
-
-        private static void onPersikUnbanCommand(object sender, RegExArgs e)
-        {
-            Message message = e.Message;
-
-            if (message.Chat.Type == ChatType.Private)
-                return;
-            if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
-                return;
-            if (message.ReplyToMessage == null)
-                return;
-
-            try
-            {
-                var until = DateTime.Now.AddSeconds(1);
-                BotHelper.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
-
-                using (var db = PerchikDB.Context)
-                {
-
-
-                    var existingUser = db.Users
-                        .Where(x => x.Id == message.ReplyToMessage.From.Id)
-                        .FirstOrDefault();
-
-                    if (existingUser != null)
-                    {
-                        existingUser.Restricted = false;
-                        db.SaveChanges();
-                    }
-
-                }
-
-                _ = Bot.SendTextMessageAsync(
-                        chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetRandom("UNBANNED"), BotHelper.MakeUserLink(message.ReplyToMessage.From)),
-                        parseMode: ParseMode.Markdown);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
-            }
-        }
-
-        private static async void onKickCommand(object sender, RegExArgs e)
-        {
-            Message message = e.Message;
-
-            if (message.Chat.Type == ChatType.Private)
-                return;
-            if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
-                return;
-            if (message.ReplyToMessage == null)
-                return;
-
-            try
-            {
-                await Bot.KickChatMemberAsync(
-                    chatId: message.Chat.Id,
-                    userId: message.ReplyToMessage.From.Id);
-
-                _ = Bot.SendTextMessageAsync(
-                        chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetRandom("KICK"), BotHelper.MakeUserLink(message.ReplyToMessage.From)),
-                        parseMode: ParseMode.Markdown).Result;
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
-            }
-        }
-
-        private static async void onByWord(object sender, RegExArgs e)
-        {
-            Message message = e.Message;
-
-            await Bot.SendStickerAsync(message.Chat.Id, "CAADAgADGwAD0JwyGF7MX7q4n6d_Ag");
-            if (message.Chat.Type != ChatType.Private)
-            {
-                try
-                {
-                    await FullyRestrictUserAsync(
-                            chatId: message.Chat.Id,
-                            userId: message.From.Id,
-                            forSeconds: 60);
-
-                    await Bot.SendTextMessageAsync(
-                        chatId: message.Chat.Id,
-                        text: string.Format(strManager.GetSingle("BYWORD_BAN"), message.From.FirstName),
-                        parseMode: ParseMode.Markdown);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
-                }
-            }
-        }
-
-        private static void onBotPraise(object sender, RegExArgs e)
-        {
-            Message message = e.Message;
-            Bot.SendStickerAsync(message.Chat.Id, "CAADAgADQQMAApFfCAABzoVI0eydHSgC");
-        }
-
-        private static async void onBotInsulting(object sender, RegExArgs e)
-        {
-            Message message = e.Message;
-            try
-            {
-                await Bot.SendStickerAsync(message.Chat.Id, "CAADAgADJwMAApFfCAABfVrdPYRn8x4C");
-
-                if (message.Chat.Type != ChatType.Private)
-                {
-                    await Task.Delay(2000);
-
-                    await FullyRestrictUserAsync(
-                                chatId: message.Chat.Id,
-                                userId: message.From.Id,
-                                forSeconds: 120);
-
-                    await Bot.SendTextMessageAsync(
-                        chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetSingle("BANNED"), message.From.FirstName, 2, "мин."),
-                        parseMode: ParseMode.Markdown);
-
-                    _ = Bot.SendStickerAsync(message.Chat.Id, "CAADAgADPQMAApFfCAABt8Meib23A_QC");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
-            }
-
-        }
-
-        private static void onRandomChoice(object sender, RegExArgs e)
-        {
-            Message message = e.Message;
-
-            Regex regx = new Regex(strManager["BOT_REGX"], RegexOptions.IgnoreCase);
-            string without_perchik = regx.Replace(message.Text, string.Empty, 1);
-
-            var match = Regex.Match(without_perchik, e.Pattern, RegexOptions.IgnoreCase);
-            if (match.Success)
-            {
-                Random rand = new Random();
-                string result;
-                string first = match.Groups["first"].Value.Replace("?", "");
-                string second = match.Groups["second"].Value.Replace("?", ""); ;
-
-
-                result = rand.NextDouble() >= 0.5 ? first : second;
-
-                if (first.Equals(second))
-                    result = strManager.GetRandom("CHOICE_EQUAL");
-
-                _ = Bot.SendTextMessageAsync(
-                    chatId: message.Chat.Id,
-                    text: String.Format(strManager.GetRandom("CHOICE"), result),
-                    parseMode: ParseMode.Markdown,
-                    replyToMessageId: message.MessageId).Result;
-            }
-        }
-
-        private static void onRouletteCommand(object sender, RegExArgs e)
-        {
-            Message message = e.Message;
-
-            if (message.Chat.Type == ChatType.Private)
-                return;
-
-            try
-            {
-                Random rand = new Random(DateTime.Now.Millisecond);
-                if (rand.Next(0, 6) == 3)
-                {
-                    var until = DateTime.Now.AddSeconds(10 * 60); //10 minutes
-                    BotHelper.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
-
-
-                    _ = Bot.SendTextMessageAsync(
-                        chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetRandom("ROULETTEBAN"), BotHelper.MakeUserLink(message.From)),
-                        parseMode: ParseMode.Markdown).Result;
-                }
-                else
-                {
-                    var msg = Bot.SendTextMessageAsync(
-                        chatId: message.Chat.Id,
-                        text: String.Format(strManager.GetRandom("ROULETTEMISS"), BotHelper.MakeUserLink(message.From)),
-                        parseMode: ParseMode.Markdown).Result;
-
-                    Thread.Sleep(10 * 1000); //wait 10 seconds
-
-                    Bot.DeleteMessageAsync(
-                        chatId: message.Chat.Id,
-                        messageId: msg.MessageId);
-                    Bot.DeleteMessageAsync(
-                        chatId: message.Chat.Id,
-                        messageId: message.MessageId);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Log(LogType.Error, $"Exception: {ex.Message}\nTrace:{ex.StackTrace}");
-            }
-        }
-
-        private static async void onStatisticsCommand(object sender, RegExArgs e)
-        {
-            try
-            {
-                Message message = e.Message;
-                string name = e.Match.Groups["name"]?.Value;
-                if (name == null || name.Length == 0)
-                {
-                    if (message.ReplyToMessage == null)
-                    {
-                        name = message.From.Username ?? name;//Can be null
-
-                        name = message.From.FirstName ?? name;//But FirstName can't
-                    }else
-                    {
-                        name = message.ReplyToMessage.From.Username ?? name;//Can be null
-
-                        name = message.ReplyToMessage.From.FirstName ?? name;//But FirstName can't
-                    }
-
-                }                                         // Last name isn't required, this will be unreachable code
-
-                var update_button = new InlineKeyboardButton();
-                update_button.CallbackData = "stats-" + Guid.NewGuid().ToString("n").Substring(0, 8);
-                update_button.Text = strManager["RATE_UPDATE_BTN"];
-
-                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { update_button } });
-
-                string text = string.Empty;
-                try
-                {
-                    text = getStatisticsText(name);
-                }catch(Exception ex)
-                {
-                    inlineKeyboard = null;
-                    text = ex.Message;
-                }
-
-                Logger.Log(LogType.Info, $"User {message.From.FirstName}:{message.From.Id} created info message with Data: {update_button.CallbackData}");
-
-                Message msg = await Bot.SendTextMessageAsync(
-                            chatId: message.Chat.Id,
-                            text: text,
-                            replyMarkup: inlineKeyboard,
-                            parseMode: ParseMode.Markdown);
-
-                bothelper.RegisterCallbackQuery(update_button.CallbackData, 0, name, async (_, o) => 
-                {
-                    string new_text = string.Empty;
-                    try
-                    {
-                        new_text = getStatisticsText(o.obj as string);
-                        
-                    }
-                    catch (Exception ex)
-                    {
-                        new_text = ex.Message;
-                    }
-
-                    try
-                    {
-                        await Bot.EditMessageTextAsync(
-                            chatId: msg.Chat.Id,
-                            messageId: o.Callback.Message.MessageId,
-                            replyMarkup: inlineKeyboard,
-                            text: new_text,
-                            parseMode: ParseMode.Markdown);
-                    }
-                    catch (Exception)
-                    {
-
-                    }
-                });
-            }
-            catch (Exception exp)
-            {
-                Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
-            }
-        }
-
-        private static string getStatisticsText(string search)
-        {
-            using (var db = PerchikDB.Context)
-            {
-                var sw = new Stopwatch();
-                sw.Start();
-
-                string name = search.Replace("@", "");
-
-                long today = DbConverter.ToEpochTime(DateTime.Now.Date);
-                long lastday = DbConverter.ToEpochTime(DateTime.Now.AddDays(-1).Date);
-
-                var user = db.Users
-                    .AsNoTracking()
-                    .Where(u =>
-                        (u.FirstName.Contains(name, StringComparison.OrdinalIgnoreCase)) ||
-                        (u.LastName.Contains(name, StringComparison.OrdinalIgnoreCase)) ||
-                        (u.UserName.Contains(name, StringComparison.OrdinalIgnoreCase)))
-                    .Select(x => new
-                    {
-                        x.Id,
-                        x.Restricted,
-                        x.FirstName,
-                        x.LastName,
-                        x.UserName,
-                        x.Restrictions.OrderByDescending(x => x.Until).FirstOrDefault().Until,
-                        msgLastday = x.Messages.Where(m => m.Date > lastday && m.Date < today).Count(),
-                        msgToday = x.Messages.Where(m => m.Date > today).Count(),
-                        msgTotal = x.Messages.Count,
-                        RestrictionCount = x.Restrictions.Count,
-                        activity = x.Messages.Where(m => m.Date > today).Sum(m => m.Text.Length) /
-                                   (double)db.Messages.Where(m => m.Date > today).Sum(m => m.Text.Length)
-                    })
-                    .FirstOrDefault();
-
-                if (user == null)
-                {
-                    throw new Exception($"*Пользователя \"{search}\" нет в базе.*");
-                }
-
-                TimeSpan remaining = new TimeSpan(0);
-                if (user.Restricted)
-                {
-                    remaining = user.Until - DateTime.Now;
-                }
-
-                sw.Stop();
-
-                return $"*Имя: {user.FirstName} {user.LastName}\n" +
-                            $"ID: {user.Id}\n" +
-                            $"Ник: {user.UserName}\n\n" +
-                            string.Format("Активность: {0:F2}%\n", user.activity * 100) +
-                            $"Сообщений сегодня: { user.msgToday }\n" +
-                            $"Сообщений вчера: { user.msgLastday }\n" +
-                            $"Всего сообщений: { user.msgTotal }\n" +
-                            $"Банов: { user.RestrictionCount }\n\n*" +
-                            (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`\n" }" : "") + 
-                            $"`{sw.ElapsedMilliseconds/1000.0}сек`";
+                           chatId: e.Message.Chat.Id,
+                           text: strManager.GetRandom("HELLO"),
+                           parseMode: ParseMode.Markdown,
+                           replyToMessageId: e.Message.MessageId);
             }
         }
 
@@ -1223,8 +531,7 @@ namespace PerchikSharp
                 }
             }
 
-
-            onPerchikReplyTrigger(sender, message_args);
+            commands.CheckMessage(m);
         }
 
         private static void DatabaseUpdate(object s, Message msg)
@@ -1252,12 +559,6 @@ namespace PerchikSharp
             Message message = message_args.Message;
 
             NSFWDetect(message);
-        }
-
-        private static void onStickerMessage(object sender, MessageArgs message_args)
-        {
-            Message message = message_args.Message;
-
         }
 
         private static async void onChatMembersAddedMessage(object sender, MessageArgs message_args)

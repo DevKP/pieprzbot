@@ -1,18 +1,17 @@
-﻿using System;
+﻿using PerchikSharp.Commands;
+using System;
 using System.Collections.Generic;
-using Telegram.Bot.Args;
-using Telegram.Bot;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types;
-using System.Text.RegularExpressions;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Threading;
-using PerchikSharp;
-using System.Net.Http;
-using PerchikSharp.Commands;
-using System.IO;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Telegram.Bot;
+using Telegram.Bot.Args;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp
 {
@@ -20,6 +19,8 @@ namespace PerchikSharp
     {
         public static string BotVersion = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
+        public event EventHandler<RegExArgs> onNoneRegexMatched;
+        public event EventHandler<RegExArgs> onNameRegexMatched;
         public event EventHandler<MessageArgs> onTextMessage;
         public event EventHandler<MessageArgs> onStickerMessage;
         public event EventHandler<MessageArgs> onPhotoMessage;
@@ -31,7 +32,8 @@ namespace PerchikSharp
         public event EventHandler<MessageArgs> onTextEdited;
         public event EventHandler<PollAnswer> onPollAnswer;
 
-        public Dictionary<INativeCommand, EventHandler<CommandEventArgs>> NativeCommands;
+        public Dictionary<INativeCommand, EventHandler<CommandEventArgs>> nativeCommands;
+        public Dictionary<IRegExCommand, EventHandler<RegExArgs>> regExCommands;
 
         public Dictionary<string, EventHandler<CommandEventArgs>> commandHandlers;
         public Dictionary<InlineButton, EventHandler<CallbackQueryArgs>> queryHandlers; 
@@ -42,6 +44,7 @@ namespace PerchikSharp
         public List<PollAnswer> pollAnswersCache;
 
         public User Me { get; }
+        public string RegexName { get; set; }
         private string bot_username;
 
         public BotHelper() 
@@ -53,7 +56,8 @@ namespace PerchikSharp
             this.nextstepHandlers = new List<BotEventHandlerUnit>();
             this.pollAnswersCache = new List<PollAnswer>();
 
-            this.NativeCommands = new Dictionary<INativeCommand, EventHandler<CommandEventArgs>>();
+            this.nativeCommands = new Dictionary<INativeCommand, EventHandler<CommandEventArgs>>();
+            this.regExCommands = new Dictionary<IRegExCommand, EventHandler<RegExArgs>>();
         }
         public BotHelper(TelegramBotClient bot) : this()
         {
@@ -138,9 +142,8 @@ namespace PerchikSharp
         /// <param name="c">Method to be called.</param>
         public void NativeCommand(INativeCommand command)
         {
-            this.NativeCommands.Add(command, (s, x) => command.OnExecution(s, Program.Bot, x));
+            this.nativeCommands.Add(command, (s, x) => command.OnExecution(s, Program.Bot, x));
         }
-
 
         /// <summary>
         /// Register patterns for searching in messages.
@@ -150,6 +153,11 @@ namespace PerchikSharp
         public void AddRegEx(string pattern, EventHandler<RegExArgs> c)
         {
             this.regexHandlers.Add(pattern, c);
+        }
+
+        public void RegExCommand(IRegExCommand command)
+        {
+            this.regExCommands.Add(command, (s, r) => command.OnExecution(s, Program.Bot, r));
         }
 
         /// <summary>
@@ -352,11 +360,40 @@ namespace PerchikSharp
                         regex.Value?.Invoke(this, rgxArgs);
                     }
                 }
+
+                if (RegexName != null)
+                {
+                    Match m = Regex.Match(message.Text, RegexName, RegexOptions.IgnoreCase);
+                    if (m.Success)
+                    {
+                        message.Text = Regex.Replace(message.Text, RegexName, "", RegexOptions.IgnoreCase);
+                        OnRegexName(message);
+                        this.onNameRegexMatched?.Invoke(this, new RegExArgs(message, m, RegexName));
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Logger.Log(LogType.Error, $"Exception: {ex.Message}");
             }
+        }
+
+        private void OnRegexName(Message msg)
+        {
+            bool Success = false;
+            foreach (var command in regExCommands)
+            {
+                string pattern = command.Key.RegEx;
+                var match = Regex.Match(msg.Text, pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    Success = true;
+                    RegExArgs rgxArgs = new RegExArgs(msg, match, pattern);
+                    command.Value.Invoke(this, rgxArgs);
+                }
+            }
+            if (!Success)
+                onNoneRegexMatched?.Invoke(this, new RegExArgs(msg, null, null));
         }
 
         private void onTextCommandsParsing(object sender, MessageArgs message_args)//TODO: Redo :D
@@ -378,12 +415,18 @@ namespace PerchikSharp
                     }
 
                     CommandEventArgs cmdargs = new CommandEventArgs(message, command, text);
-                    this.NativeCommands
+
+                    this.nativeCommands
                         .Where(nc => nc.Key.Command == match.Groups["command"].Value)
                         .FirstOrDefault()
-                        .Value
+                        .Value?
                         .Invoke(this, cmdargs);
-                    this.commandHandlers[match.Groups["command"].Value]?.Invoke(this, cmdargs);
+
+                    this.commandHandlers
+                        .Where(x => x.Key == match.Groups["command"].Value)
+                        .FirstOrDefault()
+                        .Value?
+                        .Invoke(this, cmdargs);
                 }
             }catch(KeyNotFoundException)
             {
@@ -557,6 +600,11 @@ namespace PerchikSharp
             {
                 Logger.Log(LogType.Error, $"Exception: {e.Message}");
             }
+        }
+        public Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
+        {
+            var until = DateTime.Now.AddSeconds(forSeconds);
+            return BotHelper.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }
 }

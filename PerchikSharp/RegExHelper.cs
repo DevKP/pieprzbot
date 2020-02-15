@@ -7,13 +7,13 @@ using Telegram.Bot.Types;
 
 namespace PerchikSharp
 {
-    class RegExParser
+    class RegExHelper
     {
 
         public event EventHandler<RegExArgs> onNoneMatched;
         private Dictionary<string, EventHandler<RegExArgs>> regExs;
 
-        public RegExParser()
+        public RegExHelper()
         {
             regExs = new Dictionary<string, EventHandler<RegExArgs>>();
         }
