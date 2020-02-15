@@ -339,12 +339,12 @@ namespace PerchikSharp
 
         private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
-            //AddMsgToDatabase(sender, e.Message);
+            AddMsgToDatabase(sender, e.Message);
         }
 
         static void StartDatabaseCheck(object s)
         {
-            //CheckUserRestrictions();
+            CheckUserRestrictions();
         }
 
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
