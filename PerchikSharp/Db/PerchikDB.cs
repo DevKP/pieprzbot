@@ -5,12 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PerchikSharp.Db
 {
     class PerchikDB : DbContext
     {
+        public event EventHandler<EventArgs> onDisposed;
+
         public DbSet<Tables.User> Users { get; set; }
         public DbSet<Tables.Message> Messages { get; set; }
         public DbSet<Tables.Restriction> Restrictions { get; set; }
@@ -21,7 +24,14 @@ namespace PerchikSharp.Db
 
         public PerchikDB()
         {
+
             Database.EnsureCreated();
+        }
+        public override void Dispose()
+        {
+            onDisposed?.Invoke(this, new EventArgs());
+            onDisposed = null;
+            base.Dispose();
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -45,17 +55,46 @@ namespace PerchikSharp.Db
                 .Property(x => x.Id)
                 .ValueGeneratedOnAdd();
         }
+
+        static PerchikDB()
+        {
+            contextPool = new SemaphoreSlim(1);
+        }
+
+
+        static private SemaphoreSlim contextPool;
+        
+        static private int counter = 0;
+        static private object _lock = new object();
+
         static public PerchikDB Context { 
-            get {
-                var obj = new PerchikDB();
-                //obj.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
-                return obj;
+            get
+            {
+                //lock (_lock)
+                //{
+                contextPool.Wait();
+
+                    counter += 1;
+                    Logger.Log(LogType.Info, $"number of contexts: {counter}");
+
+                    var context = new PerchikDB();
+                    context.onDisposed += ActiveContext_onDisposed;
+                    //context.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+                    return context;
+                //}
             }
         }
+
+        private static void ActiveContext_onDisposed(object sender, EventArgs e)
+        {
+            contextPool.Release(1);
+            counter -= 1;
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseMySql(ConnectionString);
-            //optionsBuilder.EnableSensitiveDataLogging();
+            optionsBuilder.EnableSensitiveDataLogging();
         }
 
         public void UpdateUser(Tables.User user)
@@ -103,7 +142,7 @@ namespace PerchikSharp.Db
             this.SaveChanges();
 
         }
-        public void UpsertUser(Tables.User user, long chatId)
+        public async Task UpsertUser(Tables.User user, long chatId)
         {
             var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
             if (existingUser != null)
@@ -113,14 +152,14 @@ namespace PerchikSharp.Db
             }
             else
             {
-                this.Users.Add(user);
-                this.ChatUsers.Add(new Tables.ChatUser()
+                await this.Users.AddAsync(user);
+                await this.ChatUsers.AddAsync(new Tables.ChatUser()
                 {
                     ChatId = chatId,
                     UserId = user.Id
                 });
             }
-            this.SaveChanges();
+            await this.SaveChangesAsync();
         }
         public void UpsertMessage(Tables.Message message)
         {

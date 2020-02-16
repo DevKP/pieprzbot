@@ -122,8 +122,8 @@ namespace PerchikSharp.Commands
                     .Select(x => new
                     {
                         x.Id,
-                        x.Description,
                         x.Restricted,
+                        x.Description,
                         x.FirstName,
                         x.LastName,
                         x.UserName,

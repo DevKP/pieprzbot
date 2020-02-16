@@ -176,7 +176,7 @@ namespace PerchikSharp
             bothelper.NativeCommand(new VotebanCommand());
             bothelper.NativeCommand(new OfftopUnbanCommand());
             bothelper.NativeCommand(new EveryoneCommand());
-            bothelper.NativeCommand(new UserDescriptionCommand());
+            bothelper.NativeCommand(new AboutCommand());
 
             bothelper.NativeCommand(new TestCommand());
 
@@ -527,7 +527,7 @@ namespace PerchikSharp
             commands.CheckMessage(m);
         }
 
-        private static void AddMsgToDatabase(object s, Message msg)
+        private static async void AddMsgToDatabase(object s, Message msg)
         {
             try
             {
@@ -536,7 +536,7 @@ namespace PerchikSharp
 
                     db.UpsertChat(DbConverter.GenChat(msg.Chat));
 
-                    db.UpsertUser(DbConverter.GenUser(msg.From), msg.Chat.Id);
+                    await db.UpsertUser(DbConverter.GenUser(msg.From), msg.Chat.Id);
 
                     db.AddMessage(DbConverter.GenMessage(msg));
                 }

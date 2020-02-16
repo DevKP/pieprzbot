@@ -9,7 +9,7 @@ using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands
 {
-    class UserDescriptionCommand : INativeCommand
+    class AboutCommand : INativeCommand
     {
         public string Command { get { return @"about"; } }
         public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
@@ -28,10 +28,12 @@ namespace PerchikSharp.Commands
                 Message msg = command.Message;
                 using(var db = PerchikDB.Context)
                 {
-                    var user = DbConverter.GenUser(msg.From);
+                    var user = db.Users
+                        .Where(x => x.Id == command.Message.From.Id)
+                        .FirstOrDefault();
                     user.Description = command.Text;
-                    
-                    db.UpsertUser(user, msg.Chat.Id);
+                    db.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                        
                     db.SaveChanges();
                 }
 
