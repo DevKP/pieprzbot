@@ -61,7 +61,7 @@ namespace PerchikSharp
         }
         public BotHelper(TelegramBotClient bot) : this()
         {
-            bot.OnUpdate += this.Bot_OnUpdate;
+            bot.OnUpdate += this.onPollRecieve;
             bot.OnMessage += this.Bot_OnMessageAsync;
             bot.OnMessageEdited += this.Bot_OnMessageEdited;
             bot.OnCallbackQuery += this.Bot_OnCallbackQuery;
@@ -80,7 +80,7 @@ namespace PerchikSharp
             }
         }
 
-        private void Bot_OnUpdate(object sender, UpdateEventArgs e)
+        private void onPollRecieve(object sender, UpdateEventArgs e)
         {
             try
             {
@@ -142,7 +142,8 @@ namespace PerchikSharp
         /// <param name="c">Method to be called.</param>
         public void NativeCommand(INativeCommand command)
         {
-            this.nativeCommands.Add(command, (s, x) => command.OnExecution(s, Program.Bot, x));
+            this.nativeCommands.Add(command, (s, x) => 
+                Task.Run(() => command.OnExecution(s, Program.Bot, x)));
         }
 
         /// <summary>
@@ -367,7 +368,7 @@ namespace PerchikSharp
                     if (m.Success)
                     {
                         message.Text = Regex.Replace(message.Text, RegexName, "", RegexOptions.IgnoreCase);
-                        OnRegexName(message);
+                        this.OnRegexName(message);
                         this.onNameRegexMatched?.Invoke(this, new RegExArgs(message, m, RegexName));
                     }
                 }

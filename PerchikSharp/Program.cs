@@ -466,12 +466,12 @@ namespace PerchikSharp
 
                     if (ENABLE_FILTER)
                     {
-                        _ = Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+                        await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
 
                         if (message.Chat.Type != ChatType.Private)
                         {
                             var until = DateTime.Now.AddSeconds(120);
-                            _ = BotHelper.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
+                            await BotHelper.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
                             await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
@@ -577,13 +577,13 @@ namespace PerchikSharp
                 else { username = BotHelper.MakeUserLink(message.From); }
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
-                _ = Bot.SendTextMessageAsync(message.Chat.Id, msg_string, ParseMode.Markdown);
+                await Bot.SendTextMessageAsync(message.Chat.Id, msg_string, ParseMode.Markdown);
 
 
                 if(message.From.Id == via_tcp_Id)
                 {
                     Thread.Sleep(2000);
-                    _ = Bot.PromoteChatMemberAsync(message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
+                    await Bot.PromoteChatMemberAsync(message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
                 }
 
 

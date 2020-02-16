@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -15,6 +16,7 @@ namespace PerchikSharp.Commands
     class StatisticsCommand : IRegExCommand
     {
         public string RegEx { get { return @"инфо\s?(?<name>[\w\W\s]+)?"; } }
+
         public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
         {
             try
