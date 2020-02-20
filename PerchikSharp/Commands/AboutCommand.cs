@@ -26,7 +26,7 @@ namespace PerchikSharp.Commands
                 }
 
                 Message msg = command.Message;
-                using(var db = PerchikDB.Context)
+                using(var db = PerchikDB.GetContext())
                 {
                     var user = db.Users
                         .Where(x => x.Id == command.Message.From.Id)

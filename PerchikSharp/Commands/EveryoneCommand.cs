@@ -29,7 +29,7 @@ namespace PerchikSharp.Commands
                     return;
 
 
-                using (var db = PerchikDB.Context)
+                using (var db = PerchikDB.GetContext())
                 {
                     var users = db.Users.ToList();
                     string message_str = string.Empty;

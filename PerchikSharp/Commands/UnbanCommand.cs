@@ -28,7 +28,7 @@ namespace PerchikSharp.Commands
                 var until = DateTime.Now.AddSeconds(1);
                 await BotHelper.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
-                using (var db = PerchikDB.Context)
+                using (var db = PerchikDB.GetContext())
                 {
                     var existingUser = db.Users
                         .Where(x => x.Id == message.ReplyToMessage.From.Id)

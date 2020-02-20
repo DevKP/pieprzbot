@@ -44,7 +44,7 @@ namespace PerchikSharp.Commands
 
                 string username = command.Text.Replace("@", "");
 
-                using (var db = PerchikDB.Context)
+                using (var db = PerchikDB.GetContext())
                 {
 
                     var user = db.Users

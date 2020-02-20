@@ -19,6 +19,7 @@ namespace PerchikSharp.Commands
 
         public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
         {
+           
             try
             {
                 Message message = command.Message;
@@ -65,7 +66,8 @@ namespace PerchikSharp.Commands
                             replyMarkup: inlineKeyboard,
                             parseMode: ParseMode.Markdown);
 
-                (sender as BotHelper).RegisterCallbackQuery(update_button.CallbackData, 0, name, async (_, o) =>
+                BotHelper botHelper = (sender as BotHelper);
+                botHelper.RegisterCallbackQuery(update_button.CallbackData, 0, name, async (_, o) =>
                 {
                     string new_text = string.Empty;
                     try
@@ -101,11 +103,10 @@ namespace PerchikSharp.Commands
 
         private static string getStatisticsText(string search)
         {
-            using (var db = PerchikDB.Context)
+            var sw = new Stopwatch();
+            sw.Start();
+            using (var db = PerchikDB.GetContext())
             {
-                var sw = new Stopwatch();
-                sw.Start();
-
                 string name = search.Replace("@", "");
 
                 long today = DbConverter.ToEpochTime(DateTime.Now.Date);
@@ -148,8 +149,8 @@ namespace PerchikSharp.Commands
                     remaining = user.Until - DateTime.Now;
                 }
 
-                sw.Stop();
 
+                sw.Stop();
                 return $"*Имя: {user.FirstName} {user.LastName}\n*" +
                             $"*ID: {user.Id}\n*" +
                             $"*Ник:  {user.UserName}*\n\n" +

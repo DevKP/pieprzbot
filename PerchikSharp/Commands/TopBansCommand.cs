@@ -15,7 +15,7 @@ namespace PerchikSharp.Commands
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            using (var db = PerchikDB.Context)
+            using (var db = PerchikDB.GetContext())
             {
                 Message message = command.Message;
 

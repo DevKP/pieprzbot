@@ -25,13 +25,7 @@ namespace PerchikSharp.Db
         public PerchikDB()
         {
 
-            Database.EnsureCreated();
-        }
-        public override void Dispose()
-        {
-            onDisposed?.Invoke(this, new EventArgs());
-            onDisposed = null;
-            base.Dispose();
+            //Database.EnsureCreated();
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -63,38 +57,20 @@ namespace PerchikSharp.Db
 
 
         static private SemaphoreSlim contextPool;
-        
-        static private int counter = 0;
-        static private object _lock = new object();
-
-        static public PerchikDB Context { 
-            get
-            {
-                //lock (_lock)
-                //{
-                contextPool.Wait();
-
-                    counter += 1;
-                    Logger.Log(LogType.Info, $"number of contexts: {counter}");
-
-                    var context = new PerchikDB();
-                    context.onDisposed += ActiveContext_onDisposed;
-                    //context.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
-                    return context;
-                //}
-            }
-        }
-
-        private static void ActiveContext_onDisposed(object sender, EventArgs e)
+        static public PerchikDB GetContext()
         {
-            contextPool.Release(1);
-            counter -= 1;
+
+            //contextPool.Wait();
+            var context = new PerchikDB();
+            //context.onDisposed += (_, x) => contextPool.Release(1);
+            //context.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
+            return context;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseMySql(ConnectionString);
-            optionsBuilder.EnableSensitiveDataLogging();
+           // optionsBuilder.EnableSensitiveDataLogging();
         }
 
         public void UpdateUser(Tables.User user)

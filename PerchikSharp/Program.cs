@@ -196,7 +196,7 @@ namespace PerchikSharp
                 var messages_old = database.GetRows<PersikSharp.Tables.DbMessage>();
                 var restriction_old = database.GetRows<PersikSharp.Tables.DbRestriction>();
 
-                using (var db = PerchikDB.Context)
+                using (var db = PerchikDB.GetContext())
                 {
                     var existingChat = db.Chats.Where(x => x.Id == -1001125742098).FirstOrDefault();
                     var new_chat = new Db.Tables.Chat()
@@ -216,7 +216,7 @@ namespace PerchikSharp
                 {
                     try
                     {
-                        using (var db = PerchikDB.Context)
+                        using (var db = PerchikDB.GetContext())
                         {
                             var new_user = new Db.Tables.User()
                             {
@@ -254,7 +254,7 @@ namespace PerchikSharp
                 {
                     try
                     {
-                        using (var db = PerchikDB.Context)
+                        using (var db = PerchikDB.GetContext())
                         {
 
                             //db.Database.AutoDetectChangesEnabled = false;
@@ -287,7 +287,7 @@ namespace PerchikSharp
                     try
                     {
 
-                        using (var db = PerchikDB.Context)
+                        using (var db = PerchikDB.GetContext())
                         {
                             db.Restrictions.Add(new Db.Tables.Restriction()
                             {
@@ -339,7 +339,7 @@ namespace PerchikSharp
 
         private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
-            AddMsgToDatabase(sender, e.Message);
+           Task.Run(() => AddMsgToDatabase(sender, e.Message));
         }
 
         static void StartDatabaseCheck(object s)
@@ -357,17 +357,22 @@ namespace PerchikSharp
         {
             try
             {
-                using (var dbv2 = PerchikDB.Context)
+                using (var dbv2 = PerchikDB.GetContext())
                 {
                     var users = dbv2.Users
                         .AsNoTracking()
-                        .Include(x => x.Restrictions)
                         .Where(u => u.Restricted)
+                        .Select(x => new 
+                        {
+                            x.Id,
+                            x.FirstName,
+                            Restriction = x.Restrictions.FirstOrDefault()
+                        })
                         .ToList();
 
                     foreach (var user in users)
                     {
-                        var restriction = user.Restrictions.LastOrDefault();
+                        var restriction = user.Restriction;
                         if (DateTime.Now > restriction.Until)
                         {
                             dbv2.Users
@@ -531,7 +536,7 @@ namespace PerchikSharp
         {
             try
             {
-                using (var db = PerchikDB.Context)
+                using (var db = PerchikDB.GetContext())
                 {
 
                     db.UpsertChat(DbConverter.GenChat(msg.Chat));
@@ -559,7 +564,7 @@ namespace PerchikSharp
             try
             {
                 Chat telegram_chat = await Bot.GetChatAsync(message_args.Message.Chat.Id);
-                using (var db = PerchikDB.Context)
+                using (var db = PerchikDB.GetContext())
                 {
                     db.UpsertChat(DbConverter.GenChat(telegram_chat));
                 }
@@ -577,7 +582,7 @@ namespace PerchikSharp
                 else { username = BotHelper.MakeUserLink(message.From); }
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
-                await Bot.SendTextMessageAsync(message.Chat.Id, msg_string, ParseMode.Markdown);
+                await Bot.SendTextMessageAsync(message.Chat.Id, msg_string, ParseMode.Html);
 
 
                 if(message.From.Id == via_tcp_Id)

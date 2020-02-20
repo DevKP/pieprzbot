@@ -94,7 +94,7 @@ namespace PerchikSharp.Commands
                             parseMode: ParseMode.Markdown);
                     }
 
-                    using (var db = PerchikDB.Context)
+                    using (var db = PerchikDB.GetContext())
                     {
                         var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(seconds));
                         db.AddRestriction(restriction);
@@ -116,7 +116,7 @@ namespace PerchikSharp.Commands
                             text: String.Format(Program.strManager.GetSingle("SELF_BANNED"), BotHelper.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        using (var db = PerchikDB.Context)
+                        using (var db = PerchikDB.GetContext())
                         {
                             var restriction = DbConverter.GenRestriction(message, DateTime.Now.AddSeconds(seconds));
                             db.AddRestriction(restriction);
@@ -133,7 +133,7 @@ namespace PerchikSharp.Commands
                             text: String.Format(Program.strManager.GetSingle("SELF_BANNED"), BotHelper.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        using (var db = PerchikDB.Context)
+                        using (var db = PerchikDB.GetContext())
                         {
                             var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(40));
                             db.AddRestriction(restriction);

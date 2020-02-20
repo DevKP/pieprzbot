@@ -93,7 +93,7 @@ namespace PerchikSharp
                         {
                             if (poll.Key == update.Poll.Id)
                             {
-                                PollAnswer pollanswer = this.pollAnswersCache.Where((p) => p.PollId == update.Poll.Id).LastOrDefault();
+                                PollAnswer pollanswer = this.pollAnswersCache.LastOrDefault(p => p.PollId == update.Poll.Id);
                                 poll.Value?.Invoke(this, new PollArgs(update.Poll, pollanswer));
                             }
                         }
@@ -158,7 +158,8 @@ namespace PerchikSharp
 
         public void RegExCommand(IRegExCommand command)
         {
-            this.regExCommands.Add(command, (s, r) => command.OnExecution(s, Program.Bot, r));
+            this.regExCommands.Add(command, (s, r) => 
+                Task.Factory.StartNew(() => command.OnExecution(s, Program.Bot, r)));
         }
 
         /// <summary>
@@ -262,8 +263,7 @@ namespace PerchikSharp
 
         private void Bot_OnMessageAsync(object sender, MessageEventArgs e)
         {
-            Thread thread = new Thread(() => Bot_OnMessage(sender, e));
-            thread.Start();
+            Task.Run(() => Bot_OnMessage(sender, e));
         }
 
         private void Bot_OnMessage(object sender, MessageEventArgs e)
@@ -340,8 +340,7 @@ namespace PerchikSharp
 
         private void RegEx_OnMessageAsync(object sender, MessageArgs e)
         {
-            Thread thread = new Thread(() => RegEx_OnMessage(sender, e));
-            thread.Start();
+            Task.Run(() => RegEx_OnMessage(sender, e));
         }
         private void RegEx_OnMessage(object sender, MessageArgs e)
         {
