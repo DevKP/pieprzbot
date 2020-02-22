@@ -7,12 +7,8 @@ namespace PerchikSharp
 {
     public class CommandEventArgs : EventArgs
     {
-        public CommandEventArgs(Message m, string command, string text)
-        { 
-            Message = m;
-            Command = command;
-            Text = text;
-        }
+        public CommandEventArgs(Message m, string command, string text) =>
+            (Message, Command, Text) = (m, command, text);
         public Message Message { get; }
         public string Command { get; }
         public string Text { get; }

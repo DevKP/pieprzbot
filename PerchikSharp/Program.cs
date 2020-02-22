@@ -366,7 +366,9 @@ namespace PerchikSharp
                         {
                             x.Id,
                             x.FirstName,
-                            Restriction = x.Restrictions.FirstOrDefault()
+                            Restriction = x.Restrictions
+                                            .OrderByDescending(x => x.Until)
+                                            .FirstOrDefault()
                         })
                         .ToList();
 
@@ -376,8 +378,7 @@ namespace PerchikSharp
                         if (DateTime.Now > restriction.Until)
                         {
                             dbv2.Users
-                                .Where(u => u.Id == user.Id)
-                                .FirstOrDefault()
+                                .FirstOrDefault(u => u.Id == user.Id)
                                 .Restricted = false;
 
                             dbv2.SaveChanges();

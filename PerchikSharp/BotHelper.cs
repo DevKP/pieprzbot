@@ -217,8 +217,8 @@ namespace PerchikSharp
 		
         public void RemoveNextstepCallback(Message message)
         {
-            var waitingMessages = this.nextstepHandlers.Where(unit => unit.userId == message.From.Id
-                && unit.chatId == message.Chat.Id);
+            var waitingMessages = this.nextstepHandlers.Where(unit =>
+                                   (unit.userId, unit.chatId) == (message.From.Id, message.Chat.Id));
             if (waitingMessages.Any())
             {
                 var waitingMessage = waitingMessages.First();
@@ -417,14 +417,12 @@ namespace PerchikSharp
                     CommandEventArgs cmdargs = new CommandEventArgs(message, command, text);
 
                     this.nativeCommands
-                        .Where(nc => nc.Key.Command == match.Groups["command"].Value)
-                        .FirstOrDefault()
+                        .FirstOrDefault(nc => nc.Key.Command == match.Groups["command"].Value)
                         .Value?
                         .Invoke(this, cmdargs);
 
                     this.commandHandlers
-                        .Where(x => x.Key == match.Groups["command"].Value)
-                        .FirstOrDefault()
+                        .FirstOrDefault(x => x.Key == match.Groups["command"].Value)
                         .Value?
                         .Invoke(this, cmdargs);
                 }
@@ -441,17 +439,9 @@ namespace PerchikSharp
                 client.BaseAddress = new Uri(url);
 
                 HttpResponseMessage response = await client.GetAsync(url);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    string strResult = await response.Content.ReadAsStringAsync();
-
-                    return strResult;
-                }
-                else
-                {
-                    return null;
-                }
+                return response.IsSuccessStatusCode
+                    ? await response.Content.ReadAsStringAsync()
+                    : null;
             }
         }
 
@@ -468,10 +458,9 @@ namespace PerchikSharp
             var bot_username = Program.Bot.GetMeAsync().Result.Username;
             var match = Regex.Match(text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
 
-            if (match.Success)
-                return match.Groups["command"].Value.Equals(command);
-            else
-                return false;
+            return match.Success
+                ? match.Groups["command"].Value.Equals(command)
+                : false;
         }
 
         /// <summary>

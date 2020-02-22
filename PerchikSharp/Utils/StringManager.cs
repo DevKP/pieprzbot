@@ -21,7 +21,7 @@ namespace PerchikSharp
         /// <param name="s">Key for the string in the dictionary.</param>
         public string this[string s]
         {
-            get { return this.GetRandom(s); }
+            get => this.GetRandom(s); 
         }
 
         private List<string> _get_value(string key)
@@ -48,11 +48,8 @@ namespace PerchikSharp
         /// <param name="path">Path to text file.</param>
         public static string FromFile(string path)
         {
-            if (path == null)
-                throw new ArgumentNullException();
-
-            if (path.Length == 0)
-                throw new ArgumentException();
+            _ = path ?? throw new ArgumentNullException(nameof(path));
+            _ = path.Length == 0 ? throw new ArgumentException(nameof(path.Length)) : path; 
 
             string readContents;
             using (StreamReader streamReader = new StreamReader(path, Encoding.UTF8))
@@ -68,8 +65,7 @@ namespace PerchikSharp
 
         public StringManager(string json_path)
         {
-            if (json_path == null)
-                throw new ArgumentNullException();
+            _ = json_path ?? throw new ArgumentNullException(nameof(json_path));
 
             try
             {
@@ -90,8 +86,7 @@ namespace PerchikSharp
 
         public StringManager(FileStream file)
         {
-            if (file == null)
-                throw new ArgumentNullException();
+            _ = file ?? throw new ArgumentNullException(nameof(file));
 
             string readContents;
             using (StreamReader reader = new StreamReader(file))
@@ -131,11 +126,8 @@ namespace PerchikSharp
         /// <param name="key">Key for the string in the dictionary.</param>
         public List<string> GetList(string key)
         {
-            if (key == null)
-                throw new ArgumentNullException();
-
-            if (dict == null)
-                throw new NullReferenceException();
+            _ = key ?? throw new ArgumentNullException(nameof(key));
+            _ = dict ?? throw new NullReferenceException(nameof(dict));
 
             return this._get_value(key);
         }
@@ -149,11 +141,8 @@ namespace PerchikSharp
         /// <param name="key">Key for the string in the dictionary.</param>
         public string GetRandom(string key)
         {
-            if (key == null)
-                throw new ArgumentNullException();
-
-            if (this.dict == null)
-                throw new NullReferenceException();
+            _ = key ?? throw new ArgumentNullException(nameof(key));
+            _ = dict ?? throw new NullReferenceException(nameof(dict));
 
             List<string> strings = this._get_value(key);
             if (strings.Count > 1)
@@ -171,11 +160,8 @@ namespace PerchikSharp
         /// <param name="key">Key for the string in the dictionary.</param>
         public string GetSingle(string key)
         {
-            if (key == null)
-                throw new ArgumentNullException();
-
-            if (this.dict == null)
-                throw new NullReferenceException();
+            _ = key ?? throw new ArgumentNullException(nameof(key));
+            _ = dict ?? throw new NullReferenceException(nameof(dict));
 
             return this._get_value(key).First();
         }
@@ -188,8 +174,7 @@ namespace PerchikSharp
         /// </returns>
         public List<string> GetAll()
         {
-            if (this.dict == null)
-                throw new NullReferenceException();
+            _ = dict ?? throw new NullReferenceException(nameof(dict));
 
             return this.dict.Values.SelectMany(x => x).ToList();
         }
@@ -202,8 +187,7 @@ namespace PerchikSharp
         /// </returns>
         public List<string> GetKeysList()
         {
-            if (this.dict == null)
-                throw new NullReferenceException();
+            _ = dict ?? throw new NullReferenceException(nameof(dict));
 
             return new List<string>(this.dict.Keys);
         }

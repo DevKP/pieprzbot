@@ -7,7 +7,7 @@ namespace PerchikSharp
 {
     public class MessageArgs : EventArgs
     {
-        public MessageArgs(Message m) { Message = m; }
+        public MessageArgs(Message m) => Message = m;
         public Message Message { get; }
     }
 }

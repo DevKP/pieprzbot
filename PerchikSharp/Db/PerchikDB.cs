@@ -97,6 +97,7 @@ namespace PerchikSharp.Db
             if (existingUser != null)
             {
                 Restrictions.Add(restr);
+                SaveChanges();
                 existingUser.Restricted = true;
                 SaveChanges();
             }
