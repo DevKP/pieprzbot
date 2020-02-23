@@ -12,20 +12,18 @@ namespace PerchikSharp.Db
 {
     class PerchikDB : DbContext
     {
-        public event EventHandler<EventArgs> onDisposed;
-
         public DbSet<Tables.User> Users { get; set; }
         public DbSet<Tables.Message> Messages { get; set; }
         public DbSet<Tables.Restriction> Restrictions { get; set; }
         public DbSet<Tables.Chat> Chats { get; set; }
         public DbSet<Tables.ChatUser> ChatUsers { get; set; }
+        public DbSet<Tables.Pidr> Pidrs { get; set; }
 
         public static string ConnectionString { get; set; }
 
         public PerchikDB()
         {
-
-            //Database.EnsureCreated();
+            Database.EnsureCreated();
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -6,10 +6,22 @@ namespace PerchikSharp.Db
 {
     class DbConverter
     {
+        public static Tables.Pidr GenPidr(Telegram.Bot.Types.Message message)
+        {
+            _ = message ?? throw new ArgumentNullException(nameof(message));
+
+            return new Tables.Pidr()
+            {
+                UserId = message.From.Id,
+                ChatId = message.Chat.Id,
+                Date = DateTime.Now
+            };
+
+        }
         public static Tables.User GenUser(Telegram.Bot.Types.User user)
         {
-            if (user == null)
-                throw new ArgumentNullException(nameof(user));
+            _ = user ?? throw new ArgumentNullException(nameof(user));
+                
 
             return new Tables.User()
             {
@@ -22,8 +34,7 @@ namespace PerchikSharp.Db
         }
         public static Tables.Chat GenChat(Telegram.Bot.Types.Chat chat)
         {
-            if (chat == null)
-                throw new ArgumentNullException(nameof(chat));
+            _ = chat ?? throw new ArgumentNullException(nameof(chat));
 
             return new Tables.Chat()
             {
@@ -34,8 +45,7 @@ namespace PerchikSharp.Db
         }
         public static Tables.Message GenMessage(Telegram.Bot.Types.Message message)
         {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
+            _ = message ?? throw new ArgumentNullException(nameof(message));
 
             return new Tables.Message()
             {
@@ -49,8 +59,7 @@ namespace PerchikSharp.Db
         }
         public static Tables.Restriction GenRestriction(Telegram.Bot.Types.Message message, DateTime until)
         {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
+            _ = message ?? throw new ArgumentNullException(nameof(message));
 
             return new Tables.Restriction()
             {
