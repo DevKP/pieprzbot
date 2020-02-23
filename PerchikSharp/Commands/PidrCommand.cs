@@ -20,7 +20,7 @@ namespace PerchikSharp.Commands
                 var pidr =
                     db.Pidrs
                     .AsNoTracking()
-                    .Where(p => p.UserId == msg.From.Id && p.ChatId == msg.Chat.Id && p.Date.Date == DateTime.Now.Date)
+                    .Where(p => p.ChatId == msg.Chat.Id && p.Date.Date == DateTime.Now.Date)
                     .Select(x => new
                     {
                         x.UserId,
