@@ -177,6 +177,7 @@ namespace PerchikSharp
             bothelper.NativeCommand(new OfftopUnbanCommand());
             bothelper.NativeCommand(new EveryoneCommand());
             bothelper.NativeCommand(new AboutCommand());
+            bothelper.NativeCommand(new PidrCommand());
 
             bothelper.NativeCommand(new TestCommand());
 
