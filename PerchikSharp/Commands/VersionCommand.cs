@@ -16,7 +16,7 @@ namespace PerchikSharp.Commands
             {
                 await bot.SendTextMessageAsync(
                        chatId: command.Message.Chat.Id,
-                       text: $"*Version: {BotHelper.BotVersion}*",
+                       text: $"*Version: {Pieprz.BotVersion}*",
                        parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)

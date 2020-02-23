@@ -30,7 +30,7 @@ namespace PerchikSharp.Commands
                 cq.From = msg.From;
 
                 onRateUpdate(sender, new CallbackQueryArgs(cq));
-                (sender as BotHelper).CallbackQuery("update_rate", this.onRateUpdate);
+                (sender as Pieprz).CallbackQuery("update_rate", this.onRateUpdate);
             }
             catch (Exception e)
             {

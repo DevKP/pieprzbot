@@ -15,7 +15,7 @@ using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp
 {
-    class BotHelper
+    class Pieprz : TelegramBotClient
     {
         public static string BotVersion = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
@@ -47,7 +47,7 @@ namespace PerchikSharp
         public string RegexName { get; set; }
         private string bot_username;
 
-        public BotHelper() 
+        public Pieprz(string token) : base(token)
         {
             this.commandHandlers = new Dictionary<string, EventHandler<CommandEventArgs>>();
             this.queryHandlers = new Dictionary<InlineButton, EventHandler<CallbackQueryArgs>>();
@@ -58,18 +58,17 @@ namespace PerchikSharp
 
             this.nativeCommands = new Dictionary<INativeCommand, EventHandler<CommandEventArgs>>();
             this.regExCommands = new Dictionary<IRegExCommand, EventHandler<RegExArgs>>();
-        }
-        public BotHelper(TelegramBotClient bot) : this()
-        {
-            bot.OnUpdate += this.onPollRecieve;
-            bot.OnMessage += this.Bot_OnMessageAsync;
-            bot.OnMessageEdited += this.Bot_OnMessageEdited;
-            bot.OnCallbackQuery += this.Bot_OnCallbackQuery;
-           
+
+
+            this.OnUpdate += this.onPollRecieve;
+            this.OnMessage += this.Bot_OnMessageAsync;
+            this.OnMessageEdited += this.Bot_OnMessageEdited;
+            this.OnCallbackQuery += this.Bot_OnCallbackQuery;
+
 
             try
             {
-                this.Me = bot.GetMeAsync().Result;
+                this.Me = this.GetMeAsync().Result;
                 this.bot_username = this.Me.Username;
             }
             catch (Exception exc)
@@ -593,7 +592,7 @@ namespace PerchikSharp
         public Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.Now.AddSeconds(forSeconds);
-            return BotHelper.RestrictUserAsync(chatId.Identifier, userId, until);
+            return Pieprz.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }
 }

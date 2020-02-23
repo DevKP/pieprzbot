@@ -24,19 +24,19 @@ namespace PerchikSharp.Commands
                 if (rand.Next(0, 6) == 3)
                 {
                     var until = DateTime.Now.AddSeconds(10 * 60); //10 minutes
-                    await BotHelper.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
+                    await Pieprz.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
 
                     await bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(Program.strManager.GetRandom("ROULETTEBAN"), BotHelper.MakeUserLink(message.From)),
+                        text: String.Format(Program.strManager.GetRandom("ROULETTEBAN"), Pieprz.MakeUserLink(message.From)),
                         parseMode: ParseMode.Markdown);
                 }
                 else
                 {
                     var msg = bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(Program.strManager.GetRandom("ROULETTEMISS"), BotHelper.MakeUserLink(message.From)),
+                        text: String.Format(Program.strManager.GetRandom("ROULETTEMISS"), Pieprz.MakeUserLink(message.From)),
                         parseMode: ParseMode.Markdown).Result;
 
                     Thread.Sleep(10 * 1000); //wait 10 seconds

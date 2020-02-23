@@ -16,7 +16,7 @@ namespace PerchikSharp.Commands
 
             if (message.Chat.Type == ChatType.Private)
                 return;
-            if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
+            if (!Pieprz.isUserAdmin(message.Chat.Id, message.From.Id))
                 return;
             if (message.ReplyToMessage == null)
                 return;
@@ -29,7 +29,7 @@ namespace PerchikSharp.Commands
 
                 await bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: string.Format(Program.strManager.GetRandom("KICK"), BotHelper.MakeUserLink(message.ReplyToMessage.From)),
+                        text: string.Format(Program.strManager.GetRandom("KICK"), Pieprz.MakeUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)

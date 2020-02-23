@@ -24,9 +24,9 @@ namespace PerchikSharp
 {
     class Program
     {
-        public static TelegramBotClient Bot;
+        public static Pieprz Bot;
         static ClarifaiClient clarifai;
-        static BotHelper bothelper;
+        //static BotHelper Bot;
         public static StringManager strManager = new StringManager();
         public static StringManager tokens = new StringManager();
         static RegExHelper commands;
@@ -42,7 +42,7 @@ namespace PerchikSharp
         static void Main(string[] args)
         {
 
-            Logger.Log(LogType.Info, $"Bot version: {BotHelper.BotVersion}");
+            Logger.Log(LogType.Info, $"Bot version: {Pieprz.BotVersion}");
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
@@ -92,12 +92,12 @@ namespace PerchikSharp
             }
 
 
-            Console.Title = bothelper.Me.FirstName;
+            Console.Title = Bot.Me.FirstName;
 
             try
             {
                 Bot.StartReceiving(Array.Empty<UpdateType>());
-                Logger.Log(LogType.Info, $"Start listening for @{bothelper.Me.Username}");
+                Logger.Log(LogType.Info, $"Start listening for @{Bot.Me.Username}");
             }
             catch (Exception e)
             {
@@ -121,13 +121,11 @@ namespace PerchikSharp
         {
             try
             {
-                Bot = new TelegramBotClient(tokens["TELEGRAM"]);
+                Bot = new Pieprz(tokens["TELEGRAM"]);
                 clarifai = new ClarifaiClient(tokens["CLARIFAI"]);
 
                 if (clarifai.HttpClient.ApiKey == string.Empty)
                     throw new ArgumentException("CLARIFAI token isn't valid!");
-
-                bothelper = new BotHelper(Bot);
             }
             catch (FileNotFoundException e)
             {
@@ -142,56 +140,57 @@ namespace PerchikSharp
                 Environment.Exit(1);
             }
 
-            bothelper.onTextMessage += onTextMessage;
-            bothelper.onPhotoMessage += onPhotoMessage;
-            bothelper.onChatMembersAddedMessage += onChatMembersAddedMessage;
-            bothelper.onDocumentMessage += onDocumentMessage;
+            Bot.onTextMessage += onTextMessage;
+            Bot.onPhotoMessage += onPhotoMessage;
+            Bot.onChatMembersAddedMessage += onChatMembersAddedMessage;
+            Bot.onDocumentMessage += onDocumentMessage;
             Bot.OnMessage += Bot_OnMessage;
 
-            bothelper.RegexName = strManager["BOT_REGX"];
-            bothelper.RegExCommand(new TestRegExCommand());
-            bothelper.RegExCommand(new WeatherCommand());
-            bothelper.RegExCommand(new WeatherForecastCommand());
-            bothelper.RegExCommand(new UnbanCommand());
-            bothelper.RegExCommand(new StatisticsCommand());
-            bothelper.RegExCommand(new RoulletteCommand());
-            bothelper.RegExCommand(new RandomCommand());
-            bothelper.RegExCommand(new BanCommand());
-            bothelper.RegExCommand(new KickCommand());
-            bothelper.RegExCommand(new PraiseCommand());
-            bothelper.RegExCommand(new InsultingCommand());
-            bothelper.RegExCommand(new ByWordCommand());           
-            bothelper.onNoneRegexMatched += onPerchikCommand;
+            Bot.RegexName = strManager["BOT_REGX"];
+            Bot.RegExCommand(new TestRegExCommand());
+            Bot.RegExCommand(new WeatherCommand());
+            Bot.RegExCommand(new WeatherForecastCommand());
+            Bot.RegExCommand(new UnbanCommand());
+            Bot.RegExCommand(new StatisticsCommand());
+            Bot.RegExCommand(new RoulletteCommand());
+            Bot.RegExCommand(new RandomCommand());
+            Bot.RegExCommand(new BanCommand());
+            Bot.RegExCommand(new KickCommand());
+            Bot.RegExCommand(new PraiseCommand());
+            Bot.RegExCommand(new InsultingCommand());
+            Bot.RegExCommand(new ByWordCommand());           
+            Bot.onNoneRegexMatched += onPerchikCommand;
 
 
-            bothelper.NativeCommand(new StartCommand());
-            bothelper.NativeCommand(new InfoCommand());
-            bothelper.NativeCommand(new RateCommand());
-            bothelper.NativeCommand(new MeCommand());
-            bothelper.NativeCommand(new VersionCommand());
-            bothelper.NativeCommand(new PickleCommand());
-            bothelper.NativeCommand(new StickerCommand());
-            bothelper.NativeCommand(new TopBansCommand());
-            bothelper.NativeCommand(new TopCommand());
-            bothelper.NativeCommand(new VotebanCommand());
-            bothelper.NativeCommand(new OfftopUnbanCommand());
-            bothelper.NativeCommand(new EveryoneCommand());
-            bothelper.NativeCommand(new AboutCommand());
-            bothelper.NativeCommand(new PidrCommand());
+            Bot.NativeCommand(new StartCommand());
+            Bot.NativeCommand(new InfoCommand());
+            Bot.NativeCommand(new RateCommand());
+            Bot.NativeCommand(new MeCommand());
+            Bot.NativeCommand(new VersionCommand());
+            Bot.NativeCommand(new PickleCommand());
+            Bot.NativeCommand(new StickerCommand());
+            Bot.NativeCommand(new TopBansCommand());
+            Bot.NativeCommand(new TopCommand());
+            Bot.NativeCommand(new VotebanCommand());
+            Bot.NativeCommand(new OfftopUnbanCommand());
+            Bot.NativeCommand(new EveryoneCommand());
+            Bot.NativeCommand(new AboutCommand());
+            Bot.NativeCommand(new PidrCommand());
+            Bot.NativeCommand(new DeleteCommand());
 
-            bothelper.NativeCommand(new TestCommand());
+            Bot.NativeCommand(new TestCommand());
 
-            commands.AddRegEx("(420|трав(к)?а|шишки|марихуана)", (_, e) =>
+            commands.AddRegEx("(420|трав(к)?а|шишки|марихуана)", (EventHandler<RegExArgs>)((_, e) =>
             {
-                Bot.SendStickerAsync(e.Message.Chat.Id,
-                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
+                Program.Bot.SendStickerAsync((ChatId)e.Message.Chat.Id,
+(Telegram.Bot.Types.InputFiles.InputOnlineFile)                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
                     replyToMessageId: e.Message.MessageId);
-            });
+            }));
 
 
-            bothelper.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
+            Bot.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
-            bothelper.NativeCommand("migr", (_, e) =>
+            Bot.NativeCommand("migr", (_, e) =>
             {
                 var users_old = database.GetRows<PersikSharp.Tables.DbUser>();
                 var messages_old = database.GetRows<PersikSharp.Tables.DbMessage>();
@@ -351,7 +350,7 @@ namespace PerchikSharp
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.Now.AddSeconds(forSeconds);
-            return BotHelper.RestrictUserAsync(chatId.Identifier, userId, until);
+            return Pieprz.RestrictUserAsync(chatId.Identifier, userId, until);
         }
 
         static async void CheckUserRestrictions()
@@ -469,7 +468,7 @@ namespace PerchikSharp
 
                 if ((float)nsfw_val > 0.7)
                 {
-                    await BotHelper.SaveFileAsync(file.FileId, "./Data/nsfw");
+                    await Pieprz.SaveFileAsync(file.FileId, "./Data/nsfw");
 
                     if (ENABLE_FILTER)
                     {
@@ -478,7 +477,7 @@ namespace PerchikSharp
                         if (message.Chat.Type != ChatType.Private)
                         {
                             var until = DateTime.Now.AddSeconds(120);
-                            await BotHelper.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
+                            await Pieprz.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
                             await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
@@ -489,7 +488,7 @@ namespace PerchikSharp
                 }
                 else
                 {
-                    await BotHelper.SaveFileAsync(file.FileId, "./Data/photos");
+                    await Pieprz.SaveFileAsync(file.FileId, "./Data/photos");
                 }
             }
             catch (Exception exp)
@@ -506,7 +505,7 @@ namespace PerchikSharp
 
             try
             {
-                await BotHelper.SaveFileAsync(message.Document.FileId, "./Data/documents", message.Document.FileName);
+                await Pieprz.SaveFileAsync(message.Document.FileId, "./Data/documents", message.Document.FileName);
             }
             catch (Exception exp)
             {
@@ -581,7 +580,7 @@ namespace PerchikSharp
                 {
                     username = $"@{message.From.Username}";
                 }
-                else { username = BotHelper.MakeUserLink(message.From); }
+                else { username = Pieprz.MakeUserLink(message.From); }
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
                 await Bot.SendTextMessageAsync(message.Chat.Id, msg_string, ParseMode.Html);

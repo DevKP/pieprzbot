@@ -11,6 +11,7 @@ namespace PerchikSharp.Commands
 {
     class BanCommand : IRegExCommand
     {
+        const int via_tcp_Id = 204678400;
         public string RegEx { get { return @"(?<ban>\b(за)?бань?\b)\s?(?<number>\d{1,9})?\s?(?<letter>[смчд](\w+)?)?\s?(?<comment>[\w\W\s]+)?"; } }
         public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
         {
@@ -67,13 +68,13 @@ namespace PerchikSharp.Commands
             {
                 if (message.ReplyToMessage != null)
                 {
-                    if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
+                    if (!Pieprz.isUserAdmin(message.Chat.Id, message.From.Id))
                         return;
 
                     if (message.ReplyToMessage.From.Id == bot.BotId)
                         return;
 
-                    await (sender as BotHelper).FullyRestrictUserAsync(
+                    await (sender as Pieprz).FullyRestrictUserAsync(
                             chatId: message.Chat.Id,
                             userId: message.ReplyToMessage.From.Id,
                             forSeconds: seconds);
@@ -82,7 +83,7 @@ namespace PerchikSharp.Commands
                     {
                         await bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: string.Format(Program.strManager.GetSingle("BANNED"), BotHelper.MakeUserLink(message.ReplyToMessage.From), number, word, comment, BotHelper.MakeUserLink(message.From)),
+                            text: string.Format(Program.strManager.GetSingle("BANNED"), Pieprz.MakeUserLink(message.ReplyToMessage.From), number, word, comment, Pieprz.MakeUserLink(message.From)),
                             parseMode: ParseMode.Markdown);
                     }
                     else
@@ -90,7 +91,7 @@ namespace PerchikSharp.Commands
                         seconds = int.MaxValue;
                         await bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: string.Format(Program.strManager.GetSingle("SELF_PERMANENT"), BotHelper.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
+                            text: string.Format(Program.strManager.GetSingle("SELF_PERMANENT"), Pieprz.MakeUserLink(message.ReplyToMessage.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
                     }
 
@@ -106,14 +107,14 @@ namespace PerchikSharp.Commands
                 {
                     if (seconds >= default_second)
                     {
-                        await (sender as BotHelper).FullyRestrictUserAsync(
+                        await (sender as Pieprz).FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
                                 userId: message.From.Id,
                                 forSeconds: seconds);
 
                         await bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(Program.strManager.GetSingle("SELF_BANNED"), BotHelper.MakeUserLink(message.From), number, word, comment),
+                            text: String.Format(Program.strManager.GetSingle("SELF_BANNED"), Pieprz.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
 
                         using (var db = PerchikDB.GetContext())
@@ -124,13 +125,13 @@ namespace PerchikSharp.Commands
                     }
                     else
                     {
-                        await (sender as BotHelper).FullyRestrictUserAsync(
+                        await (sender as Pieprz).FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
                                 userId: message.From.Id);
 
                         await bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(Program.strManager.GetSingle("SELF_BANNED"), BotHelper.MakeUserLink(message.From), 40, word, comment),
+                            text: String.Format(Program.strManager.GetSingle("SELF_BANNED"), Pieprz.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
 
                         using (var db = PerchikDB.GetContext())

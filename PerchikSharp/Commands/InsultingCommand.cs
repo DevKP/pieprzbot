@@ -22,7 +22,7 @@ namespace PerchikSharp.Commands
                 {
                     await Task.Delay(2000);
 
-                    await (sender as BotHelper).FullyRestrictUserAsync(
+                    await (sender as Pieprz).FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
                                 userId: message.From.Id,
                                 forSeconds: 120);

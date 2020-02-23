@@ -18,7 +18,7 @@ namespace PerchikSharp.Commands
 
             if (message.Chat.Type == ChatType.Private)
                 return;
-            if (!BotHelper.isUserAdmin(message.Chat.Id, message.From.Id))
+            if (!Pieprz.isUserAdmin(message.Chat.Id, message.From.Id))
                 return;
             if (message.ReplyToMessage == null)
                 return;
@@ -26,7 +26,7 @@ namespace PerchikSharp.Commands
             try
             {
                 var until = DateTime.Now.AddSeconds(1);
-                await BotHelper.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
+                await Pieprz.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
                 using (var db = PerchikDB.GetContext())
                 {
@@ -44,7 +44,7 @@ namespace PerchikSharp.Commands
 
                 await bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: string.Format(Program.strManager.GetRandom("UNBANNED"), BotHelper.MakeUserLink(message.ReplyToMessage.From)),
+                        text: string.Format(Program.strManager.GetRandom("UNBANNED"), Pieprz.MakeUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)

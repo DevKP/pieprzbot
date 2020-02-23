@@ -87,7 +87,7 @@ namespace PerchikSharp.Commands
                     votebanning_groups.Add(command.Message.Chat.Id);
 
 
-                    (sender as BotHelper).RegisterPoll(poll_msg.Poll.Id, (_, p) =>
+                    (sender as Pieprz).RegisterPoll(poll_msg.Poll.Id, (_, p) =>
                     {
                         if (p.pollAnswer == null)
                             return;
@@ -145,7 +145,7 @@ namespace PerchikSharp.Commands
                     await Task.Delay(1000 * alert_period);
 
                     await bot.StopPollAsync(message.Chat.Id, poll_msg.MessageId);
-                    (sender as BotHelper).RemovePoll(poll_msg.Poll.Id);
+                    (sender as Pieprz).RemovePoll(poll_msg.Poll.Id);
                     votebanning_groups.Remove(command.Message.Chat.Id);
                     msg2delete.ForEach(m => bot.DeleteMessageAsync(m.Chat.Id, m.MessageId));
 
@@ -210,7 +210,7 @@ namespace PerchikSharp.Commands
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.Now.AddSeconds(forSeconds);
-            return BotHelper.RestrictUserAsync(chatId.Identifier, userId, until);
+            return Pieprz.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }
 }

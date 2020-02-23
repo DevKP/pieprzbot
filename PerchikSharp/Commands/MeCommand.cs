@@ -14,7 +14,7 @@ namespace PerchikSharp.Commands
                 return;
 
             Message message = command.Message;
-            string msg_text = $"{BotHelper.MakeUserLink(message.From)} *{command.Text}*";
+            string msg_text = $"{Pieprz.MakeUserLink(message.From)} *{command.Text}*";
 
             try
             {

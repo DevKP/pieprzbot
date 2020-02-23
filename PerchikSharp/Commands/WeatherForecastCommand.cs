@@ -26,7 +26,7 @@ namespace PerchikSharp.Commands
             dynamic weather_json;
             try
             {
-                string respone_str = BotHelper.HttpRequestAsync(search_url).Result;
+                string respone_str = Pieprz.HttpRequestAsync(search_url).Result;
                 if (respone_str.Contains("The allowed number of requests has been exceeded."))
                 {
                     await bot.SendTextMessageAsync(
@@ -41,7 +41,7 @@ namespace PerchikSharp.Commands
                 location_code = location_json[0].Key;
 
                 string current_url = $"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_code}?apikey={Program.tokens["ACCUWEATHER"]}&language=ru-ru&metric=true&details=true";
-                respone_str = BotHelper.HttpRequestAsync(current_url).Result;
+                respone_str = Pieprz.HttpRequestAsync(current_url).Result;
 
                 weather_json = JsonConvert.DeserializeObject(respone_str);
 

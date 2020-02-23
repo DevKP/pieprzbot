@@ -27,7 +27,7 @@ namespace PerchikSharp.Commands
                          text: Program.strManager["STK"],
                          parseMode: ParseMode.Markdown,
                          replyMarkup: new ForceReplyMarkup());
-                (sender as BotHelper).RegisterNextstep(onStickerAnswer, command.Message);
+                (sender as Pieprz).RegisterNextstep(onStickerAnswer, command.Message);
             }
             catch (Exception ex)
             {
@@ -50,11 +50,11 @@ namespace PerchikSharp.Commands
                         chatId: offtopia_id,
                         sticker: e.Message.Sticker.FileId);
 
-                    (sender as BotHelper).RemoveNextstepCallback(e.Message);
+                    (sender as Pieprz).RemoveNextstepCallback(e.Message);
                 }
                 else
                 {
-                    if (BotHelper.FindTextCommand(e.Message.Text, "stop"))
+                    if (Pieprz.FindTextCommand(e.Message.Text, "stop"))
                     {
                         await Program.Bot.SendTextMessageAsync(
                            chatId: e.Message.Chat.Id,
@@ -69,7 +69,7 @@ namespace PerchikSharp.Commands
                             text: Program.strManager["STK_WRONG"],
                             parseMode: ParseMode.Markdown,
                             replyMarkup: new ForceReplyMarkup());
-                    (sender as BotHelper).RegisterNextstep(onStickerAnswer, e.Message);
+                    (sender as Pieprz).RegisterNextstep(onStickerAnswer, e.Message);
                 }
 
             }

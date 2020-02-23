@@ -66,7 +66,7 @@ namespace PerchikSharp.Commands
                             replyMarkup: inlineKeyboard,
                             parseMode: ParseMode.Markdown);
 
-                BotHelper botHelper = (sender as BotHelper);
+                Pieprz botHelper = (sender as Pieprz);
                 botHelper.RegisterCallbackQuery(update_button.CallbackData, 0, name, async (_, o) =>
                 {
                     string new_text = string.Empty;
