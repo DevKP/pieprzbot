@@ -26,7 +26,6 @@ namespace PerchikSharp
     {
         public static Pieprz Bot;
         static ClarifaiClient clarifai;
-        //static BotHelper Bot;
         public static StringManager strManager = new StringManager();
         public static StringManager tokens = new StringManager();
         static RegExHelper commands;
@@ -180,10 +179,9 @@ namespace PerchikSharp
 
             Bot.NativeCommand(new TestCommand());
 
-            commands.AddRegEx("(420|трав(к)?а|шишки|марихуана)", (EventHandler<RegExArgs>)((_, e) =>
+            commands.AddRegEx("(420|трав(к)?а|шишки|марихуана)", ((_, e) =>
             {
-                Program.Bot.SendStickerAsync((ChatId)e.Message.Chat.Id,
-(Telegram.Bot.Types.InputFiles.InputOnlineFile)                    "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
+                Bot.SendStickerAsync(e.Message.Chat.Id, "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
                     replyToMessageId: e.Message.MessageId);
             }));
 
@@ -347,12 +345,6 @@ namespace PerchikSharp
             CheckUserRestrictions();
         }
 
-        private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
-        {
-            var until = DateTime.Now.AddSeconds(forSeconds);
-            return Pieprz.RestrictUserAsync(chatId.Identifier, userId, until);
-        }
-
         static async void CheckUserRestrictions()
         {
             try
@@ -375,7 +367,7 @@ namespace PerchikSharp
                     foreach (var user in users)
                     {
                         var restriction = user.Restriction;
-                        if (DateTime.Now > restriction.Until)
+                        if (DbConverter.DateTimeUTC2 > restriction.Until)
                         {
                             dbv2.Users
                                 .FirstOrDefault(u => u.Id == user.Id)
@@ -476,7 +468,7 @@ namespace PerchikSharp
 
                         if (message.Chat.Type != ChatType.Private)
                         {
-                            var until = DateTime.Now.AddSeconds(120);
+                            var until = DbConverter.DateTimeUTC2.AddSeconds(120);
                             await Pieprz.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
                             await Bot.SendTextMessageAsync(

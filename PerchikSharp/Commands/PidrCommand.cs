@@ -20,7 +20,7 @@ namespace PerchikSharp.Commands
                 var pidr =
                     db.Pidrs
                     .AsNoTracking()
-                    .Where(p => p.ChatId == msg.Chat.Id && p.Date.Date == DateTime.Now.Date)
+                    .Where(p => p.ChatId == msg.Chat.Id && p.Date.Date == DbConverter.DateTimeUTC2.Date)
                     .Select(x => new
                     {
                         x.UserId,
@@ -48,7 +48,7 @@ namespace PerchikSharp.Commands
                     await bot.SendChatActionAsync(msg.Chat.Id, ChatAction.Typing);
                     await Task.Delay(5000);
 
-                    long lastday = DbConverter.ToEpochTime(DateTime.Now.AddDays(-1).Date);
+                    long lastday = DbConverter.ToEpochTime(DbConverter.DateTimeUTC2.AddDays(-1).Date);
                     var users =
                         db.Users
                         .AsNoTracking()
@@ -59,7 +59,7 @@ namespace PerchikSharp.Commands
                             x.FirstName
                         }).ToList();
 
-                    var new_pidr = users[new Random(DateTime.Now.Second).Next(0, users.Count)];
+                    var new_pidr = users[new Random(DbConverter.DateTimeUTC2.Second).Next(0, users.Count)];
 
                     await bot.SendTextMessageAsync(
                        chatId: msg.Chat.Id,
@@ -70,7 +70,7 @@ namespace PerchikSharp.Commands
                     {
                         UserId = new_pidr.Id,
                         ChatId = msg.Chat.Id,
-                        Date = DateTime.Now
+                        Date = DbConverter.DateTimeUTC2
                     });
                     db.SaveChanges();
                 }

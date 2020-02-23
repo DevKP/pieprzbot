@@ -1,4 +1,5 @@
 ﻿using PerchikSharp.Commands;
+using PerchikSharp.Db;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -591,7 +592,7 @@ namespace PerchikSharp
         }
         public Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
-            var until = DateTime.Now.AddSeconds(forSeconds);
+            var until = DbConverter.DateTimeUTC2.AddSeconds(forSeconds);
             return Pieprz.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }

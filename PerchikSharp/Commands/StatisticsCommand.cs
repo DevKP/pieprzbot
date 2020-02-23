@@ -146,7 +146,7 @@ namespace PerchikSharp.Commands
                 TimeSpan remaining = new TimeSpan(0);
                 if (user.Restricted)
                 {
-                    remaining = user.Until - DateTime.Now;
+                    remaining = user.Until - DbConverter.DateTimeUTC2;
                 }
 
 

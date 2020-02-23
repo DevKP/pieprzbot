@@ -1,3 +1,4 @@
+using PerchikSharp.Db;
 using PersikSharp.Tables;
 using SQLite;
 using System;
@@ -143,8 +144,8 @@ namespace PersikSharp
                 {
                     UserId = user.Id,
                     ChatId = chatId.ToString(),
-                    DateTimeFrom = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    DateTimeTo = DateTime.Now.AddSeconds(forSecond).ToString("yyyy-MM-dd HH:mm:ss")
+                    DateTimeFrom = DbConverter.DateTimeUTC2.ToString("yyyy-MM-dd HH:mm:ss"),
+                    DateTimeTo = DbConverter.DateTimeUTC2.AddSeconds(forSecond).ToString("yyyy-MM-dd HH:mm:ss")
                 });
 
                 var _user = user;

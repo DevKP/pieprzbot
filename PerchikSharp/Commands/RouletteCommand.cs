@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PerchikSharp.Db;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -20,10 +21,10 @@ namespace PerchikSharp.Commands
 
             try
             {
-                Random rand = new Random(DateTime.Now.Millisecond);
+                Random rand = new Random(DbConverter.DateTimeUTC2.Millisecond);
                 if (rand.Next(0, 6) == 3)
                 {
-                    var until = DateTime.Now.AddSeconds(10 * 60); //10 minutes
+                    var until = DbConverter.DateTimeUTC2.AddSeconds(10 * 60); //10 minutes
                     await Pieprz.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
 

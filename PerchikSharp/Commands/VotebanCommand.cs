@@ -185,7 +185,7 @@ namespace PerchikSharp.Commands
                         userId: user.Id,
                         forSeconds: 60 * 15);
 
-                    var restriction = DbConverter.GenRestriction(command.Message, DateTime.Now.AddSeconds(60 * 15));
+                    var restriction = DbConverter.GenRestriction(command.Message, DbConverter.DateTimeUTC2.AddSeconds(60 * 15));
                     db.Restrictions.Add(restriction);
                     db.SaveChanges();
 
@@ -209,7 +209,7 @@ namespace PerchikSharp.Commands
 
         private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
-            var until = DateTime.Now.AddSeconds(forSeconds);
+            var until = DbConverter.DateTimeUTC2.AddSeconds(forSeconds);
             return Pieprz.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }

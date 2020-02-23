@@ -97,7 +97,7 @@ namespace PerchikSharp.Commands
 
                     using (var db = PerchikDB.GetContext())
                     {
-                        var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(seconds));
+                        var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DbConverter.DateTimeUTC2.AddSeconds(seconds));
                         db.AddRestriction(restriction);
                     }
 
@@ -119,7 +119,7 @@ namespace PerchikSharp.Commands
 
                         using (var db = PerchikDB.GetContext())
                         {
-                            var restriction = DbConverter.GenRestriction(message, DateTime.Now.AddSeconds(seconds));
+                            var restriction = DbConverter.GenRestriction(message, DbConverter.DateTimeUTC2.AddSeconds(seconds));
                             db.AddRestriction(restriction);
                         }
                     }
@@ -136,7 +136,7 @@ namespace PerchikSharp.Commands
 
                         using (var db = PerchikDB.GetContext())
                         {
-                            var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.Now.AddSeconds(40));
+                            var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DbConverter.DateTimeUTC2.AddSeconds(40));
                             db.AddRestriction(restriction);
                         }
                     }

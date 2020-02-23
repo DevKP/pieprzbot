@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PerchikSharp.Db;
+using System;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -31,7 +32,7 @@ namespace PerchikSharp.Commands
                 await bot.RestrictChatMemberAsync(
                     chatId: offtopia_id,
                     userId: command.Message.From.Id,
-                    untilDate: DateTime.Now.AddSeconds(40),
+                    untilDate: DbConverter.DateTimeUTC2.AddSeconds(40),
                     permissions: permissions);
             }
             catch (Exception exp)

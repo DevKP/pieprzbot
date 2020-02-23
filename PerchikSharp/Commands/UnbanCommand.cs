@@ -25,7 +25,7 @@ namespace PerchikSharp.Commands
 
             try
             {
-                var until = DateTime.Now.AddSeconds(1);
+                var until = DbConverter.DateTimeUTC2.AddSeconds(1);
                 await Pieprz.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
                 using (var db = PerchikDB.GetContext())

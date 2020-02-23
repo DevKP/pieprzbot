@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using PerchikSharp.Db;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -83,7 +84,7 @@ namespace PerchikSharp.Commands
 
                         formated_str += String.Format(template_str, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
                     }
-                    formated_str += $"\nОбновлено {DateTime.Now.ToShortTimeString()}";
+                    formated_str += $"\nОбновлено {DbConverter.DateTimeUTC2.ToShortTimeString()}";
 
 
                     var button = new InlineKeyboardButton();
