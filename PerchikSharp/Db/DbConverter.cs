@@ -14,7 +14,7 @@ namespace PerchikSharp.Db
             {
                 UserId = message.From.Id,
                 ChatId = message.Chat.Id,
-                Date = DateTime.UtcNow.AddHours(2)
+                Date = DbConverter.DateTimeUTC2
             };
 
         }
@@ -65,7 +65,7 @@ namespace PerchikSharp.Db
             {
                 ChatId = message.Chat.Id,
                 UserId = message.From.Id,
-                Date = DbConverter.DateTimeUTC2,
+                Date = DateTime.UtcNow,
                 Until = until
             };
         }
@@ -111,5 +111,6 @@ namespace PerchikSharp.Db
         }
 
         public static DateTime DateTimeUTC2 { get => DateTime.UtcNow.AddHours(2); }
+        public static DateTime DateTimeUTCn2 { get => DateTime.UtcNow.AddHours(-2); }
     }
 }

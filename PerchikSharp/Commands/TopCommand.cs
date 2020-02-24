@@ -21,8 +21,8 @@ namespace PerchikSharp.Commands
             {
                 Message message = command.Message;
 
-                long datenow = DbConverter.ToEpochTime(DateTime.Now.Date);
-                long now = DbConverter.ToEpochTime(DateTime.Now);
+                long datenow = DbConverter.ToEpochTime(DbConverter.DateTimeUTC2.Date);
+                long now = DbConverter.ToEpochTime(DbConverter.DateTimeUTC2);
 
                 var users = db.Users
                     .AsNoTracking()
