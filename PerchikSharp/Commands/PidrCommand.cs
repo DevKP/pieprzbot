@@ -60,7 +60,7 @@ namespace PerchikSharp.Commands
                     var users =
                         db.Users
                         .AsNoTracking()
-                        .Where(u => u.Messages.Any(m => m.Date > lastday))
+                        .Where(u => u.Messages.Any(m => m.Date > lastday && m.ChatId == msg.Chat.Id))
                         .Select(x => new
                         {
                             x.Id,
