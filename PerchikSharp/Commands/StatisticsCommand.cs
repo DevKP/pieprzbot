@@ -109,8 +109,8 @@ namespace PerchikSharp.Commands
             {
                 string name = search.Replace("@", "");
 
-                long today = DbConverter.ToEpochTime(DbConverter.DateTimeUTC2.Date);
-                long lastday = DbConverter.ToEpochTime(DbConverter.DateTimeUTC2.AddDays(-1).Date);
+                long today = DbConverter.ToEpochTime(DateTime.UtcNow.Date);
+                long lastday = DbConverter.ToEpochTime(DateTime.UtcNow.AddDays(-1).Date);
 
                 
 
