@@ -34,21 +34,28 @@ namespace PerchikSharp.Commands
                     await bot.SendChatActionAsync(msg.Chat.Id, ChatAction.Typing);
                     await bot.SendTextMessageAsync(
                        chatId: msg.Chat.Id,
-                       text: "*Собираю секретные данные о пользователях... 🧐*",
+                       text: Program.strManager["PIDR_ONE"],
+                       parseMode: ParseMode.Markdown);
+                    await bot.SendChatActionAsync(msg.Chat.Id, ChatAction.Typing);
+
+                    await Task.Delay(2000);
+                    await bot.SendTextMessageAsync(
+                       chatId: msg.Chat.Id,
+                       text: Program.strManager["PIDR_TWO"],
                        parseMode: ParseMode.Markdown);
 
                     await bot.SendChatActionAsync(msg.Chat.Id, ChatAction.Typing);
-                    await Task.Delay(3000);
+                    await Task.Delay(1000);
 
                     await bot.SendTextMessageAsync(
                        chatId: msg.Chat.Id,
-                       text: "*Барабанная дробь... 🥁🥁*",
+                       text: Program.strManager["PIDR_THREE"],
                        parseMode: ParseMode.Markdown);
 
                     await bot.SendChatActionAsync(msg.Chat.Id, ChatAction.Typing);
                     await Task.Delay(5000);
 
-                    long lastday = DbConverter.ToEpochTime(DbConverter.DateTimeUTC2.AddDays(-1).Date);
+                    long lastday = DbConverter.ToEpochTime(DateTime.UtcNow.AddDays(-1).Date);
                     var users =
                         db.Users
                         .AsNoTracking()
@@ -63,7 +70,7 @@ namespace PerchikSharp.Commands
 
                     await bot.SendTextMessageAsync(
                        chatId: msg.Chat.Id,
-                       text: $"*Наш пидр на сегодня - *[{new_pidr.FirstName}](tg://user?id={new_pidr.Id} 🥳",
+                       text: string.Format(Program.strManager["PIDR_DONE"], new_pidr.FirstName, new_pidr.Id),
                        parseMode: ParseMode.Markdown);
 
                     db.Pidrs.Add(new Db.Tables.Pidr()
@@ -78,7 +85,7 @@ namespace PerchikSharp.Commands
                 {
                     await bot.SendTextMessageAsync(
                        chatId: msg.Chat.Id,
-                       text: $"*Пидр был определен и сегодня это - *[{pidr.FirstName}](tg://user?id={pidr.UserId}) 💩",
+                       text: string.Format(Program.strManager["PIDR_EXIST"], pidr.FirstName),
                        parseMode: ParseMode.Markdown);
                 }
             }

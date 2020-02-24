@@ -15,12 +15,14 @@ namespace PerchikSharp.Db.Tables
         public List<Message> Messages { get; set; }
         public bool Restricted { get; set; }
         public List<Restriction> Restrictions { get; set; }
+        public List<Pidr> Pidrs { get; set; }
 
         public User()
         {
             ChatUsers = new List<ChatUser>();
             Restrictions = new List<Restriction>();
             Messages = new List<Message>();
+            Pidrs = new List<Pidr>();
         }
     }
 }

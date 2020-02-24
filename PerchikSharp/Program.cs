@@ -176,6 +176,8 @@ namespace PerchikSharp
             Bot.NativeCommand(new AboutCommand());
             Bot.NativeCommand(new PidrCommand());
             Bot.NativeCommand(new DeleteCommand());
+            Bot.NativeCommand(new PidrmeCommand());
+            Bot.NativeCommand(new PidrstatsCommand());
 
             Bot.NativeCommand(new TestCommand());
 
