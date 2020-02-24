@@ -11,8 +11,9 @@ namespace PerchikSharp.Commands
     class InsultingCommand : IRegExCommand
     {
         public string RegEx { get { return @"\b(дур[ао]к|пид[аоэ]?р|говно|д[еыи]бил|г[оа]ндон|лох|хуй|чмо|скотина)\b"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
+        public async void OnExecution(object sender, RegExArgs command)
         {
+            var bot = sender as Pieprz;
             Message message = command.Message;
             try
             {

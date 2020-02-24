@@ -15,9 +15,10 @@ namespace PerchikSharp.Commands
     class RateCommand : INativeCommand
     {
         public string Command { get { return "rate"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
             CallbackQuery cq;
+            var bot = sender as Pieprz;
             try
             {
                 var msg = await bot.SendTextMessageAsync(

@@ -135,15 +135,10 @@ namespace PerchikSharp
             this.commandHandlers.Add(command, c);
         }
 
-        /// <summary>
-        /// Registers a callback for chat command. (e.g. test )
-        /// </summary>
-        /// <param name="command">Command without slash.</param>
-        /// <param name="c">Method to be called.</param>
         public void NativeCommand(INativeCommand command)
         {
             this.nativeCommands.Add(command, (s, x) => 
-                Task.Run(() => command.OnExecution(s, Program.Bot, x)));
+                Task.Run(() => command.OnExecution(s, x)));
         }
 
         /// <summary>
@@ -159,7 +154,7 @@ namespace PerchikSharp
         public void RegExCommand(IRegExCommand command)
         {
             this.regExCommands.Add(command, (s, r) => 
-                Task.Factory.StartNew(() => command.OnExecution(s, Program.Bot, r)));
+                Task.Factory.StartNew(() => command.OnExecution(s, r)));
         }
 
         /// <summary>
@@ -453,9 +448,8 @@ namespace PerchikSharp
         /// </returns>
         /// <param name="text">Text.</param>
         /// <param name="command">Command to find.</param>
-        public static bool FindTextCommand(string text, string command)
+        public bool FindTextCommand(string text, string command)
         {
-            var bot_username = Program.Bot.GetMeAsync().Result.Username;
             var match = Regex.Match(text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
 
             return match.Success
@@ -471,11 +465,11 @@ namespace PerchikSharp
         /// </returns>
         /// <param name="chatId">Chat ID.</param>
         /// <param name="userId">User ID.</param>
-        public static bool isUserAdmin(long chatId, int userId)
+        public bool isUserAdmin(long chatId, int userId)
         {
             try
             {
-                ChatMember[] chat_members = Program.Bot.GetChatAdministratorsAsync(chatId).Result;
+                ChatMember[] chat_members = this.GetChatAdministratorsAsync(chatId).Result;
                 if (Array.Find(chat_members, e => e.User.Id == userId) != null)
                     return true;
                 else
@@ -495,7 +489,7 @@ namespace PerchikSharp
         /// <returns>
         /// Formated text string.
         /// </returns>
-        public static string MakeUserLink(User user)
+        public string MakeUserLink(User user)
         {
             try
             {
@@ -515,7 +509,7 @@ namespace PerchikSharp
         /// <param name="userid">User id.</param>
         /// <param name="until">Rescrict until.</param>
         /// <param name="userid">Can write messages or not.</param>
-        public static Task RestrictUserAsync(long chatid, int userid, DateTime until, bool canWriteMessages = false)
+        public Task RestrictUserAsync(long chatid, int userid, DateTime until, bool canWriteMessages = false)
         {
             try
             {
@@ -529,7 +523,7 @@ namespace PerchikSharp
                 permissions.CanSendOtherMessages = canWriteMessages;
                 permissions.CanSendPolls = canWriteMessages;
 
-                return Program.Bot.RestrictChatMemberAsync(
+                return this.RestrictChatMemberAsync(
                     chatId: chatid,
                     userId: userid,
                     untilDate: until,
@@ -543,16 +537,16 @@ namespace PerchikSharp
 
         }
 
-        public static Task SaveFileAsync(string fileId, string folder, string fileName = null)
+        public Task SaveFileAsync(string fileId, string folder, string fileName = null)
         {
             return Task.Run(() => SaveFile(fileId, folder, fileName));
         }
 
-        private static async void SaveFile(string fileId, string folder, string fileName = null)
+        private async void SaveFile(string fileId, string folder, string fileName = null)
         {
             try
             {
-                var file = Program.Bot.GetFileAsync(fileId).Result;
+                var file = this.GetFileAsync(fileId).Result;
                 MemoryStream docu = new MemoryStream();
 
                 const int attempts = 5;
@@ -560,7 +554,7 @@ namespace PerchikSharp
                 {
                     try
                     {
-                        await Program.Bot.DownloadFileAsync(file.FilePath, docu);
+                        await this.DownloadFileAsync(file.FilePath, docu);
                         break;
                     }
                     catch (HttpRequestException)
@@ -593,7 +587,7 @@ namespace PerchikSharp
         public Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DbConverter.DateTimeUTC2.AddSeconds(forSeconds);
-            return Pieprz.RestrictUserAsync(chatId.Identifier, userId, until);
+            return this.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }
 }

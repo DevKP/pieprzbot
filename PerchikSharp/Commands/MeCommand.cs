@@ -8,13 +8,14 @@ namespace PerchikSharp.Commands
     class MeCommand : INativeCommand
     {
         public string Command { get { return "me"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
             if (command.Text == "")
                 return;
 
+            var bot = sender as Pieprz;
             Message message = command.Message;
-            string msg_text = $"{Pieprz.MakeUserLink(message.From)} *{command.Text}*";
+            string msg_text = $"{bot.MakeUserLink(message.From)} *{command.Text}*";
 
             try
             {

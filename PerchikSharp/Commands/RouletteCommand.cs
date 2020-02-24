@@ -12,8 +12,9 @@ namespace PerchikSharp.Commands
     class RoulletteCommand : IRegExCommand
     {
         public string RegEx { get { return @"\bрулетк[уа]?\b"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
+        public async void OnExecution(object sender, RegExArgs command)
         {
+            var bot = sender as Pieprz;
             Message message = command.Message;
 
             if (message.Chat.Type == ChatType.Private)
@@ -25,19 +26,19 @@ namespace PerchikSharp.Commands
                 if (rand.Next(0, 6) == 3)
                 {
                     var until = DbConverter.DateTimeUTC2.AddSeconds(10 * 60); //10 minutes
-                    await Pieprz.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
+                    await bot.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
 
                     await bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(Program.strManager.GetRandom("ROULETTEBAN"), Pieprz.MakeUserLink(message.From)),
+                        text: String.Format(Program.strManager.GetRandom("ROULETTEBAN"), bot.MakeUserLink(message.From)),
                         parseMode: ParseMode.Markdown);
                 }
                 else
                 {
                     var msg = bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: String.Format(Program.strManager.GetRandom("ROULETTEMISS"), Pieprz.MakeUserLink(message.From)),
+                        text: String.Format(Program.strManager.GetRandom("ROULETTEMISS"), bot.MakeUserLink(message.From)),
                         parseMode: ParseMode.Markdown).Result;
 
                     Thread.Sleep(10 * 1000); //wait 10 seconds

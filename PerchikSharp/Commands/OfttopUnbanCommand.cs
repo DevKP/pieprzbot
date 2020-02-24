@@ -12,13 +12,15 @@ namespace PerchikSharp.Commands
         const int via_tcp_Id = 204678400;
 
         public string Command { get { return "offtopunban"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
             if (command.Message.Chat.Type != ChatType.Private)
                 return;
 
             try
             {
+                var bot = sender as Pieprz;
+
                 ChatPermissions permissions = new ChatPermissions();
                 permissions.CanAddWebPagePreviews = true;
                 permissions.CanChangeInfo = true;

@@ -10,8 +10,10 @@ namespace PerchikSharp.Commands
     class VersionCommand : INativeCommand
     {
         public string Command { get { return "version"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
+            var bot = sender as Pieprz;
+
             try
             {
                 await bot.SendTextMessageAsync(

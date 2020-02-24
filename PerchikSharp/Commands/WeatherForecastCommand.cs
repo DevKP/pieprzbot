@@ -14,8 +14,9 @@ namespace PerchikSharp.Commands
     class WeatherForecastCommand : IRegExCommand
     {
         public string RegEx { get { return @"прогноз\s([\w\s-]+)"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
+        public async void OnExecution(object sender, RegExArgs command)
         {
+            var bot = sender as Pieprz;
             Message message = command.Message;
             Match weather_match = command.Match;
 

@@ -11,8 +11,9 @@ namespace PerchikSharp.Commands
     class RandomCommand : IRegExCommand
     {
         public string RegEx { get { return @"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
+        public async void OnExecution(object sender, RegExArgs command)
         {
+            var bot = sender as Pieprz;
             Message message = command.Message;
 
             Regex regx = new Regex(Program.strManager["BOT_REGX"], RegexOptions.IgnoreCase);

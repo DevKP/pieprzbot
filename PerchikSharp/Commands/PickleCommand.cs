@@ -8,8 +8,9 @@ namespace PerchikSharp.Commands
     class PickleCommand : INativeCommand
     {
         public string Command { get { return "pickle"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
+            var bot = sender as Pieprz;
             try
             {
                 using (var stream = System.IO.File.OpenRead("P_20190512_225535_BF.jpg"))

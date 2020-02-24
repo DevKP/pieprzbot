@@ -10,8 +10,10 @@ namespace PerchikSharp.Commands
     class TopBansCommand : INativeCommand
     {
         public string Command { get { return "topbans"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
+            var bot = sender as Pieprz;
+
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 

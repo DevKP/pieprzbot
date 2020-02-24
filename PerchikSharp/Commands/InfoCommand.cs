@@ -10,8 +10,9 @@ namespace PerchikSharp.Commands
     class InfoCommand : INativeCommand
     {
         public string Command { get { return "info"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
+            var bot = sender as Pieprz;
             Message message = command.Message;
 
             await bot.SendTextMessageAsync(

@@ -11,11 +11,12 @@ namespace PerchikSharp.Commands
         const int via_tcp_Id = 204678400;
 
         public string Command { get { return "promote"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
             if (command.Message.Chat.Type == ChatType.Private)
                 return;
 
+            var bot = sender as Pieprz;
             try
             {
                 if (command.Message.From.Id == via_tcp_Id)

@@ -17,9 +17,9 @@ namespace PerchikSharp.Commands
     {
         public string RegEx { get { return @"инфо\s?(?<name>[\w\W\s]+)?"; } }
 
-        public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
+        public async void OnExecution(object sender, RegExArgs command)
         {
-           
+            var bot = sender as Pieprz;
             try
             {
                 Message message = command.Message;

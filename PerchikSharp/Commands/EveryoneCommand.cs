@@ -13,10 +13,11 @@ namespace PerchikSharp.Commands
     class EveryoneCommand : INativeCommand
     {
         public string Command { get { return "everyone"; } }
-        public void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public void OnExecution(object sender, CommandEventArgs command)
         {
             try
             {
+                var bot = sender as Pieprz;
                 Message message = command.Message;
 
                 if (message.Chat.Type == ChatType.Private)
@@ -24,7 +25,7 @@ namespace PerchikSharp.Commands
 
                 int[] users_whitelist = { 204678400
                                          /*тут огурец*/ };
-                if (!Pieprz.isUserAdmin(message.Chat.Id, message.From.Id) &&
+                if (!bot.isUserAdmin(message.Chat.Id, message.From.Id) &&
                     !users_whitelist.Any(id => id == message.From.Id))
                     return;
 

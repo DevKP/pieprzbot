@@ -12,11 +12,13 @@ namespace PerchikSharp.Commands
         const int via_tcp_Id = 204678400;
 
         public string Command { get { return "sticker"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
+            
             if (command.Message.Chat.Type != ChatType.Private)
                 return;
 
+            var bot = sender as Pieprz;
             // if (!Perchik.isUserAdmin(offtopia_id, e.Message.From.Id))
             //   return;
 
@@ -37,6 +39,7 @@ namespace PerchikSharp.Commands
 
         private static async void onStickerAnswer(object sender, NextstepArgs e)
         {
+            var bot = sender as Pieprz;
             try
             {
                 if (e.Message.Type == MessageType.Sticker)
@@ -54,7 +57,7 @@ namespace PerchikSharp.Commands
                 }
                 else
                 {
-                    if (Pieprz.FindTextCommand(e.Message.Text, "stop"))
+                    if (bot.FindTextCommand(e.Message.Text, "stop"))
                     {
                         await Program.Bot.SendTextMessageAsync(
                            chatId: e.Message.Chat.Id,

@@ -12,10 +12,11 @@ namespace PerchikSharp.Commands
     class AboutCommand : INativeCommand
     {
         public string Command { get { return @"about"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
             try
             {
+                var bot = sender as Pieprz;
                 if (string.IsNullOrEmpty(command.Text))
                 {
                     await bot.SendTextMessageAsync(

@@ -462,7 +462,7 @@ namespace PerchikSharp
 
                 if ((float)nsfw_val > 0.7)
                 {
-                    await Pieprz.SaveFileAsync(file.FileId, "./Data/nsfw");
+                    await Bot.SaveFileAsync(file.FileId, "./Data/nsfw");
 
                     if (ENABLE_FILTER)
                     {
@@ -471,7 +471,7 @@ namespace PerchikSharp
                         if (message.Chat.Type != ChatType.Private)
                         {
                             var until = DbConverter.DateTimeUTC2.AddSeconds(120);
-                            await Pieprz.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
+                            await Bot.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
 
                             await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
@@ -482,7 +482,7 @@ namespace PerchikSharp
                 }
                 else
                 {
-                    await Pieprz.SaveFileAsync(file.FileId, "./Data/photos");
+                    await Bot.SaveFileAsync(file.FileId, "./Data/photos");
                 }
             }
             catch (Exception exp)
@@ -499,7 +499,7 @@ namespace PerchikSharp
 
             try
             {
-                await Pieprz.SaveFileAsync(message.Document.FileId, "./Data/documents", message.Document.FileName);
+                await Bot.SaveFileAsync(message.Document.FileId, "./Data/documents", message.Document.FileName);
             }
             catch (Exception exp)
             {
@@ -574,7 +574,7 @@ namespace PerchikSharp
                 {
                     username = $"@{message.From.Username}";
                 }
-                else { username = Pieprz.MakeUserLink(message.From); }
+                else { username = Bot.MakeUserLink(message.From); }
 
                 string msg_string = String.Format(strManager["NEW_MEMBERS"], username);
                 await Bot.SendTextMessageAsync(message.Chat.Id, msg_string, ParseMode.Html);

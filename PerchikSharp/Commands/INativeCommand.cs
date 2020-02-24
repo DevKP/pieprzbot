@@ -8,6 +8,6 @@ namespace PerchikSharp.Commands
     interface INativeCommand
     {
         string Command { get; }
-        void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command);
+        void OnExecution(object sender, CommandEventArgs command);
     }
 }

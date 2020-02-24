@@ -10,9 +10,10 @@ namespace PerchikSharp.Commands
     class PidrstatsCommand : INativeCommand
     {
         public string Command { get { return "pidrstats"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
             var msg = command.Message;
+            var bot = sender as Pieprz;
 
             using (var db = PerchikDB.GetContext())
             {

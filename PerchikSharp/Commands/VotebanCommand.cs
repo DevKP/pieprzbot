@@ -15,8 +15,9 @@ namespace PerchikSharp.Commands
         List<long> votebanning_groups = new List<long>();
 
         public string Command { get { return "voteban"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
+            var bot = sender as Pieprz;
             if (string.IsNullOrEmpty(command.Text))
             {
                 await bot.SendTextMessageAsync(
@@ -180,7 +181,7 @@ namespace PerchikSharp.Commands
                         return;
                     }
 
-                    await FullyRestrictUserAsync(
+                    await bot.FullyRestrictUserAsync(
                         chatId: message.Chat.Id,
                         userId: user.Id,
                         forSeconds: 60 * 15);
@@ -205,12 +206,6 @@ namespace PerchikSharp.Commands
             {
                 Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
             }
-        }
-
-        private static Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
-        {
-            var until = DbConverter.DateTimeUTC2.AddSeconds(forSeconds);
-            return Pieprz.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }
 }

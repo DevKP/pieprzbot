@@ -10,13 +10,14 @@ namespace PerchikSharp.Commands
     class KickCommand : IRegExCommand
     {
         public string RegEx { get { return @"\bкик\b"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, RegExArgs command)
+        public async void OnExecution(object sender, RegExArgs command)
         {
+            var bot = sender as Pieprz;
             Message message = command.Message;
 
             if (message.Chat.Type == ChatType.Private)
                 return;
-            if (!Pieprz.isUserAdmin(message.Chat.Id, message.From.Id))
+            if (!bot.isUserAdmin(message.Chat.Id, message.From.Id))
                 return;
             if (message.ReplyToMessage == null)
                 return;
@@ -29,7 +30,7 @@ namespace PerchikSharp.Commands
 
                 await bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: string.Format(Program.strManager.GetRandom("KICK"), Pieprz.MakeUserLink(message.ReplyToMessage.From)),
+                        text: string.Format(Program.strManager.GetRandom("KICK"), bot.MakeUserLink(message.ReplyToMessage.From)),
                         parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)

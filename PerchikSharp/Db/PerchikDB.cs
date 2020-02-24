@@ -23,7 +23,7 @@ namespace PerchikSharp.Db
 
         public PerchikDB()
         {
-            Database.EnsureCreated();
+            //Database.EnsureCreated();
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

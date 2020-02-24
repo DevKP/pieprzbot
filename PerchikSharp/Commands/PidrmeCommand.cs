@@ -11,10 +11,11 @@ namespace PerchikSharp.Commands
     class PidrmeCommand : INativeCommand
     {
         public string Command { get { return "pidrme"; } }
-        public async void OnExecution(object sender, TelegramBotClient bot, CommandEventArgs command)
+        public async void OnExecution(object sender, CommandEventArgs command)
         {
             try
             {
+                var bot = sender as Pieprz;
                 var msg = command.Message;
                 var user = msg.From;
                 var chat = msg.Chat;

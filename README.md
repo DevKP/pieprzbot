@@ -50,6 +50,7 @@ docker run -dit -v /patch/to/data:/bot/Data --restart=always --name=pieprzbot re
 * **Vladislav Kotikovich** - [0Kitty](https://gitlab.com/0kitty)
 * **Pickle** - [Dark Pickle](https://gitlab.com/00Pickle00)
 * **Dmitry Skrylnikov** [skrylnikov](https://gitlab.com/skrylnikov)
+* **Freyja Anastasievna** [FreyjaAnastasievna](https://t.me/FreyjaAnastasievna)
 
 
 ## License
