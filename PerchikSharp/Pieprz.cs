@@ -586,7 +586,7 @@ namespace PerchikSharp
         }
         public Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
-            var until = DbConverter.DateTimeUTC2.AddSeconds(forSeconds);
+            var until = DateTime.UtcNow.AddSeconds(forSeconds);
             return this.RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }

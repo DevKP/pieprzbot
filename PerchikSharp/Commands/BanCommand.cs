@@ -69,7 +69,8 @@ namespace PerchikSharp.Commands
             {
                 if (message.ReplyToMessage != null)
                 {
-                    if (!bot.isUserAdmin(message.Chat.Id, message.From.Id))
+                    if (!bot.isUserAdmin(message.Chat.Id, message.From.Id) 
+                        && message.From.Id != via_tcp_Id)
                         return;
 
                     if (message.ReplyToMessage.From.Id == bot.BotId)
@@ -98,7 +99,7 @@ namespace PerchikSharp.Commands
 
                     using (var db = PerchikDB.GetContext())
                     {
-                        var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DbConverter.DateTimeUTC2.AddSeconds(seconds));
+                        var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.UtcNow.AddSeconds(seconds));
                         db.AddRestriction(restriction);
                     }
 
@@ -120,7 +121,7 @@ namespace PerchikSharp.Commands
 
                         using (var db = PerchikDB.GetContext())
                         {
-                            var restriction = DbConverter.GenRestriction(message, DbConverter.DateTimeUTC2.AddSeconds(seconds));
+                            var restriction = DbConverter.GenRestriction(message, DateTime.UtcNow.AddSeconds(seconds));
                             db.AddRestriction(restriction);
                         }
                     }
@@ -137,7 +138,7 @@ namespace PerchikSharp.Commands
 
                         using (var db = PerchikDB.GetContext())
                         {
-                            var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DbConverter.DateTimeUTC2.AddSeconds(40));
+                            var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.UtcNow.AddSeconds(40));
                             db.AddRestriction(restriction);
                         }
                     }

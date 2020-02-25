@@ -370,7 +370,7 @@ namespace PerchikSharp
                     foreach (var user in users)
                     {
                         var restriction = user.Restriction;
-                        if (DbConverter.DateTimeUTC2 > restriction.Until)
+                        if (DateTime.UtcNow > restriction.Until)
                         {
                             dbv2.Users
                                 .FirstOrDefault(u => u.Id == user.Id)

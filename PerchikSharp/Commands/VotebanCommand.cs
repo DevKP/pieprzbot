@@ -186,7 +186,7 @@ namespace PerchikSharp.Commands
                         userId: user.Id,
                         forSeconds: 60 * 15);
 
-                    var restriction = DbConverter.GenRestriction(command.Message, DbConverter.DateTimeUTC2.AddSeconds(60 * 15));
+                    var restriction = DbConverter.GenRestriction(command.Message, DateTime.UtcNow.AddSeconds(60 * 15));
                     db.Restrictions.Add(restriction);
                     db.SaveChanges();
 
