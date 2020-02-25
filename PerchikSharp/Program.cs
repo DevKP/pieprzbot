@@ -471,8 +471,14 @@ namespace PerchikSharp
 
                         if (message.Chat.Type != ChatType.Private)
                         {
-                            var until = DbConverter.DateTimeUTC2.AddSeconds(120);
+                            var until = DateTime.UtcNow.AddSeconds(120);
                             await Bot.RestrictUserAsync(message.Chat.Id, message.From.Id, until);
+
+                            using (var db = PerchikDB.GetContext())
+                            {
+                                var restriction = DbConverter.GenRestriction(message, until);
+                                db.AddRestriction(restriction);
+                            }
 
                             await Bot.SendTextMessageAsync(
                               chatId: message.Chat.Id,
