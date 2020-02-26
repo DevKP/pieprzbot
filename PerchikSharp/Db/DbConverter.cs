@@ -18,7 +18,7 @@ namespace PerchikSharp.Db
             };
 
         }
-        public static Tables.User GenUser(Telegram.Bot.Types.User user)
+        public static Tables.User GenUser(Telegram.Bot.Types.User user, string about = null)
         {
             _ = user ?? throw new ArgumentNullException(nameof(user));
                 
@@ -29,7 +29,8 @@ namespace PerchikSharp.Db
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 UserName = user.Username,
-                Restricted = false
+                Restricted = false,
+                Description = about
             };
         }
         public static Tables.Chat GenChat(Telegram.Bot.Types.Chat chat)

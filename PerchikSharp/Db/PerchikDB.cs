@@ -84,6 +84,11 @@ namespace PerchikSharp.Db
 
         }
 
+        public Tables.User GetUserbyId(int userId)
+        {
+            return this.Users.Where(x => x.Id == userId).FirstOrDefault();
+        }
+
         public void AddMessage(Tables.Message msg)
         {
             this.Messages.Add(msg);

@@ -159,7 +159,7 @@ namespace PerchikSharp.Commands
                             $"*Сообщений вчера:* { user.msgLastday }\n" +
                             $"*Всего сообщений:* { user.msgTotal }\n" +
                             $"*Банов:* { user.RestrictionCount }\n\n" +
-                            (user.Description != null ? $"*О себе:* \n{ user.Description }\n\n" : "") +
+                            (user.Description != null ? $"*О себе:* \n_{ user.Description }_\n\n" : "") +
                             (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`\n" }" : "") +
                             $"`{sw.ElapsedMilliseconds / 1000.0}сек`";
             }

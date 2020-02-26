@@ -157,7 +157,8 @@ namespace PerchikSharp
             Bot.RegExCommand(new KickCommand());
             Bot.RegExCommand(new PraiseCommand());
             Bot.RegExCommand(new InsultingCommand());
-            Bot.RegExCommand(new ByWordCommand());           
+            Bot.RegExCommand(new ByWordCommand());
+            Bot.RegExCommand(new WhoIsFoxCommand());
             Bot.onNoneRegexMatched += onPerchikCommand;
 
 
@@ -543,7 +544,8 @@ namespace PerchikSharp
 
                     db.UpsertChat(DbConverter.GenChat(msg.Chat));
 
-                    await db.UpsertUser(DbConverter.GenUser(msg.From), msg.Chat.Id);
+                    var user = db.GetUserbyId(msg.From.Id);
+                    await db.UpsertUser(DbConverter.GenUser(msg.From, user?.Description), msg.Chat.Id);
 
                     db.AddMessage(DbConverter.GenMessage(msg));
                 }
