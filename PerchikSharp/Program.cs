@@ -159,6 +159,7 @@ namespace PerchikSharp
             Bot.RegExCommand(new InsultingCommand());
             Bot.RegExCommand(new ByWordCommand());
             Bot.RegExCommand(new WhoIsFoxCommand());
+            Bot.RegExCommand(new BananaCommand());
             Bot.onNoneRegexMatched += onPerchikCommand;
 
 
@@ -188,7 +189,6 @@ namespace PerchikSharp
                 Bot.SendStickerAsync(e.Message.Chat.Id, "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
                     replyToMessageId: e.Message.MessageId);
             }));
-
 
             Bot.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
