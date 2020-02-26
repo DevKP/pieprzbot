@@ -33,7 +33,7 @@ namespace PerchikSharp.Commands
                         .Where(x => x.Id == command.Message.From.Id)
                         .FirstOrDefault();
                     user.Description = command.Text;
-                    db.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                    //db.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                         
                     db.SaveChanges();
                 }
