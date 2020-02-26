@@ -29,13 +29,7 @@ namespace PerchikSharp.Commands
                 Message msg = command.Message;
                 using(var db = PerchikDB.GetContext())
                 {
-                    var user = db.Users
-                        .Where(x => x.Id == command.Message.From.Id)
-                        .FirstOrDefault();
-                    user.Description = command.Text;
-                    //db.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                        
-                    db.SaveChanges();
+                    await db.UpsertUser(DbConverter.GenUser(msg.From, command.Text), msg.Chat.Id);
                 }
 
                 await bot.SendTextMessageAsync(
