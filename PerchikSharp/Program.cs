@@ -181,17 +181,22 @@ namespace PerchikSharp
             Bot.NativeCommand(new PidrmeCommand());
             Bot.NativeCommand(new PidrstatsCommand());
             Bot.NativeCommand(new GoogleCommand());
-
             Bot.NativeCommand(new TestCommand());
 
+
+
+
+            Bot.onTextMessage += (_, a) => commands.CheckMessage(a.Message);
             commands.AddRegEx("(420|трав(к)?а|шишки|марихуана)", ((_, e) =>
             {
                 Bot.SendStickerAsync(e.Message.Chat.Id, "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
                     replyToMessageId: e.Message.MessageId);
             }));
 
-            Bot.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
 
+
+
+            Bot.NativeCommand("fox", (_, e) => Bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
             Bot.NativeCommand("migr", (_, e) =>
             {
                 var users_old = database.GetRows<PersikSharp.Tables.DbUser>();
@@ -531,8 +536,6 @@ namespace PerchikSharp
                     Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id})(DM): {msg}");
                 //}
             }
-
-            commands.CheckMessage(m);
         }
 
         private static async void AddMsgToDatabase(object s, Message msg)
