@@ -66,6 +66,11 @@ namespace PerchikSharp
             this.OnMessageEdited += this.Bot_OnMessageEdited;
             this.OnCallbackQuery += this.Bot_OnCallbackQuery;
 
+            this.onTextMessage += RegexOnTextMessageAsync;
+            this.onTextMessage += CommandsParseOnTextMessage;
+
+            this.onNameRegexMatched += MatchRegexCommands;
+
 
             try
             {
@@ -291,10 +296,6 @@ namespace PerchikSharp
             switch (e.Message.Type)
             {
                 case MessageType.Text:
-                    MessageArgs message_args = new MessageArgs(message);
-                    this.onTextCommandsParsing(this, message_args);
-                    this.RegEx_OnMessageAsync(this, message_args);
-
                     message_str = message.Text;
                     this.onTextMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
@@ -333,11 +334,11 @@ namespace PerchikSharp
             Logger.Log(LogType.Info, $"{message_type_str}: {message_str}");
         }
 
-        private void RegEx_OnMessageAsync(object sender, MessageArgs e)
+        private void RegexOnTextMessageAsync(object sender, MessageArgs e)
         {
-            Task.Run(() => RegEx_OnMessage(sender, e));
+            Task.Run(() => RegexOnTextMessage(sender, e));
         }
-        private void RegEx_OnMessage(object sender, MessageArgs e)
+        private void RegexOnTextMessage(object sender, MessageArgs e)
         {
             Message message = e.Message;
             try
@@ -362,7 +363,6 @@ namespace PerchikSharp
                     if (m.Success)
                     {
                         message.Text = Regex.Replace(message.Text, RegexName, "", RegexOptions.IgnoreCase);
-                        this.OnRegexName(message);
                         this.onNameRegexMatched?.Invoke(this, new RegExArgs(message, m, RegexName));
                     }
                 }
@@ -373,8 +373,10 @@ namespace PerchikSharp
             }
         }
 
-        private void OnRegexName(Message msg)
+        private void MatchRegexCommands(object sender, RegExArgs arg)
         {
+            Message msg = arg.Message;
+
             bool Success = false;
             foreach (var command in regExCommands)
             {
@@ -391,7 +393,7 @@ namespace PerchikSharp
                 onNoneRegexMatched?.Invoke(this, new RegExArgs(msg, null, null));
         }
 
-        private void onTextCommandsParsing(object sender, MessageArgs message_args)//TODO: Redo :D
+        private void CommandsParseOnTextMessage(object sender, MessageArgs message_args)//TODO: Redo :D
         {
             var message = message_args.Message;
             var match = Regex.Match(message.Text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
