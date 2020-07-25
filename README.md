@@ -4,7 +4,7 @@
 
 # PieprzBot
 
-Telegram bot to administer my group and does some funny things. The Bot was written using [Telegram.Bot](https://github.com/TelegramBots/Telegram.Bot) API Client.
+Telegram bot to administer my group. The Bot was written using [Telegram.Bot](https://github.com/TelegramBots/Telegram.Bot) API Client.
 
 
 ### Run in a Docker container
