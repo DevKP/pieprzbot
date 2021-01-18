@@ -1,5 +1,4 @@
-﻿using PerchikSharp.Commands;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using PerchikSharp.Commands;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types;
@@ -48,32 +48,33 @@ namespace PerchikSharp
 
         public Pieprz(string token) : base(token)
         {
-            this.commandHandlers = new Dictionary<string, EventHandler<CommandEventArgs>>();
-            this.queryHandlers = new Dictionary<InlineButton, EventHandler<CallbackQueryArgs>>();
-            this.regexHandlers = new Dictionary<string, EventHandler<RegExArgs>>();
-            this.pollHandlers = new Dictionary<string, EventHandler<PollArgs>>();
-            this.nextstepHandlers = new List<BotEventHandlerUnit>();
-            this.pollAnswersCache = new List<PollAnswer>();
+            commandHandlers = new Dictionary<string, EventHandler<CommandEventArgs>>();
+            queryHandlers = new Dictionary<InlineButton, EventHandler<CallbackQueryArgs>>();
+            regexHandlers = new Dictionary<string, EventHandler<RegExArgs>>();
+            pollHandlers = new Dictionary<string, EventHandler<PollArgs>>();
+            nextstepHandlers = new List<BotEventHandlerUnit>();
+            pollAnswersCache = new List<PollAnswer>();
 
-            this.nativeCommands = new Dictionary<INativeCommand, EventHandler<CommandEventArgs>>();
-            this.regExCommands = new Dictionary<IRegExCommand, EventHandler<RegExArgs>>();
+            nativeCommands = new Dictionary<INativeCommand, EventHandler<CommandEventArgs>>();
+            regExCommands = new Dictionary<IRegExCommand, EventHandler<RegExArgs>>();
 
 
-            this.OnUpdate += this.PollRecieve;
-            this.OnMessage += this.Bot_OnMessageAsync;
-            this.OnMessageEdited += this.Bot_OnMessageEdited;
-            this.OnCallbackQuery += this.Bot_OnCallbackQuery;
+            OnUpdate += PollRecieve;
+            OnMessageEdited += Bot_OnMessageEdited;
+            OnCallbackQuery += Bot_OnCallbackQuery;
+            
+            onTextMessage += RegexOnTextMessageAsync;
+            onTextMessage += CommandsParseOnTextMessage;
 
-            this.onTextMessage += RegexOnTextMessageAsync;
-            this.onTextMessage += CommandsParseOnTextMessage;
+            OnMessage += Bot_OnMessageAsync;
 
-            this.onNameRegexMatched += MatchRegexCommands;
+            onNameRegexMatched += MatchRegexCommands;
 
 
             try
             {
-                this.Me = this.GetMeAsync().Result;
-                this._botUsername = this.Me.Username;
+                Me = GetMeAsync().Result;
+                _botUsername = Me.Username;
             }
             catch (Exception exc)
             {
@@ -92,20 +93,20 @@ namespace PerchikSharp
                 {
                     case UpdateType.Poll:
                         
-                        foreach (var poll in this.pollHandlers)
+                        foreach (var (pollId, poll) in pollHandlers)
                         {
-                            if (poll.Key == update.Poll.Id)
+                            if (pollId == update.Poll.Id)
                             {
-                                var pollanswer = this.pollAnswersCache.LastOrDefault(p => p.PollId == update.Poll.Id);
-                                poll.Value?.Invoke(this, new PollArgs(update.Poll, pollanswer));
+                                var pollAnswer = pollAnswersCache.LastOrDefault(p => p.PollId == update.Poll.Id);
+                                poll?.Invoke(this, new PollArgs(update.Poll, pollAnswer));
                             }
                         }
                         break;
                     case UpdateType.PollAnswer:
-                        if (this.pollHandlers.Any(h => h.Key == update.PollAnswer.PollId))
+                        if (pollHandlers.Any(h => h.Key == update.PollAnswer.PollId))
                         {
-                            this.pollAnswersCache.Add(e.Update.PollAnswer);
-                            this.onPollAnswer?.Invoke(sender, e.Update.PollAnswer);
+                            pollAnswersCache.Add(e.Update.PollAnswer);
+                            onPollAnswer?.Invoke(sender, e.Update.PollAnswer);
                         }
                         break;
                 }
@@ -117,14 +118,10 @@ namespace PerchikSharp
         }
 
         public void RegisterPoll(string pollId, EventHandler<PollArgs> p)
-        {
-            this.pollHandlers.Add(pollId, p);
-        }
+            => pollHandlers.Add(pollId, p);
 
-        public void RemovePoll(string pollId)
-        {
-            this.pollHandlers.Remove(pollId);
-        }
+        public void RemovePoll(string pollId) 
+            => pollHandlers.Remove(pollId);
 
         /// <summary>
         /// Registers a callback for chat command. (e.g. test )
@@ -133,12 +130,12 @@ namespace PerchikSharp
         /// <param name="c">Method to be called.</param>
         public void NativeCommand(string command, EventHandler<CommandEventArgs> c)
         {
-            this.commandHandlers.Add(command, c);
+            commandHandlers.Add(command, c);
         }
 
         public void NativeCommand(INativeCommand command)
         {
-            this.nativeCommands.Add(command, (s, x) => 
+            nativeCommands.Add(command, (s, x) => 
                 Task.Run(() => command.OnExecution(s, x)));
         }
 
@@ -149,12 +146,12 @@ namespace PerchikSharp
         /// <param name="c">Method to be called.</param>
         public void AddRegEx(string pattern, EventHandler<RegExArgs> c)
         {
-            this.regexHandlers.Add(pattern, c);
+            regexHandlers.Add(pattern, c);
         }
 
         public void RegExCommand(IRegExCommand command)
         {
-            this.regExCommands.Add(command, (s, r) => 
+            regExCommands.Add(command, (s, r) => 
                 Task.Run(() => command.OnExecution(s, r)));
         }
 
@@ -165,7 +162,7 @@ namespace PerchikSharp
         /// <param name="c">Method to be called.</param>
         public void CallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
         {
-            this.queryHandlers.Add(new InlineButton(data), c);
+            queryHandlers.Add(new InlineButton(data), c);
         }
 
         /// <summary>
@@ -177,7 +174,7 @@ namespace PerchikSharp
         /// <param name="userid">User Id</param>
         public void RegisterCallbackQuery(string data, int userid, object arg, EventHandler<CallbackQueryArgs> c)
         {
-            this.queryHandlers.Add(new InlineButton(data, userid, arg), c);
+            queryHandlers.Add(new InlineButton(data, userid, arg), c);
         }
 
         /// <summary>
@@ -187,13 +184,13 @@ namespace PerchikSharp
         public void RemoveCallbackQuery(string data)
         {
             var button = queryHandlers.FirstOrDefault(o => o.Key.Data == data).Key;
-            this.queryHandlers.Remove(button);
+            queryHandlers.Remove(button);
         }
 
 
         public void RegisterNextstep(EventHandler<NextstepArgs> callback, Message message, bool fromAnyUser = false, object arg = null)
         {
-            var isWaitingMessages = this.nextstepHandlers.Where(unit => 
+            var isWaitingMessages = nextstepHandlers.Where(unit => 
             {
                 if (unit.chatId == message.Chat.Id)
                 {
@@ -209,18 +206,18 @@ namespace PerchikSharp
             if (!isWaitingMessages)
             {
                 var cbUnit = new BotEventHandlerUnit(callback, message, fromAnyUser, arg);
-                this.nextstepHandlers.Add(cbUnit);
+                nextstepHandlers.Add(cbUnit);
             }
         }
 		
         public void RemoveNextstepCallback(Message message)
         {
-            var waitingMessages = this.nextstepHandlers.Where(unit =>
+            var waitingMessages = nextstepHandlers.Where(unit =>
                                    (unit.userId, unit.chatId) == (message.From.Id, message.Chat.Id)).ToList();
             if (waitingMessages.Any())
             {
                 var waitingMessage = waitingMessages.First();
-                this.nextstepHandlers.Remove(waitingMessage);
+                nextstepHandlers.Remove(waitingMessage);
             }
         }
 
@@ -228,9 +225,9 @@ namespace PerchikSharp
         {
             try
             {
-                Logger.Log(LogType.Info, $"<{this.GetType().Name}> InlineCallback \"{a.CallbackQuery.Data}\" from user ({a.CallbackQuery.From.FirstName}:{a.CallbackQuery.From.Id}).");
+                Logger.Log(LogType.Info, $"<{GetType().Name}> InlineCallback \"{a.CallbackQuery.Data}\" from user ({a.CallbackQuery.From.FirstName}:{a.CallbackQuery.From.Id}).");
 
-                var buttonEventPair = this.queryHandlers.First(o => o.Key.Data == a.CallbackQuery.Data);
+                var buttonEventPair = queryHandlers.First(o => o.Key.Data == a.CallbackQuery.Data);
 
                 if (buttonEventPair.Key.UserId != 0)
                 {
@@ -245,7 +242,7 @@ namespace PerchikSharp
             }
             catch (Exception)
             {
-                Logger.Log(LogType.Error, $"<{this.GetType().Name}> CallbackQuery with Data: \"{a.CallbackQuery.Data}\" isn't registered!!");
+                Logger.Log(LogType.Error, $"<{GetType().Name}> CallbackQuery with Data: \"{a.CallbackQuery.Data}\" isn't registered!!");
             }
         }
 
@@ -254,83 +251,82 @@ namespace PerchikSharp
             switch (e.Message.Type)
             {
                 case MessageType.Text:
-                    this.onTextEdited?.Invoke(this, new MessageArgs(e.Message));
+                    onTextEdited?.Invoke(this, new MessageArgs(e.Message));
                     break;
             }
         }
 
         private void Bot_OnMessageAsync(object sender, MessageEventArgs e)
         {
-            Task.Run(() => Bot_OnMessage(e));
-        }
-
-        private void Bot_OnMessage(MessageEventArgs e)
-        {
-            var message = e.Message;
-
-            var waitingMessages = this.nextstepHandlers.Where(unit =>
+            Task.Run(() =>
             {
-                if (unit.chatId != message.Chat.Id) 
+                var message = e.Message;
+
+                var waitingMessages = nextstepHandlers.Where(unit =>
+                {
+                    if (unit.chatId != message.Chat.Id)
+                        return false;
+
+                    if (unit.fromAnyUser)
+                        return true;
+
+                    if (unit.userId == message.From.Id)
+                        return true;
+
                     return false;
+                }).ToList();
 
-                if (unit.fromAnyUser)
-                    return true;
+                if (waitingMessages.Any())
+                {
+                    var waitingMessage = waitingMessages.First();
+                    nextstepHandlers.Remove(waitingMessage);
 
-                if (unit.userId == message.From.Id)
-                    return true;
+                    waitingMessage.InvokeCallback(message);
+                }
 
-                return false;
-            }).ToList();
+                var messageTypeStr =
+                    $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
+                var messageStr = "";
+                switch (e.Message.Type)
+                {
+                    case MessageType.Text:
+                        messageStr = message.Text;
+                        onTextMessage?.Invoke(this, new MessageArgs(e.Message));
+                        break;
+                    case MessageType.Sticker:
+                        messageStr = message.Sticker?.FileId;
+                        onStickerMessage?.Invoke(this, new MessageArgs(e.Message));
+                        break;
+                    case MessageType.Photo:
+                        messageStr = message.Photo[0].FileId;
+                        onPhotoMessage?.Invoke(this, new MessageArgs(e.Message));
+                        break;
+                    case MessageType.ChatMembersAdded:
+                        messageStr = message.NewChatMembers[0].Id.ToString();
+                        onChatMembersAddedMessage?.Invoke(this, new MessageArgs(e.Message));
+                        break;
+                    case MessageType.Document:
+                        messageStr = message.Document.FileId;
+                        onDocumentMessage?.Invoke(this, new MessageArgs(e.Message));
+                        break;
+                    case MessageType.Video:
+                        messageStr = message.Video.FileId;
+                        onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
+                        break;
+                    case MessageType.Voice:
+                        messageStr = message.Voice.FileId;
+                        onVoiceMessage?.Invoke(this, new MessageArgs(e.Message));
+                        break;
+                    case MessageType.VideoNote:
+                        messageStr = message.VideoNote.FileId;
+                        onVideoNoteMessage?.Invoke(this, new MessageArgs(e.Message));
+                        break;
+                    case MessageType.Unknown:
+                        break;
+                }
 
-            if (waitingMessages.Any())
-            {
-                var waitingMessage = waitingMessages.First();
-                this.nextstepHandlers.Remove(waitingMessage);
-
-                waitingMessage.InvokeCallback(message);
-            }
-
-            var messageTypeStr = $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
-            var messageStr = "";
-            switch (e.Message.Type)
-            {
-                case MessageType.Text:
-                    messageStr = message.Text;
-                    this.onTextMessage?.Invoke(this, new MessageArgs(e.Message));
-                    break;
-                case MessageType.Sticker:
-                    messageStr = message.Sticker?.FileId;
-                    this.onStickerMessage?.Invoke(this, new MessageArgs(e.Message));
-                    break;
-                case MessageType.Photo:
-                    messageStr = message.Photo[0].FileId;
-                    this.onPhotoMessage?.Invoke(this, new MessageArgs(e.Message));
-                    break;
-                case MessageType.ChatMembersAdded:
-                    messageStr = message.NewChatMembers[0].Id.ToString();
-                    this.onChatMembersAddedMessage?.Invoke(this, new MessageArgs(e.Message));
-                    break;
-                case MessageType.Document:
-                    messageStr = message.Document.FileId;
-                    this.onDocumentMessage?.Invoke(this, new MessageArgs(e.Message));
-                    break;
-                case MessageType.Video:
-                    messageStr = message.Video.FileId;
-                    this.onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
-                    break;
-                case MessageType.Voice:
-                    messageStr = message.Voice.FileId;
-                    this.onVoiceMessage?.Invoke(this, new MessageArgs(e.Message));
-                    break;
-                case MessageType.VideoNote:
-                    messageStr = message.VideoNote.FileId;
-                    this.onVideoNoteMessage?.Invoke(this, new MessageArgs(e.Message));
-                    break;
-                case MessageType.Unknown:
-                    break;
-            }
-
-            Logger.Log(LogType.Info, $"{messageTypeStr}: {messageStr}");
+                Logger.Log(LogType.Info, $"{messageTypeStr}: {messageStr}");
+            });
         }
 
         private void RegexOnTextMessageAsync(object sender, MessageArgs e)
@@ -342,13 +338,13 @@ namespace PerchikSharp
             var message = e.Message;
             try
             {
-                foreach(var (key, value) in this.regexHandlers)
+                foreach(var (key, value) in regexHandlers)
                 {
                     string pattern = key;
                     Match match = Regex.Match(message.Text, pattern, RegexOptions.IgnoreCase);
                     if (match.Success)
                     {
-                        Logger.Log(LogType.Info, $"<{this.GetType().Name}:RegEx>({message.From.FirstName}:{message.From.Id}) -> {pattern}");
+                        Logger.Log(LogType.Info, $"<{GetType().Name}:RegEx>({message.From.FirstName}:{message.From.Id}) -> {pattern}");
 
                         RegExArgs rgxArgs = new RegExArgs(message, match, pattern);
                         //_ = Task.Run(() => regex.Value?.Invoke(this, rgxArgs)); 
@@ -362,7 +358,7 @@ namespace PerchikSharp
                     if (m.Success)
                     {
                         message.Text = Regex.Replace(message.Text, RegexName, "", RegexOptions.IgnoreCase);
-                        this.onNameRegexMatched?.Invoke(this, new RegExArgs(message, m, RegexName));
+                        onNameRegexMatched?.Invoke(this, new RegExArgs(message, m, RegexName));
                     }
                 }
             }
@@ -401,7 +397,7 @@ namespace PerchikSharp
                 if (!match.Success) return;
 
 
-                Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
+                Logger.Log(LogType.Info, $"<{GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
 
                 var command = message.Text;
                 var text = "";
@@ -413,18 +409,18 @@ namespace PerchikSharp
 
                 var commandEventArgs = new CommandEventArgs(message, command, text);
 
-                this.nativeCommands
+                nativeCommands
                     .FirstOrDefault(nc => nc.Key.Command == match.Groups["command"].Value)
                     .Value?
                     .Invoke(this, commandEventArgs);
 
-                this.commandHandlers
+                commandHandlers
                     .FirstOrDefault(x => x.Key == match.Groups["command"].Value)
                     .Value?
                     .Invoke(this, commandEventArgs);
             }catch(KeyNotFoundException)
             {
-                Logger.Log(LogType.Error, $"<{this.GetType().Name}> Command \"{match.Groups[0].Value}\" not found!!");
+                Logger.Log(LogType.Error, $"<{GetType().Name}> Command \"{match.Groups[0].Value}\" not found!!");
             }
         }
 
@@ -464,7 +460,7 @@ namespace PerchikSharp
         {
             try
             {
-                var chatMembers = this.GetChatAdministratorsAsync(chatId).Result;
+                var chatMembers = GetChatAdministratorsAsync(chatId).Result;
                 return Array.Find(chatMembers, e => e.User.Id == userId) != null;
             }
             catch (Exception e)
@@ -515,7 +511,7 @@ namespace PerchikSharp
                 permissions.CanSendOtherMessages = canWriteMessages;
                 permissions.CanSendPolls = canWriteMessages;
 
-                return this.RestrictChatMemberAsync(
+                return RestrictChatMemberAsync(
                     chatId: chatid,
                     userId: userid,
                     untilDate: until,
@@ -537,7 +533,7 @@ namespace PerchikSharp
         {
             try
             {
-                var file = this.GetFileAsync(fileId).Result;
+                var file = GetFileAsync(fileId).Result;
                 var stream = new MemoryStream();
 
                 const int attempts = 5;
@@ -545,7 +541,7 @@ namespace PerchikSharp
                 {
                     try
                     {
-                        await this.DownloadFileAsync(file.FilePath, stream);
+                        await DownloadFileAsync(file.FilePath, stream);
                         break;
                     }
                     catch (HttpRequestException)
@@ -577,7 +573,7 @@ namespace PerchikSharp
         public Task FullyRestrictUserAsync(ChatId chatId, int userId, int forSeconds = 40)
         {
             var until = DateTime.UtcNow.AddSeconds(forSeconds);
-            return this.RestrictUserAsync(chatId.Identifier, userId, until);
+            return RestrictUserAsync(chatId.Identifier, userId, until);
         }
     }
 }

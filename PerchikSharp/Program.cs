@@ -33,10 +33,10 @@ namespace PerchikSharp
         static readonly CancellationTokenSource ExitTokenSource = new CancellationTokenSource();
         static readonly CancellationToken ExitToken = ExitTokenSource.Token;
 
-        const long OfftopiaId = -1001125742098;
-        const int ViaTcpId = 204678400;
+        private const long OfftopiaId = -1001125742098;
+        private const int ViaTcpId = 204678400;
 
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
 
             Logger.Log(LogType.Info, $"Bot version: {Pieprz.botVersion}");
@@ -102,13 +102,7 @@ namespace PerchikSharp
                 Console.ReadKey();
             }
 
-            //ConsoleWindow.StartTrayAsync();
-
-            while (!ExitToken.IsCancellationRequested)
-            {
-                StartDatabaseCheck(null);
-                Thread.Sleep(5000);
-            }
+            await StartDatabaseCheckAsync(5000);
 
             bot.StopReceiving();
         }
@@ -195,113 +189,6 @@ namespace PerchikSharp
 
 
             bot.NativeCommand("fox", (_, e) => bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
-            bot.NativeCommand("migr", (_, e) =>
-            {
-                var usersOld = database.GetRows<PersikSharp.Tables.DbUser>();
-                var messagesOld = database.GetRows<PersikSharp.Tables.DbMessage>();
-                var restrictionOld = database.GetRows<PersikSharp.Tables.DbRestriction>();
-
-                using (var db = PerchikDB.GetContext())
-                {
-                    var existingChat = db.Chats.FirstOrDefault(x => x.Id == -1001125742098);
-                    var newChat = new Db.Tables.Chat()
-                    {
-                        Id = -1001125742098,
-                        Title = "OFFTOP",
-                        Description = "DESCRIPTION"
-                    };
-                    if (existingChat == null)
-                    {
-                        db.Add(newChat);
-                        db.SaveChanges();
-                    }
-                }
-
-                foreach (var user in usersOld)
-                {
-                    try
-                    {
-                        using var db = PerchikDB.GetContext();
-                        var newUser = new Db.Tables.User()
-                        {
-                            Id = user.Id,
-                            FirstName = user.FirstName,
-                            LastName = user.LastName,
-                            UserName = user.Username,
-                            Restricted = false
-                        };
-                        var existingUser = db.Users.FirstOrDefault(x => x.Id == user.Id);
-                        if (existingUser != null) continue;
-
-                        db.Users.Add(newUser);
-                        db.SaveChanges();
-                        db.ChatUsers.Add(new Db.Tables.ChatUser()
-                        {
-                            ChatId = -1001125742098,
-                            UserId = user.Id
-                        });
-                        db.SaveChanges();
-                        Logger.Log(LogType.Debug, $"User {user.FirstName}:{user.Id}");
-                    }
-                    catch (Exception)
-                    {
-                        Logger.Log(LogType.Debug, $"ERROR {user.FirstName}:{user.Id}");
-                    }
-
-                }
-
-                var i = 0;
-                foreach (var message in messagesOld)
-                {
-                    try
-                    {
-                        using var db = PerchikDB.GetContext();
-                        if (db.Users.AsNoTracking().FirstOrDefault(x => x.Id == message.UserId) == null)
-                            continue;
-
-                        db.Messages.Add(new Db.Tables.Message()
-                        {
-                            MessageId = message.Id,
-                            UserId = message.UserId,
-                            ChatId = -1001125742098,
-                            Text = message.Text,
-                            Date = DbConverter.ToEpochTime(DateTime.Parse(message.DateTime))
-                        });
-
-                        db.SaveChanges();
-
-                        if (i++ % 10 == 0)
-                            Logger.Log(LogType.Debug, $"Message #{i} ID {message.Id} : {message.Text}");
-                    }
-                    catch (Exception)
-                    {
-                        Logger.Log(LogType.Debug, $"ERROR {message.Id} : {message.Text}");
-                    }
-                }
-
-                foreach (var restriction in restrictionOld)
-                {
-                    try
-                    {
-                        using var db = PerchikDB.GetContext();
-                        db.Restrictions.Add(new Db.Tables.Restriction()
-                        {
-                            ChatId = -1001125742098,
-                            UserId = restriction.UserId,
-                            Date = DateTime.Parse(restriction.DateTimeFrom),
-                            Until = DateTime.Parse(restriction.DateTimeTo)
-                        });
-                        db.SaveChanges();
-                        Logger.Log(LogType.Debug, $"Restriction ID {restriction.Id} : {restriction.DateTimeFrom}");
-                    }
-                    catch (Exception)
-                    {
-                        Logger.Log(LogType.Debug, $"Restriction ERROR");
-                    }
-                }
-
-            });
-
         }
 
         private static void LoadDictionary()
@@ -336,9 +223,13 @@ namespace PerchikSharp
            Task.Run(() => AddMsgToDatabase(sender, e.Message));
         }
 
-        private static void StartDatabaseCheck(object s)
+        private static async Task StartDatabaseCheckAsync(int timeOut, CancellationToken token = default(CancellationToken))
         {
-            CheckUserRestrictions();
+            while (!ExitToken.IsCancellationRequested)
+            {
+                CheckUserRestrictions();
+                await Task.Delay(timeOut, token);
+            }
         }
 
         private static async void CheckUserRestrictions()
