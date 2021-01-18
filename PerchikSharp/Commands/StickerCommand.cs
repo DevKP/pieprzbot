@@ -45,11 +45,11 @@ namespace PerchikSharp.Commands
                 if (e.Message.Type == MessageType.Sticker)
                 {
 
-                   await Program.Bot.SendTextMessageAsync(
+                   await Program.bot.SendTextMessageAsync(
                             chatId: e.Message.Chat.Id,
                             text: Program.strManager["STK_OK"],
                             parseMode: ParseMode.Markdown);
-                   await Program.Bot.SendStickerAsync(
+                   await Program.bot.SendStickerAsync(
                         chatId: offtopia_id,
                         sticker: e.Message.Sticker.FileId);
 
@@ -59,7 +59,7 @@ namespace PerchikSharp.Commands
                 {
                     if (bot.FindTextCommand(e.Message.Text, "stop"))
                     {
-                        await Program.Bot.SendTextMessageAsync(
+                        await Program.bot.SendTextMessageAsync(
                            chatId: e.Message.Chat.Id,
                            text: Program.strManager["STK_CANCEL"],
                            parseMode: ParseMode.Markdown);
@@ -67,7 +67,7 @@ namespace PerchikSharp.Commands
                         return;
                     }
 
-                    await Program.Bot.SendTextMessageAsync(
+                    await Program.bot.SendTextMessageAsync(
                             chatId: e.Message.Chat.Id,
                             text: Program.strManager["STK_WRONG"],
                             parseMode: ParseMode.Markdown,

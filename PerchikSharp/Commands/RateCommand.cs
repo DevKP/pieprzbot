@@ -93,7 +93,7 @@ namespace PerchikSharp.Commands
                     button.Text = Program.strManager.GetSingle("RATE_UPDATE_BTN");
                     var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
 
-                    await Program.Bot.EditMessageTextAsync(
+                    await Program.bot.EditMessageTextAsync(
                          chatId: e.Callback.Message.Chat.Id,
                          messageId: e.Callback.Message.MessageId,
                          replyMarkup: inlineKeyboard,

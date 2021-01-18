@@ -69,7 +69,7 @@ namespace PerchikSharp.Commands
             {
                 if (message.ReplyToMessage != null)
                 {
-                    if (!bot.isUserAdmin(message.Chat.Id, message.From.Id) 
+                    if (!bot.IsUserAdmin(message.Chat.Id, message.From.Id) 
                         && message.From.Id != via_tcp_Id)
                         return;
 

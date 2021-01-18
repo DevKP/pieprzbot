@@ -16,7 +16,7 @@ namespace PerchikSharp.Commands
             if (msg.ReplyToMessage == null)
                 return;
 
-            if(bot.isUserAdmin(command.Message.Chat.Id, command.Message.From.Id) ||
+            if(bot.IsUserAdmin(command.Message.Chat.Id, command.Message.From.Id) ||
                 command.Message.From.Id == via_tcp_Id)
             {
                 await bot.DeleteMessageAsync(msg.Chat.Id, msg.MessageId);

@@ -19,7 +19,7 @@ namespace PerchikSharp.Commands
 
             if (message.Chat.Type == ChatType.Private)
                 return;
-            if (!bot.isUserAdmin(message.Chat.Id, message.From.Id))
+            if (!bot.IsUserAdmin(message.Chat.Id, message.From.Id))
                 return;
             if (message.ReplyToMessage == null)
                 return;

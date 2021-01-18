@@ -1,5 +1,4 @@
 ﻿using PerchikSharp.Commands;
-using PerchikSharp.Db;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Args;
@@ -16,9 +14,9 @@ using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp
 {
-    class Pieprz : TelegramBotClient
+    internal class Pieprz : TelegramBotClient
     {
-        public static string BotVersion = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
+        public static string botVersion = FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
 
         public event EventHandler<RegExArgs> onNoneRegexMatched;
         public event EventHandler<RegExArgs> onNameRegexMatched;
@@ -46,7 +44,7 @@ namespace PerchikSharp
 
         public User Me { get; }
         public string RegexName { get; set; }
-        private string bot_username;
+        private readonly string _botUsername;
 
         public Pieprz(string token) : base(token)
         {
@@ -61,7 +59,7 @@ namespace PerchikSharp
             this.regExCommands = new Dictionary<IRegExCommand, EventHandler<RegExArgs>>();
 
 
-            this.OnUpdate += this.onPollRecieve;
+            this.OnUpdate += this.PollRecieve;
             this.OnMessage += this.Bot_OnMessageAsync;
             this.OnMessageEdited += this.Bot_OnMessageEdited;
             this.OnCallbackQuery += this.Bot_OnCallbackQuery;
@@ -75,7 +73,7 @@ namespace PerchikSharp
             try
             {
                 this.Me = this.GetMeAsync().Result;
-                this.bot_username = this.Me.Username;
+                this._botUsername = this.Me.Username;
             }
             catch (Exception exc)
             {
@@ -85,11 +83,11 @@ namespace PerchikSharp
             }
         }
 
-        private void onPollRecieve(object sender, UpdateEventArgs e)
+        private void PollRecieve(object sender, UpdateEventArgs e)
         {
             try
             {
-                Update update = e.Update;
+                var update = e.Update;
                 switch (e.Update.Type)
                 {
                     case UpdateType.Poll:
@@ -98,7 +96,7 @@ namespace PerchikSharp
                         {
                             if (poll.Key == update.Poll.Id)
                             {
-                                PollAnswer pollanswer = this.pollAnswersCache.LastOrDefault(p => p.PollId == update.Poll.Id);
+                                var pollanswer = this.pollAnswersCache.LastOrDefault(p => p.PollId == update.Poll.Id);
                                 poll.Value?.Invoke(this, new PollArgs(update.Poll, pollanswer));
                             }
                         }
@@ -109,8 +107,6 @@ namespace PerchikSharp
                             this.pollAnswersCache.Add(e.Update.PollAnswer);
                             this.onPollAnswer?.Invoke(sender, e.Update.PollAnswer);
                         }
-                        break;
-                    default:
                         break;
                 }
             }
@@ -159,7 +155,7 @@ namespace PerchikSharp
         public void RegExCommand(IRegExCommand command)
         {
             this.regExCommands.Add(command, (s, r) => 
-                Task.Factory.StartNew(() => command.OnExecution(s, r)));
+                Task.Run(() => command.OnExecution(s, r)));
         }
 
         /// <summary>
@@ -176,7 +172,9 @@ namespace PerchikSharp
         /// Registers a сallback query for chat event. Pressing the button, etc.
         /// </summary>
         /// <param name="data">Callback data, see. Telegram API</param>
+        /// <param name="arg">TODO</param>
         /// <param name="c">Method to be called.</param>
+        /// <param name="userid">User Id</param>
         public void RegisterCallbackQuery(string data, int userid, object arg, EventHandler<CallbackQueryArgs> c)
         {
             this.queryHandlers.Add(new InlineButton(data, userid, arg), c);
@@ -218,7 +216,7 @@ namespace PerchikSharp
         public void RemoveNextstepCallback(Message message)
         {
             var waitingMessages = this.nextstepHandlers.Where(unit =>
-                                   (unit.userId, unit.chatId) == (message.From.Id, message.Chat.Id));
+                                   (unit.userId, unit.chatId) == (message.From.Id, message.Chat.Id)).ToList();
             if (waitingMessages.Any())
             {
                 var waitingMessage = waitingMessages.First();
@@ -263,25 +261,26 @@ namespace PerchikSharp
 
         private void Bot_OnMessageAsync(object sender, MessageEventArgs e)
         {
-            Task.Run(() => Bot_OnMessage(sender, e));
+            Task.Run(() => Bot_OnMessage(e));
         }
 
-        private void Bot_OnMessage(object sender, MessageEventArgs e)
+        private void Bot_OnMessage(MessageEventArgs e)
         {
             var message = e.Message;
 
             var waitingMessages = this.nextstepHandlers.Where(unit =>
             {
-                if (unit.chatId == message.Chat.Id)
-                {
-                    if (unit.fromAnyUser)
-                        return true;
+                if (unit.chatId != message.Chat.Id) 
+                    return false;
 
-                    if (unit.userId == message.From.Id)
-                        return true;
-                }
+                if (unit.fromAnyUser)
+                    return true;
+
+                if (unit.userId == message.From.Id)
+                    return true;
+
                 return false;
-            });
+            }).ToList();
 
             if (waitingMessages.Any())
             {
@@ -291,47 +290,47 @@ namespace PerchikSharp
                 waitingMessage.InvokeCallback(message);
             }
 
-            string message_type_str = $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
-            string message_str = "";
+            var messageTypeStr = $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
+            var messageStr = "";
             switch (e.Message.Type)
             {
                 case MessageType.Text:
-                    message_str = message.Text;
+                    messageStr = message.Text;
                     this.onTextMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Sticker:
-                    message_str = message.Sticker?.FileId;
+                    messageStr = message.Sticker?.FileId;
                     this.onStickerMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Photo:
-                    message_str = message.Photo[0].FileId;
+                    messageStr = message.Photo[0].FileId;
                     this.onPhotoMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.ChatMembersAdded:
-                    message_str = message.NewChatMembers[0].Id.ToString();
+                    messageStr = message.NewChatMembers[0].Id.ToString();
                     this.onChatMembersAddedMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Document:
-                    message_str = message.Document.FileId;
+                    messageStr = message.Document.FileId;
                     this.onDocumentMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Video:
-                    message_str = message.Video.FileId;
+                    messageStr = message.Video.FileId;
                     this.onVideoMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Voice:
-                    message_str = message.Voice.FileId;
+                    messageStr = message.Voice.FileId;
                     this.onVoiceMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.VideoNote:
-                    message_str = message.VideoNote.FileId;
+                    messageStr = message.VideoNote.FileId;
                     this.onVideoNoteMessage?.Invoke(this, new MessageArgs(e.Message));
                     break;
                 case MessageType.Unknown:
                     break;
             }
 
-            Logger.Log(LogType.Info, $"{message_type_str}: {message_str}");
+            Logger.Log(LogType.Info, $"{messageTypeStr}: {messageStr}");
         }
 
         private void RegexOnTextMessageAsync(object sender, MessageArgs e)
@@ -340,12 +339,12 @@ namespace PerchikSharp
         }
         private void RegexOnTextMessage(object sender, MessageArgs e)
         {
-            Message message = e.Message;
+            var message = e.Message;
             try
             {
-                foreach(var regex in this.regexHandlers)
+                foreach(var (key, value) in this.regexHandlers)
                 {
-                    string pattern = regex.Key;
+                    string pattern = key;
                     Match match = Regex.Match(message.Text, pattern, RegexOptions.IgnoreCase);
                     if (match.Success)
                     {
@@ -353,7 +352,7 @@ namespace PerchikSharp
 
                         RegExArgs rgxArgs = new RegExArgs(message, match, pattern);
                         //_ = Task.Run(() => regex.Value?.Invoke(this, rgxArgs)); 
-                        regex.Value?.Invoke(this, rgxArgs);
+                        value?.Invoke(this, rgxArgs);
                     }
                 }
 
@@ -375,54 +374,54 @@ namespace PerchikSharp
 
         private void MatchRegexCommands(object sender, RegExArgs arg)
         {
-            Message msg = arg.Message;
+            var msg = arg.Message;
 
-            bool Success = false;
-            foreach (var command in regExCommands)
+            var success = false;
+            foreach (var (key, value) in regExCommands)
             {
-                string pattern = command.Key.RegEx;
+                var pattern = key.RegEx;
                 var match = Regex.Match(msg.Text, pattern, RegexOptions.IgnoreCase);
                 if (match.Success)
                 {
-                    Success = true;
-                    RegExArgs rgxArgs = new RegExArgs(msg, match, pattern);
-                    command.Value.Invoke(this, rgxArgs);
+                    success = true;
+                    var rgxArgs = new RegExArgs(msg, match, pattern);
+                    value.Invoke(this, rgxArgs);
                 }
             }
-            if (!Success)
+            if (!success)
                 onNoneRegexMatched?.Invoke(this, new RegExArgs(msg, null, null));
         }
 
-        private void CommandsParseOnTextMessage(object sender, MessageArgs message_args)//TODO: Redo :D
+        private void CommandsParseOnTextMessage(object sender, MessageArgs messageArgs)//TODO: Redo :D
         {
-            var message = message_args.Message;
-            var match = Regex.Match(message.Text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
+            var message = messageArgs.Message;
+            var match = Regex.Match(message.Text, $"^\\/(?<command>\\w+)(?<botname>@{_botUsername})?", RegexOptions.IgnoreCase);
             try
             {
-                if (match.Success)
+                if (!match.Success) return;
+
+
+                Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
+
+                var command = message.Text;
+                var text = "";
+                if(message.Text.IndexOf(' ') != -1)
                 {
-                    Logger.Log(LogType.Info, $"<{this.GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
-
-                    string command = message.Text;
-                    string text = "";
-                    if(message.Text.IndexOf(' ') != -1)
-                    {
-                        command = message.Text.Substring(0, message.Text.IndexOf(' '));
-                        text = message.Text.Substring(message.Text.IndexOf(' ') + 1);
-                    }
-
-                    CommandEventArgs cmdargs = new CommandEventArgs(message, command, text);
-
-                    this.nativeCommands
-                        .FirstOrDefault(nc => nc.Key.Command == match.Groups["command"].Value)
-                        .Value?
-                        .Invoke(this, cmdargs);
-
-                    this.commandHandlers
-                        .FirstOrDefault(x => x.Key == match.Groups["command"].Value)
-                        .Value?
-                        .Invoke(this, cmdargs);
+                    command = message.Text.Substring(0, message.Text.IndexOf(' '));
+                    text = message.Text.Substring(message.Text.IndexOf(' ') + 1);
                 }
+
+                var commandEventArgs = new CommandEventArgs(message, command, text);
+
+                this.nativeCommands
+                    .FirstOrDefault(nc => nc.Key.Command == match.Groups["command"].Value)
+                    .Value?
+                    .Invoke(this, commandEventArgs);
+
+                this.commandHandlers
+                    .FirstOrDefault(x => x.Key == match.Groups["command"].Value)
+                    .Value?
+                    .Invoke(this, commandEventArgs);
             }catch(KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> Command \"{match.Groups[0].Value}\" not found!!");
@@ -431,15 +430,11 @@ namespace PerchikSharp
 
         public static async Task<string> HttpRequestAsync(string url)
         {
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = new Uri(url);
-
-                HttpResponseMessage response = await client.GetAsync(url);
-                return response.IsSuccessStatusCode
-                    ? await response.Content.ReadAsStringAsync()
-                    : null;
-            }
+            using var client = new HttpClient { BaseAddress = new Uri(url) };
+            var response = await client.GetAsync(url);
+            return response.IsSuccessStatusCode
+                ? await response.Content.ReadAsStringAsync()
+                : null;
         }
 
         /// <summary>
@@ -452,11 +447,9 @@ namespace PerchikSharp
         /// <param name="command">Command to find.</param>
         public bool FindTextCommand(string text, string command)
         {
-            var match = Regex.Match(text, $"^\\/(?<command>\\w+)(?<botname>@{bot_username})?", RegexOptions.IgnoreCase);
+            var match = Regex.Match(text, $"^\\/(?<command>\\w+)(?<botname>@{_botUsername})?", RegexOptions.IgnoreCase);
 
-            return match.Success
-                ? match.Groups["command"].Value.Equals(command)
-                : false;
+            return match.Success && match.Groups["command"].Value.Equals(command);
         }
 
         /// <summary>
@@ -467,15 +460,12 @@ namespace PerchikSharp
         /// </returns>
         /// <param name="chatId">Chat ID.</param>
         /// <param name="userId">User ID.</param>
-        public bool isUserAdmin(long chatId, int userId)
+        public bool IsUserAdmin(long chatId, int userId)
         {
             try
             {
-                ChatMember[] chat_members = this.GetChatAdministratorsAsync(chatId).Result;
-                if (Array.Find(chat_members, e => e.User.Id == userId) != null)
-                    return true;
-                else
-                    return false;
+                var chatMembers = this.GetChatAdministratorsAsync(chatId).Result;
+                return Array.Find(chatMembers, e => e.User.Id == userId) != null;
             }
             catch (Exception e)
             {
@@ -495,27 +485,27 @@ namespace PerchikSharp
         {
             try
             {
-                return string.Format("[{0}](tg://user?id={1})", user.FirstName.Replace('[', '<').Replace(']', '>'), user.Id);
+                return $"[{user.FirstName.Replace('[', '<').Replace(']', '>')}](tg://user?id={user.Id})";
             }
             catch (NullReferenceException)//If FirstName is null using id as name
             {
-                return string.Format("[{0}](tg://user?id={1})", user.Id, user.Id);
+                return $"[{user.Id}](tg://user?id={user.Id})";
             }
 
         }
 
         /// <summary>
-        /// Resctricts user.
+        /// Resctrict user.
         /// </summary>
         /// <param name="chatid">Chat id.</param>
         /// <param name="userid">User id.</param>
         /// <param name="until">Rescrict until.</param>
-        /// <param name="userid">Can write messages or not.</param>
+        /// <param name="canWriteMessages">Can write messages or not.</param>
         public Task RestrictUserAsync(long chatid, int userid, DateTime until, bool canWriteMessages = false)
         {
+            var permissions = new ChatPermissions();
             try
             {
-                ChatPermissions permissions = new ChatPermissions();
                 permissions.CanAddWebPagePreviews = canWriteMessages;
                 permissions.CanChangeInfo = canWriteMessages;
                 permissions.CanInviteUsers = canWriteMessages;
@@ -536,7 +526,6 @@ namespace PerchikSharp
                 Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
                 return null;
             }
-
         }
 
         public Task SaveFileAsync(string fileId, string folder, string fileName = null)
@@ -549,35 +538,34 @@ namespace PerchikSharp
             try
             {
                 var file = this.GetFileAsync(fileId).Result;
-                MemoryStream docu = new MemoryStream();
+                var stream = new MemoryStream();
 
                 const int attempts = 5;
-                for (int a = 0; a < attempts; a++)
+                for (var a = 0; a < attempts; a++)
                 {
                     try
                     {
-                        await this.DownloadFileAsync(file.FilePath, docu);
+                        await this.DownloadFileAsync(file.FilePath, stream);
                         break;
                     }
                     catch (HttpRequestException)
                     {
                         Logger.Log(LogType.Info, $"<Downloader>: Bad Request, attempt #{a}");
-                        continue;
                     }
                 }
 
 
-                string file_ext = file.FilePath.Split('.')[1];
-                fileName = fileName ?? $"{fileId}.{file_ext}";
+                var fileExt = file.FilePath.Split('.')[1];
+                fileName ??= $"{fileId}.{fileExt}";
 
                 if (!Directory.Exists($"./{folder}/"))
                     Directory.CreateDirectory($"./{folder}/");
-                using (FileStream file_stream = new FileStream($"./{folder}/{fileName}",
+                await using (var fileStream = new FileStream($"./{folder}/{fileName}", 
                     FileMode.Create, FileAccess.Write))
                 {
-                    docu.WriteTo(file_stream);
-                    file_stream.Flush();
-                    file_stream.Close();
+                    stream.WriteTo(fileStream);
+                    fileStream.Flush();
+                    fileStream.Close();
                 }
                 Logger.Log(LogType.Info, $"<Downloader>: Filename: {fileName} saved.");
             }
