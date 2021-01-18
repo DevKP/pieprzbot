@@ -15,16 +15,16 @@ namespace PerchikSharp.Commands
 {
     class StatisticsCommand : IRegExCommand
     {
-        public string RegEx { get { return @"инфо\s?(?<name>[\w\W\s]+)?"; } }
+        public string RegEx => @"инфо\s?(?<name>[\w\W\s]+)?";
 
         public async void OnExecution(object sender, RegExArgs command)
         {
             var bot = sender as Pieprz;
             try
             {
-                Message message = command.Message;
-                string name = command.Match.Groups["name"]?.Value;
-                if (name == null || name.Length == 0)
+                var message = command.Message;
+                var name = command.Match.Groups["name"]?.Value;
+                if (string.IsNullOrEmpty(name))
                 {
                     if (message.ReplyToMessage == null)
                     {
@@ -41,16 +41,18 @@ namespace PerchikSharp.Commands
 
                 }                                         // Last name isn't required, this will be unreachable code
 
-                var update_button = new InlineKeyboardButton();
-                update_button.CallbackData = "stats-" + Guid.NewGuid().ToString("n").Substring(0, 8);
-                update_button.Text = Program.strManager["RATE_UPDATE_BTN"];
+                var updateButton = new InlineKeyboardButton
+                {
+                    CallbackData = "stats-" + Guid.NewGuid().ToString("n").Substring(0, 8),
+                    Text = Program.strManager["RATE_UPDATE_BTN"]
+                };
 
-                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { update_button } });
+                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { updateButton } });
 
-                string text = string.Empty;
+                string text;
                 try
                 {
-                    text = getStatisticsText(name);
+                    text = GetStatisticsText(name);
                 }
                 catch (Exception ex)
                 {
@@ -58,26 +60,25 @@ namespace PerchikSharp.Commands
                     text = ex.Message;
                 }
 
-                Logger.Log(LogType.Info, $"User {message.From.FirstName}:{message.From.Id} created info message with Data: {update_button.CallbackData}");
+                Logger.Log(LogType.Info, $"User {message.From.FirstName}:{message.From.Id} created info message with Data: {updateButton.CallbackData}");
 
-                Message msg = await bot.SendTextMessageAsync(
+                var msg = await bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
                             text: text,
                             replyMarkup: inlineKeyboard,
                             parseMode: ParseMode.Markdown);
 
-                Pieprz botHelper = (sender as Pieprz);
-                botHelper.RegisterCallbackQuery(update_button.CallbackData, 0, name, async (_, o) =>
+                var botHelper = (sender as Pieprz);
+                botHelper?.RegisterCallbackQuery(updateButton.CallbackData, 0, name, async (_, o) =>
                 {
-                    string new_text = string.Empty;
+                    string newText;
                     try
                     {
-                        new_text = getStatisticsText(o.obj as string);
-
+                        newText = GetStatisticsText(o.Obj as string);
                     }
                     catch (Exception ex)
                     {
-                        new_text = ex.Message;
+                        newText = ex.Message;
                     }
 
                     try
@@ -86,12 +87,12 @@ namespace PerchikSharp.Commands
                             chatId: msg.Chat.Id,
                             messageId: o.Callback.Message.MessageId,
                             replyMarkup: inlineKeyboard,
-                            text: new_text,
+                            text: newText,
                             parseMode: ParseMode.Markdown);
                     }
                     catch (Exception)
                     {
-
+                        // ignored
                     }
                 });
             }
@@ -101,68 +102,66 @@ namespace PerchikSharp.Commands
             }
         }
 
-        private static string getStatisticsText(string search)
+        private static string GetStatisticsText(string search)
         {
             var sw = new Stopwatch();
             sw.Start();
-            using (var db = PerchikDB.GetContext())
-            {
-                string name = search.Replace("@", "");
+            using var db = PerchikDB.GetContext();
+            var name = search.Replace("@", "");
 
-                long today = DbConverter.ToEpochTime(DateTime.UtcNow.Date);
-                long lastday = DbConverter.ToEpochTime(DateTime.UtcNow.AddDays(-1).Date);
+            var today = DbConverter.ToEpochTime(DateTime.UtcNow.Date);
+            var lastday = DbConverter.ToEpochTime(DateTime.UtcNow.AddDays(-1).Date);
 
                 
 
-                var user = db.Users
-                    .AsNoTracking()
-                    .Where(u =>
-                        (u.FirstName.Contains(name, StringComparison.OrdinalIgnoreCase)) ||
-                        (u.LastName.Contains(name, StringComparison.OrdinalIgnoreCase)) ||
-                        (u.UserName.Contains(name, StringComparison.OrdinalIgnoreCase)))
-                    .Select(x => new
-                    {
-                        x.Id,
-                        x.Restricted,
-                        x.Description,
-                        x.FirstName,
-                        x.LastName,
-                        x.UserName,
-                        x.Restrictions.OrderByDescending(x => x.Until).FirstOrDefault().Until,
-                        msgLastday = x.Messages.Where(m => m.Date > lastday && m.Date < today).Count(),
-                        msgToday = x.Messages.Where(m => m.Date > today).Count(),
-                        msgTotal = x.Messages.Count,
-                        RestrictionCount = x.Restrictions.Count,
-                        activity = x.Messages.Where(m => m.Date > today).Sum(m => m.Text.Length) /
-                                   (double)db.Messages.Where(m => m.Date > today).Sum(m => m.Text.Length)
-                    })
-                    .FirstOrDefault();
-
-                if (user == null)
+            var user = db.Users
+                .AsNoTracking()
+                .Where(u =>
+                    (u.FirstName.Contains(name, StringComparison.OrdinalIgnoreCase)) ||
+                    (u.LastName.Contains(name, StringComparison.OrdinalIgnoreCase)) ||
+                    (u.UserName.Contains(name, StringComparison.OrdinalIgnoreCase)))
+                .Select(x => new
                 {
-                    throw new Exception($"*Пользователя \"{search}\" нет в базе.*");
-                }
+                    x.Id,
+                    x.Restricted,
+                    x.Description,
+                    x.FirstName,
+                    x.LastName,
+                    x.UserName,
+                    x.Restrictions.OrderByDescending(x => x.Until).FirstOrDefault().Until,
+                    msgLastday = x.Messages.Count(m => m.Date > lastday && m.Date < today),
+                    msgToday = x.Messages.Count(m => m.Date > today),
+                    msgTotal = x.Messages.Count,
+                    RestrictionCount = x.Restrictions.Count,
+                    activity = x.Messages.Where(m => m.Date > today).Sum(m => m.Text.Length) /
+                               (double)db.Messages.Where(m => m.Date > today).Sum(m => m.Text.Length)
+                })
+                .FirstOrDefault();
 
-                TimeSpan remaining = new TimeSpan(0);
-                if (user.Restricted)
-                {
-                    remaining = user.Until - DateTime.UtcNow;
-                }
-
-
-                sw.Stop();
-                return $"*Имя: {user.FirstName} {user.LastName}\n*" +
-                            $"*ID: {user.Id}\n*" +
-                            $"*Ник:  {user.UserName}*\n\n" +
-                            string.Format("*Активность:* {0:F2}%\n", user.activity * 100) +
-                            $"*Сообщений сегодня:*  { user.msgToday }\n" +
-                            $"*Сообщений вчера:* { user.msgLastday }\n" +
-                            $"*Всего сообщений:* { user.msgTotal }\n" +
-                            $"*Банов:* { user.RestrictionCount }\n\n" +
-                            (user.Description != null ? $"*О себе:* \n_{ user.Description }_\n\n" : "") +
-                            (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`\n" }" : "") +
-                            $"`{sw.ElapsedMilliseconds / 1000.0}сек`";
+            if (user == null)
+            {
+                throw new Exception($"*Пользователя \"{search}\" нет в базе.*");
             }
+
+            var remaining = new TimeSpan(0);
+            if (user.Restricted)
+            {
+                remaining = user.Until - DateTime.UtcNow;
+            }
+
+
+            sw.Stop();
+            return $"*Имя: {user.FirstName} {user.LastName}\n*" +
+                   $"*ID: {user.Id}\n*" +
+                   $"*Ник:  {user.UserName}*\n\n" +
+                   string.Format("*Активность:* {0:F2}%\n", user.activity * 100) +
+                   $"*Сообщений сегодня:*  { user.msgToday }\n" +
+                   $"*Сообщений вчера:* { user.msgLastday }\n" +
+                   $"*Всего сообщений:* { user.msgTotal }\n" +
+                   $"*Банов:* { user.RestrictionCount }\n\n" +
+                   (user.Description != null ? $"*О себе:* \n_{ user.Description }_\n\n" : "") +
+                   (remaining.Ticks != 0 ? $"💢`Сейчас забанен, осталось: { $"{remaining:hh\\:mm\\:ss}`\n" }" : "") +
+                   $"`{sw.ElapsedMilliseconds / 1000.0}сек`";
         }
     }
 }

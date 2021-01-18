@@ -13,28 +13,28 @@ namespace PerchikSharp.Commands
 {
     class WeatherCommand : IRegExCommand
     {
-        public string RegEx { get { return @"погода\s([\w\s-]+)"; } }
+        public string RegEx => @"погода\s([\w\s-]+)";
+
         public async void OnExecution(object sender, RegExArgs command)
         {
             var bot = sender as Pieprz;
-            Message message = command.Message;
-            Match weather_match = command.Match;
+            var message = command.Message;
+            var weatherMatch = command.Match;
 
             string search_url = Uri.EscapeUriString(
-                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={Program.tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru-ru");
-            int location_code = 0;
+                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={Program.tokens["ACCUWEATHER"]}&q={weatherMatch.Groups[1].Value}&language=ru-ru");
             dynamic location_json;
             dynamic weather_json;
             try
             {
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(search_url);
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream resStream = response.GetResponseStream();
+                var request = (HttpWebRequest)WebRequest.Create(search_url);
+                var response = (HttpWebResponse)request.GetResponse();
+                var resStream = response.GetResponseStream();
 
-                StreamReader reader = new StreamReader(resStream);
-                string respone_str = reader.ReadToEnd();
+                var reader = new StreamReader(resStream ?? throw new InvalidOperationException());
+                var responseStr = await reader.ReadToEndAsync();
 
-                if (respone_str.Contains("The allowed number of requests has been exceeded."))
+                if (responseStr.Contains("The allowed number of requests has been exceeded."))
                 {
                     await bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
@@ -44,20 +44,20 @@ namespace PerchikSharp.Commands
                     return;
                 }
 
-                location_json = JsonConvert.DeserializeObject(respone_str);
+                location_json = JsonConvert.DeserializeObject(responseStr);
 
-                location_code = location_json[0].Key;
+                int locationCode = location_json[0].Key;
 
-                string current_url = $"http://dataservice.accuweather.com/currentconditions/v1/{location_code}?apikey={Program.tokens["ACCUWEATHER"]}&language=ru-ru&details=true";
+                var currentUrl = $"http://dataservice.accuweather.com/currentconditions/v1/{locationCode}?apikey={Program.tokens["ACCUWEATHER"]}&language=ru-ru&details=true";
 
-                request = (HttpWebRequest)WebRequest.Create(current_url);
+                request = (HttpWebRequest)WebRequest.Create(currentUrl);
                 response = (HttpWebResponse)request.GetResponse();
                 resStream = response.GetResponseStream();
 
                 reader = new StreamReader(resStream);
-                respone_str = reader.ReadToEnd();
+                responseStr = await reader.ReadToEndAsync();
 
-                weather_json = JsonConvert.DeserializeObject(respone_str);
+                weather_json = JsonConvert.DeserializeObject(responseStr);
 
                 await bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
@@ -74,7 +74,7 @@ namespace PerchikSharp.Commands
 
                 await bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
-                          text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
+                          text: $"*Нет такого .. {weatherMatch.Groups[1].Value.ToUpper()}!!😠*",
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
             }
@@ -88,9 +88,9 @@ namespace PerchikSharp.Commands
 
                 if (w.Response != null)
                 {
-                    Stream resStream = w.Response.GetResponseStream();
-                    StreamReader reader = new StreamReader(resStream);
-                    if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
+                    var resStream = w.Response.GetResponseStream();
+                    var reader = new StreamReader(resStream ?? throw new InvalidOperationException());
+                    if ((await reader.ReadToEndAsync()).Contains("The allowed number of requests has been exceeded."))
                     {
                         await bot.SendTextMessageAsync(
                                chatId: message.Chat.Id,

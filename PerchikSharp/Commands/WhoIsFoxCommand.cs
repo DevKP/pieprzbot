@@ -9,11 +9,12 @@ namespace PerchikSharp.Commands
 {
     class WhoIsFoxCommand : IRegExCommand
     {
-        public string RegEx { get { return @"(кто|где|(по)?зови)(.*)?лис(ичк[ау]|иц[ау]|[аяюу])"; } }
+        public string RegEx => @"(кто|где|(по)?зови)(.*)?лис(ичк[ау]|иц[ау]|[аяюу])";
+
         public async void OnExecution(object sender, RegExArgs command)
         {
             var bot = sender as Pieprz;
-            Message message = command.Message;
+            var message = command.Message;
 
             await bot.SendTextMessageAsync(
                        chatId: message.Chat.Id,

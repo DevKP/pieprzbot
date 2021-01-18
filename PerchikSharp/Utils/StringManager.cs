@@ -9,8 +9,8 @@ namespace PerchikSharp
 {
     class StringManager
     {
-        private readonly Random rand = new Random(Guid.NewGuid().GetHashCode());
-        private Dictionary<string, List<string>> dict = null;
+        private readonly Random _rand = new Random(Guid.NewGuid().GetHashCode());
+        private Dictionary<string, List<string>> _dict = null;
 
         /// <summary>
         /// Analogue of method <see cref="GetRandom">.
@@ -19,22 +19,18 @@ namespace PerchikSharp
         /// String from dictionary.
         /// </returns>
         /// <param name="s">Key for the string in the dictionary.</param>
-        public string this[string s]
-        {
-            get => this.GetRandom(s); 
-        }
+        public string this[string s] => this.GetRandom(s);
 
         private List<string> _get_value(string key)
         {
             try
             {
-                return this.dict[key];
+                return this._dict[key];
             }
             catch (KeyNotFoundException)
             {
                 Logger.Log(LogType.Error, $"<{this.GetType().Name}> String \"{key}\" not found!!");
-                var errorString = new List<string>();
-                errorString.Add($"Строка \"{key}\" не найдена!");
+                var errorString = new List<string> { $"Строка \"{key}\" не найдена!" };
                 return errorString;
             }
         }
@@ -49,13 +45,10 @@ namespace PerchikSharp
         public static string FromFile(string path)
         {
             _ = path ?? throw new ArgumentNullException(nameof(path));
-            _ = path.Length == 0 ? throw new ArgumentException(nameof(path.Length)) : path; 
+            _ = path.Length == 0 ? throw new ArgumentException(nameof(path.Length)) : path;
 
-            string readContents;
-            using (StreamReader streamReader = new StreamReader(path, Encoding.UTF8))
-            {
-                readContents = streamReader.ReadToEnd();
-            }
+            using var streamReader = new StreamReader(path, Encoding.UTF8);
+            var readContents = streamReader.ReadToEnd();
             return readContents;
         }
 
@@ -75,7 +68,7 @@ namespace PerchikSharp
                     readContents = streamReader.ReadToEnd();
                 }
 
-                dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
+                _dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
             }
             catch (FileNotFoundException fe)
             {
@@ -89,12 +82,12 @@ namespace PerchikSharp
             _ = file ?? throw new ArgumentNullException(nameof(file));
 
             string readContents;
-            using (StreamReader reader = new StreamReader(file))
+            using (var reader = new StreamReader(file))
             {
                 readContents = reader.ReadToEnd();
             }
 
-            dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
+            _dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
         }
 
         /// <summary>
@@ -104,12 +97,12 @@ namespace PerchikSharp
         public void Open(string json_path)
         {
             string readContents;
-            using (StreamReader streamReader = new StreamReader(json_path, Encoding.UTF8))
+            using (var streamReader = new StreamReader(json_path, Encoding.UTF8))
             {
                 readContents = streamReader.ReadToEnd();
             }
 
-            dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
+            _dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
         }
 
         public static StringManager Create(string json_path)
@@ -127,7 +120,7 @@ namespace PerchikSharp
         public List<string> GetList(string key)
         {
             _ = key ?? throw new ArgumentNullException(nameof(key));
-            _ = dict ?? throw new NullReferenceException(nameof(dict));
+            _ = _dict ?? throw new NullReferenceException(nameof(_dict));
 
             return this._get_value(key);
         }
@@ -142,11 +135,11 @@ namespace PerchikSharp
         public string GetRandom(string key)
         {
             _ = key ?? throw new ArgumentNullException(nameof(key));
-            _ = dict ?? throw new NullReferenceException(nameof(dict));
+            _ = _dict ?? throw new NullReferenceException(nameof(_dict));
 
-            List<string> strings = this._get_value(key);
+            var strings = this._get_value(key);
             if (strings.Count > 1)
-                return strings[rand.Next(0, strings.Count)];
+                return strings[_rand.Next(0, strings.Count)];
             else
                 return strings.First();
         }
@@ -161,7 +154,7 @@ namespace PerchikSharp
         public string GetSingle(string key)
         {
             _ = key ?? throw new ArgumentNullException(nameof(key));
-            _ = dict ?? throw new NullReferenceException(nameof(dict));
+            _ = _dict ?? throw new NullReferenceException(nameof(_dict));
 
             return this._get_value(key).First();
         }
@@ -174,9 +167,9 @@ namespace PerchikSharp
         /// </returns>
         public List<string> GetAll()
         {
-            _ = dict ?? throw new NullReferenceException(nameof(dict));
+            _ = _dict ?? throw new NullReferenceException(nameof(_dict));
 
-            return this.dict.Values.SelectMany(x => x).ToList();
+            return this._dict.Values.SelectMany(x => x).ToList();
         }
 
         /// <summary>
@@ -187,9 +180,9 @@ namespace PerchikSharp
         /// </returns>
         public List<string> GetKeysList()
         {
-            _ = dict ?? throw new NullReferenceException(nameof(dict));
+            _ = _dict ?? throw new NullReferenceException(nameof(_dict));
 
-            return new List<string>(this.dict.Keys);
+            return new List<string>(this._dict.Keys);
         }
     }
 }

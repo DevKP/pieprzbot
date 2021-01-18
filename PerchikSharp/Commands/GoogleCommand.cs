@@ -7,7 +7,8 @@ namespace PerchikSharp.Commands
 {
     class GoogleCommand : INativeCommand
     {
-        public string Command { get { return "google"; } }
+        public string Command => "google";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             try
@@ -18,7 +19,7 @@ namespace PerchikSharp.Commands
                 var bot = sender as Pieprz;
                 var text = command.Text;
 
-                string url = Uri.EscapeUriString($"https://ru.lmgtfy.com/?q={text}")
+                var url = Uri.EscapeUriString($"https://ru.lmgtfy.com/?q={text}")
                     .Replace('[', '<')
                     .Replace(']', '>');
 

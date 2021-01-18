@@ -19,35 +19,35 @@ namespace PerchikSharp
         Fatal = 3
     }
 
-    class Logger
+    internal class Logger
     {
-        private static Logger instance;
-        static log4net.ILog log;
+        private static Logger _instance;
+        private static log4net.ILog _log;
 
         public static Logger Inst()
         {
-            instance = instance ?? new Logger();
-            return instance;
+            _instance ??= new Logger();
+            return _instance;
         }
         public static void Log(LogType ltype, string text)
         {
-            if(log == null)
+            if(_log == null)
             {
                 try
                 {
-                    XmlDocument log4netConfig = new XmlDocument();
+                    var log4NetConfig = new XmlDocument();
                     using(var stm = new FileStream("./Configs/log4net.config", FileMode.Open, FileAccess.Read, FileShare.None))
                     {
-                        log4netConfig.Load(stm);
+                        log4NetConfig.Load(stm);
                     }
                     
 
                     ILoggerRepository repo = log4net.LogManager.CreateRepository(
                     Assembly.GetEntryAssembly(), typeof(log4net.Repository.Hierarchy.Hierarchy));
 
-                    log4net.Config.XmlConfigurator.Configure(repo, log4netConfig["log4net"]);
+                    log4net.Config.XmlConfigurator.Configure(repo, log4NetConfig["log4net"]);
 
-                    log = log4net.LogManager.GetLogger(repo.Name, "CHAT");
+                    _log = log4net.LogManager.GetLogger(repo.Name, "CHAT");
                 }catch(Exception e)
                 {
                     Console.WriteLine(e.Message);
@@ -59,17 +59,19 @@ namespace PerchikSharp
             switch (ltype)
             {
                 case LogType.Debug:
-                    log.Debug(text);
+                    _log.Debug(text);
                     break;
                 case LogType.Info:
-                    log.Info(text);
+                    _log.Info(text);
                     break;
                 case LogType.Error:
-                    log.Error(text);
+                    _log.Error(text);
                     break;
                 case LogType.Fatal:
-                    log.Fatal(text);
+                    _log.Fatal(text);
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(ltype), ltype, null);
             }
         }
     }

@@ -7,7 +7,8 @@ namespace PerchikSharp.Commands
 {
     class TestRegExCommand : IRegExCommand
     {
-        public string RegEx { get { return @"Pa$$word"; } }
+        public string RegEx => @"Pa$$word";
+
         public void OnExecution(object sender, RegExArgs command)
         {
         }

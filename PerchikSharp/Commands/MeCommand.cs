@@ -7,15 +7,16 @@ namespace PerchikSharp.Commands
 {
     class MeCommand : INativeCommand
     {
-        public string Command { get { return "me"; } }
+        public string Command => "me";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             if (command.Text == "")
                 return;
 
             var bot = sender as Pieprz;
-            Message message = command.Message;
-            string msg_text = $"{bot.MakeUserLink(message.From)} *{command.Text}*";
+            var message = command.Message;
+            var msgText = $"{bot.MakeUserLink(message.From)} *{command.Text}*";
 
             try
             {
@@ -24,7 +25,7 @@ namespace PerchikSharp.Commands
                 {
                     await bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
-                        text: msg_text,
+                        text: msgText,
                         parseMode: ParseMode.Markdown,
                         replyToMessageId: message.ReplyToMessage.MessageId);
                 }
@@ -32,7 +33,7 @@ namespace PerchikSharp.Commands
                 {
                     await bot.SendTextMessageAsync(
                        chatId: message.Chat.Id,
-                       text: msg_text,
+                       text: msgText,
                        parseMode: ParseMode.Markdown);
                 }
             }

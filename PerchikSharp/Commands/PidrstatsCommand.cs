@@ -9,42 +9,41 @@ namespace PerchikSharp.Commands
 {
     class PidrstatsCommand : INativeCommand
     {
-        public string Command { get { return "pidrstats"; } }
+        public string Command => "pidrstats";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             var msg = command.Message;
             var bot = sender as Pieprz;
 
-            using (var db = PerchikDB.GetContext())
-            {
-                Message message = command.Message;
+            await using var db = PerchikDB.GetContext();
+            var message = command.Message;
 
-                var pidrs = db.Users
-                    .AsNoTracking()
-                    .Where(p => p.Pidrs.Count > 0)
-                    .Select(x => new
-                    {
-                        x.FirstName,
-                        x.Pidrs.Count
-                    })
-                    .OrderByDescending(x => x.Count)
-                    .Take(10)
-                    .ToList();
-
-                //var usersDescending = users.OrderByDescending(x => x.activity);
-                string msg_string = "*Топ космо-пидоров:*\n";
-                for (int i = 0; i < pidrs.Count; i++)
+            var pidrs = db.Users
+                .AsNoTracking()
+                .Where(p => p.Pidrs.Count > 0)
+                .Select(x => new
                 {
-                    //var user = users.ElementAt(i);
-                    string first_name = pidrs[i].FirstName.Replace('[', '<').Replace(']', '>');
-                    msg_string += string.Format("{0}. {1} — {2} раз.\n", i + 1, first_name, pidrs[i].Count);
-                }
+                    x.FirstName,
+                    x.Pidrs.Count
+                })
+                .OrderByDescending(x => x.Count)
+                .Take(10)
+                .ToList();
 
-                await bot.SendTextMessageAsync(
-                                chatId: message.Chat.Id,
-                                text: msg_string,
-                                parseMode: ParseMode.Markdown);
+            //var usersDescending = users.OrderByDescending(x => x.activity);
+            var msgString = "*Топ космо-пидоров:*\n";
+            for (var i = 0; i < pidrs.Count; i++)
+            {
+                //var user = users.ElementAt(i);
+                var firstName = pidrs[i].FirstName.Replace('[', '<').Replace(']', '>');
+                msgString += $"{i + 1}. {firstName} — {pidrs[i].Count} раз.\n";
             }
+
+            await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: msgString,
+                parseMode: ParseMode.Markdown);
         }
     }
 }

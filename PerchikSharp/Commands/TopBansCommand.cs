@@ -9,50 +9,49 @@ namespace PerchikSharp.Commands
 {
     class TopBansCommand : INativeCommand
     {
-        public string Command { get { return "topbans"; } }
+        public string Command => "topbans";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             var bot = sender as Pieprz;
 
-            Stopwatch stopwatch = new Stopwatch();
+            var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            using (var db = PerchikDB.GetContext())
-            {
-                Message message = command.Message;
+            await using var db = PerchikDB.GetContext();
+            var message = command.Message;
 
-                var users = db.Users
-                    //.Include(x => x.Restrictions)
-                    .OrderByDescending(x => x.Restrictions.Count)
-                    .Take(10)
-                    .Select(x => new
-                    {
-                        x.Id,
-                        x.FirstName,
-                        x.LastName,
-                        x.Restrictions.Count
-                    })
-                    .ToList();
-
-                string msg_string = "*Топ 10 по банам:*\n";
-                int i = 1;
-                foreach (var user in users)
+            var users = db.Users
+                //.Include(x => x.Restrictions)
+                .OrderByDescending(x => x.Restrictions.Count)
+                .Take(10)
+                .Select(x => new
                 {
-                    string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
-                    string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
-                    //string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
-                    string full_name = string.Format("`{0} {1}`", first_name, last_name);
+                    x.Id,
+                    x.FirstName,
+                    x.LastName,
+                    x.Restrictions.Count
+                })
+                .ToList();
 
-                    msg_string += $"{i++}. {full_name} -- {user.Count}\n";
-                }
+            var msgString = "*Топ 10 по банам:*\n";
+            int i = 1;
+            foreach (var user in users)
+            {
+                var firstName = user.FirstName?.Replace('[', '<').Replace(']', '>');
+                var lastName = user.LastName?.Replace('[', '<').Replace(']', '>');
+                //string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
+                var fullName = $"`{firstName} {lastName}`";
 
-                stopwatch.Stop();
-
-                await bot.SendTextMessageAsync(
-                                chatId: message.Chat.Id,
-                                text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
-                                parseMode: ParseMode.Markdown);
+                msgString += $"{i++}. {fullName} -- {user.Count}\n";
             }
+
+            stopwatch.Stop();
+
+            await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: $"{msgString}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
+                parseMode: ParseMode.Markdown);
         }
     }
 }

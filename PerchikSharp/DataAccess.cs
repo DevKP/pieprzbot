@@ -144,8 +144,8 @@ namespace PersikSharp
                 {
                     UserId = user.Id,
                     ChatId = chatId.ToString(),
-                    DateTimeFrom = DbConverter.DateTimeUTC2.ToString("yyyy-MM-dd HH:mm:ss"),
-                    DateTimeTo = DbConverter.DateTimeUTC2.AddSeconds(forSecond).ToString("yyyy-MM-dd HH:mm:ss")
+                    DateTimeFrom = DbConverter.DateTimeUtc2.ToString("yyyy-MM-dd HH:mm:ss"),
+                    DateTimeTo = DbConverter.DateTimeUtc2.AddSeconds(forSecond).ToString("yyyy-MM-dd HH:mm:ss")
                 });
 
                 var _user = user;

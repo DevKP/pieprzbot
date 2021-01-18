@@ -12,11 +12,11 @@ namespace PerchikSharp
         public long chatId;
         public object arg;
         public bool fromAnyUser;
-        public event EventHandler<NextstepArgs> callback;
+        public event EventHandler<NextstepArgs> onCallback;
 
         public BotEventHandlerUnit(EventHandler<NextstepArgs> callback, Message message, bool fromAnyUser = false, object arg = null)
         {
-            this.callback = callback;
+            this.onCallback = callback;
             this.userId = message.From.Id;
             this.chatId = message.Chat.Id;
             this.arg = arg;
@@ -25,7 +25,7 @@ namespace PerchikSharp
 
         public void InvokeCallback(Message message)
         {
-            callback?.Invoke(this, new NextstepArgs(message, arg));
+            onCallback?.Invoke(this, new NextstepArgs(message, arg));
         }
     }
 }

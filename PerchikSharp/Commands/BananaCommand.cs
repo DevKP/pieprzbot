@@ -6,7 +6,8 @@ namespace PerchikSharp.Commands
 {
     class BananaCommand : IRegExCommand
     {
-        public string RegEx { get { return "банан"; } }
+        public string RegEx => "банан";
+
         public async void OnExecution(object sender, RegExArgs command)
         {
             var bot = sender as Pieprz;

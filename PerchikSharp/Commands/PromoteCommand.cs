@@ -7,10 +7,11 @@ namespace PerchikSharp.Commands
 {
     class PromoteCommand : INativeCommand
     {
-        const long offtopia_id = -1001125742098;
-        const int via_tcp_Id = 204678400;
+        const long OfftopiaId = -1001125742098;
+        const int ViaTcpId = 204678400;
 
-        public string Command { get { return "promote"; } }
+        public string Command => "promote";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             if (command.Message.Chat.Type == ChatType.Private)
@@ -19,9 +20,9 @@ namespace PerchikSharp.Commands
             var bot = sender as Pieprz;
             try
             {
-                if (command.Message.From.Id == via_tcp_Id)
+                if (command.Message.From.Id == ViaTcpId)
                 {
-                    await bot.PromoteChatMemberAsync(command.Message.Chat.Id, via_tcp_Id, true, false, false, true, true, true, true, true);
+                    await bot.PromoteChatMemberAsync(command.Message.Chat.Id, ViaTcpId, true, false, false, true, true, true, true, true);
                 }
             }
             catch (Exception exp)

@@ -11,11 +11,11 @@ namespace PerchikSharp
     {
 
         public event EventHandler<RegExArgs> onNoneMatched;
-        private Dictionary<string, EventHandler<RegExArgs>> regExs;
+        private readonly Dictionary<string, EventHandler<RegExArgs>> _regExs;
 
         public RegExHelper()
         {
-            regExs = new Dictionary<string, EventHandler<RegExArgs>>();
+            _regExs = new Dictionary<string, EventHandler<RegExArgs>>();
         }
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace PerchikSharp
         /// <param name="e">Method to be called.</param>
         public void AddRegEx(string regex, EventHandler<RegExArgs> e)
         {
-            regExs.Add(regex, e);
+            _regExs.Add(regex, e);
         }
 
         /// <summary>
@@ -36,27 +36,27 @@ namespace PerchikSharp
         /// <param name="msg">Message object from API</param>
         public void CheckMessage(Message msg)
         {
-            string text = msg.Text;
+            var text = msg.Text;
 
-            bool AtLeastOneMatch = false;
-            foreach (var command in regExs)
+            var atLeastOneMatch = false;
+            foreach (var (pattern, command) in _regExs)
             {
-                var command_match = Regex.Match(text, command.Key, RegexOptions.IgnoreCase);
-                if (command_match.Success)
+                var commandMatch = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+                if (commandMatch.Success)
                 {
-                    Logger.Log(LogType.Info, $"<{this.GetType().Name}>({msg.From.FirstName}:{msg.From.Id}) -> {command.Key}");
+                    Logger.Log(LogType.Info, $"<{this.GetType().Name}>({msg.From.FirstName}:{msg.From.Id}) -> {pattern}");
 
-                    AtLeastOneMatch = true;
+                    atLeastOneMatch = true;
 
-                    RegExArgs args = new RegExArgs(msg, command_match, command.Key);
+                    RegExArgs args = new RegExArgs(msg, commandMatch, pattern);
                     //_ = Task.Run(() => command.Value?.Invoke(this, args));
-                    command.Value?.Invoke(this, args);
+                    command?.Invoke(this, args);
                 }
             }
 
-            if (!AtLeastOneMatch)
+            if (!atLeastOneMatch)
             {
-                RegExArgs args = new RegExArgs(msg, null, null);
+                var args = new RegExArgs(msg, null, null);
                 //_ = Task.Run(() => onNoneMatched?.Invoke(this, args));
                 onNoneMatched?.Invoke(this, args);
             }

@@ -8,8 +8,8 @@ namespace PerchikSharp
     public class PollArgs : EventArgs
     {
         public PollArgs(Poll poll, PollAnswer pollAnswer) =>
-            (this.poll, this.pollAnswer) = (poll, pollAnswer);
-        public Poll poll { get; }
-        public PollAnswer pollAnswer { get; }
+            (this.Poll, this.PollAnswer) = (poll, pollAnswer);
+        public Poll Poll { get; }
+        public PollAnswer PollAnswer { get; }
     }
 }

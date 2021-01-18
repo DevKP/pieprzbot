@@ -11,11 +11,12 @@ namespace PerchikSharp.Commands
 {
     class UnbanCommand : IRegExCommand
     {
-        public string RegEx { get { return @"\bра[зс]бань?\b"; } }
+        public string RegEx => @"\bра[зс]бань?\b";
+
         public async void OnExecution(object sender, RegExArgs command)
         {
             var bot = sender as Pieprz;
-            Message message = command.Message;
+            var message = command.Message;
 
             if (message.Chat.Type == ChatType.Private)
                 return;
@@ -26,19 +27,18 @@ namespace PerchikSharp.Commands
 
             try
             {
-                var until = DbConverter.DateTimeUTC2.AddSeconds(1);
+                var until = DbConverter.DateTimeUtc2.AddSeconds(1);
                 await bot.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
-                using (var db = PerchikDB.GetContext())
+                await using (var db = PerchikDB.GetContext())
                 {
                     var existingUser = db.Users
-                        .Where(x => x.Id == message.ReplyToMessage.From.Id)
-                        .FirstOrDefault();
+                        .FirstOrDefault(x => x.Id == message.ReplyToMessage.From.Id);
 
                     if (existingUser != null)
                     {
                         existingUser.Restricted = false;
-                        db.SaveChanges();
+                        await db.SaveChangesAsync();
                     }
 
                 }

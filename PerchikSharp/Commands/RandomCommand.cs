@@ -10,32 +10,32 @@ namespace PerchikSharp.Commands
 {
     class RandomCommand : IRegExCommand
     {
-        public string RegEx { get { return @"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?"; } }
+        public string RegEx => @"(?!\s)(?<first>[\W\w\s]+)\sили\s(?<second>[\W\w\s]+)(?>\s)?";
+
         public async void OnExecution(object sender, RegExArgs command)
         {
             var bot = sender as Pieprz;
-            Message message = command.Message;
+            var message = command.Message;
 
-            Regex regx = new Regex(Program.strManager["BOT_REGX"], RegexOptions.IgnoreCase);
-            string without_perchik = regx.Replace(message.Text, string.Empty, 1);
+            var regx = new Regex(Program.strManager["BOT_REGX"], RegexOptions.IgnoreCase);
+            var withoutPerchik = regx.Replace(message.Text, string.Empty, 1);
 
-            var match = Regex.Match(without_perchik, command.Pattern, RegexOptions.IgnoreCase);
+            var match = Regex.Match(withoutPerchik, command.Pattern, RegexOptions.IgnoreCase);
             if (match.Success)
             {
-                Random rand = new Random();
-                string result;
-                string first = match.Groups["first"].Value.Replace("?", "");
-                string second = match.Groups["second"].Value.Replace("?", ""); ;
+                var rand = new Random();
+                var first = match.Groups["first"].Value.Replace("?", "");
+                var second = match.Groups["second"].Value.Replace("?", ""); ;
 
 
-                result = rand.NextDouble() >= 0.5 ? first : second;
+                var result = rand.NextDouble() >= 0.5 ? first : second;
 
                 if (first.Equals(second))
                     result = Program.strManager.GetRandom("CHOICE_EQUAL");
 
                 await bot.SendTextMessageAsync(
                     chatId: message.Chat.Id,
-                    text: String.Format(Program.strManager.GetRandom("CHOICE"), result),
+                    text: string.Format(Program.strManager.GetRandom("CHOICE"), result),
                     parseMode: ParseMode.Markdown,
                     replyToMessageId: message.MessageId);
             }

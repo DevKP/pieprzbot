@@ -14,7 +14,7 @@ namespace PerchikSharp.Db
             {
                 UserId = message.From.Id,
                 ChatId = message.Chat.Id,
-                Date = DbConverter.DateTimeUTC2
+                Date = DbConverter.DateTimeUtc2
             };
 
         }
@@ -111,7 +111,6 @@ namespace PerchikSharp.Db
             return new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero).AddTicks(timeInTicks);
         }
 
-        public static DateTime DateTimeUTC2 { get => DateTime.UtcNow.AddHours(2); }
-        public static DateTime DateTimeUTCn2 { get => DateTime.UtcNow.AddHours(-2); }
+        public static DateTime DateTimeUtc2 => DateTime.UtcNow.AddHours(2);
     }
 }

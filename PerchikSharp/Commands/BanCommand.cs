@@ -11,22 +11,23 @@ namespace PerchikSharp.Commands
 {
     class BanCommand : IRegExCommand
     {
-        const int via_tcp_Id = 204678400;
-        public string RegEx { get { return @"(?<ban>\b(за)?бань?\b)\s?(?<number>\d{1,9})?\s?(?<letter>[смчд](\w+)?)?\s?(?<comment>[\w\W\s]+)?"; } }
+        const int ViaTcpId = 204678400;
+        public string RegEx => @"(?<ban>\b(за)?бань?\b)\s?(?<number>\d{1,9})?\s?(?<letter>[смчд](\w+)?)?\s?(?<comment>[\w\W\s]+)?";
+
         public async void OnExecution(object sender, RegExArgs command)
         {
             var bot = sender as Pieprz;
-            Message message = command.Message;
+            var message = command.Message;
 
             if (message.Chat.Type == ChatType.Private)
                 return;
 
 
-            const int default_second = 40;
-            int seconds = default_second;
-            int number = default_second;
-            string word = "сек.";
-            string comment = "...";
+            const int defaultSecond = 40;
+            var seconds = defaultSecond;
+            var number = defaultSecond;
+            var word = "сек.";
+            var comment = "...";
 
             if (command.Match.Success)
             {
@@ -70,7 +71,7 @@ namespace PerchikSharp.Commands
                 if (message.ReplyToMessage != null)
                 {
                     if (!bot.IsUserAdmin(message.Chat.Id, message.From.Id) 
-                        && message.From.Id != via_tcp_Id)
+                        && message.From.Id != ViaTcpId)
                         return;
 
                     if (message.ReplyToMessage.From.Id == bot.BotId)
@@ -81,7 +82,7 @@ namespace PerchikSharp.Commands
                             userId: message.ReplyToMessage.From.Id,
                             forSeconds: seconds);
 
-                    if (seconds >= default_second)
+                    if (seconds >= defaultSecond)
                     {
                         await bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
@@ -97,7 +98,7 @@ namespace PerchikSharp.Commands
                             parseMode: ParseMode.Markdown);
                     }
 
-                    using (var db = PerchikDB.GetContext())
+                    await using (var db = PerchikDB.GetContext())
                     {
                         var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.UtcNow.AddSeconds(seconds));
                         db.AddRestriction(restriction);
@@ -107,7 +108,7 @@ namespace PerchikSharp.Commands
                 }
                 else
                 {
-                    if (seconds >= default_second)
+                    if (seconds >= defaultSecond)
                     {
                         await (sender as Pieprz).FullyRestrictUserAsync(
                                 chatId: message.Chat.Id,
@@ -116,14 +117,12 @@ namespace PerchikSharp.Commands
 
                         await bot.SendTextMessageAsync(
                             chatId: message.Chat.Id,
-                            text: String.Format(Program.strManager.GetSingle("SELF_BANNED"), bot.MakeUserLink(message.From), number, word, comment),
+                            string.Format(Program.strManager.GetSingle("SELF_BANNED"), bot.MakeUserLink(message.From), number, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        using (var db = PerchikDB.GetContext())
-                        {
-                            var restriction = DbConverter.GenRestriction(message, DateTime.UtcNow.AddSeconds(seconds));
-                            db.AddRestriction(restriction);
-                        }
+                        await using var db = PerchikDB.GetContext();
+                        var restriction = DbConverter.GenRestriction(message, DateTime.UtcNow.AddSeconds(seconds));
+                        db.AddRestriction(restriction);
                     }
                     else
                     {
@@ -136,11 +135,9 @@ namespace PerchikSharp.Commands
                             text: String.Format(Program.strManager.GetSingle("SELF_BANNED"), bot.MakeUserLink(message.From), 40, word, comment),
                             parseMode: ParseMode.Markdown);
 
-                        using (var db = PerchikDB.GetContext())
-                        {
-                            var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.UtcNow.AddSeconds(40));
-                            db.AddRestriction(restriction);
-                        }
+                        await using var db = PerchikDB.GetContext();
+                        var restriction = DbConverter.GenRestriction(message.ReplyToMessage, DateTime.UtcNow.AddSeconds(40));
+                        db.AddRestriction(restriction);
                     }
 
                     await bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);

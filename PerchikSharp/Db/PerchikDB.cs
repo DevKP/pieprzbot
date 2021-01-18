@@ -50,12 +50,12 @@ namespace PerchikSharp.Db
 
         static PerchikDB()
         {
-            contextPool = new SemaphoreSlim(1);
+            _contextPool = new SemaphoreSlim(1);
         }
 
 
-        static private SemaphoreSlim contextPool;
-        static public PerchikDB GetContext()
+        private static SemaphoreSlim _contextPool;
+        public static PerchikDB GetContext()
         {
 
             //contextPool.Wait();
@@ -74,7 +74,7 @@ namespace PerchikSharp.Db
         public void UpdateUser(Tables.User user)
         {
 
-            var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+            var existingUser = this.Users.FirstOrDefault(x => x.Id == user.Id);
             if (existingUser != null)
             {
                 this.Entry(existingUser).State = EntityState.Detached;
@@ -86,7 +86,7 @@ namespace PerchikSharp.Db
 
         public Tables.User GetUserbyId(int userId)
         {
-            return this.Users.Where(x => x.Id == userId).FirstOrDefault();
+            return this.Users.FirstOrDefault(x => x.Id == userId);
         }
 
         public void AddMessage(Tables.Message msg)
@@ -96,7 +96,7 @@ namespace PerchikSharp.Db
         }
         public void AddRestriction(Tables.Restriction restr)
         {
-            var existingUser = Users.Where(x => x.Id == restr.UserId).FirstOrDefault();
+            var existingUser = Users.FirstOrDefault(x => x.Id == restr.UserId);
             if (existingUser != null)
             {
                 Restrictions.Add(restr);
@@ -109,7 +109,7 @@ namespace PerchikSharp.Db
         public void UpsertChat(Tables.Chat chat)
         {
 
-            var existingChat = this.Chats.Where(c => c.Id == chat.Id).FirstOrDefault();
+            var existingChat = this.Chats.FirstOrDefault(c => c.Id == chat.Id);
             if (existingChat != null)
             {
                 this.Entry(existingChat).State = EntityState.Detached;
@@ -124,7 +124,7 @@ namespace PerchikSharp.Db
         }
         public async Task UpsertUser(Tables.User user, long chatId)
         {
-            var existingUser = this.Users.Where(x => x.Id == user.Id).FirstOrDefault();
+            var existingUser = this.Users.FirstOrDefault(x => x.Id == user.Id);
             if (existingUser != null)
             {
                 this.Entry(existingUser).State = EntityState.Detached;
@@ -143,7 +143,7 @@ namespace PerchikSharp.Db
         }
         public void UpsertMessage(Tables.Message message)
         {
-            var existingMsg = this.Messages.Where(x => x.MessageId == message.MessageId).FirstOrDefault();
+            var existingMsg = this.Messages.FirstOrDefault(x => x.MessageId == message.MessageId);
             if (existingMsg != null)
             {
                 this.Entry(existingMsg).State = EntityState.Detached;

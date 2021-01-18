@@ -8,10 +8,11 @@ namespace PerchikSharp.Commands
 {
     class StickerCommand : INativeCommand
     {
-        const long offtopia_id = -1001125742098;
-        const int via_tcp_Id = 204678400;
+        const long OfftopiaId = -1001125742098;
+        const int ViaTcpId = 204678400;
 
-        public string Command { get { return "sticker"; } }
+        public string Command => "sticker";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             
@@ -50,7 +51,7 @@ namespace PerchikSharp.Commands
                             text: Program.strManager["STK_OK"],
                             parseMode: ParseMode.Markdown);
                    await Program.bot.SendStickerAsync(
-                        chatId: offtopia_id,
+                        chatId: OfftopiaId,
                         sticker: e.Message.Sticker.FileId);
 
                     (sender as Pieprz).RemoveNextstepCallback(e.Message);

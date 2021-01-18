@@ -11,58 +11,55 @@ namespace PerchikSharp.Commands
 {
     class TopCommand : INativeCommand
     {
-        public string Command { get { return "top"; } }
+        public string Command => "top";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             var bot = sender as Pieprz;
 
-            Stopwatch stopwatch = new Stopwatch();
+            var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            using (var db = PerchikDB.GetContext())
-            {
-                Message message = command.Message;
+            await using var db = PerchikDB.GetContext();
+            var message = command.Message;
 
-                long datenow = DbConverter.ToEpochTime(DateTime.UtcNow.Date);
-                long now = DbConverter.ToEpochTime(DateTime.UtcNow);
+            var dateNow = DbConverter.ToEpochTime(DateTime.UtcNow.Date);
+            var now = DbConverter.ToEpochTime(DateTime.UtcNow);
 
-                var users = db.Users
-                    .AsNoTracking()
-                    .Select(x => new
-                    {
-                        x.Id,
-                        x.FirstName,
-                        x.LastName,
-                        activity = x.Messages.Where(m => m.Date > datenow).Sum(m => m.Text.Length) /
-                                   (double)db.Messages.Where(m => m.Date > datenow).Sum(m => m.Text.Length)
-                    })
-                    .ToList();
-
-                var usersDescending = users.OrderByDescending(x => x.activity);
-                string msg_string = "*Топ 10 по активности за сегодня:*\n";
-                for (int i = 0; i < 10 && i < users.Count; i++)
+            var users = db.Users
+                .AsNoTracking()
+                .Select(x => new
                 {
-                    var user = usersDescending.ElementAt(i);
+                    x.Id,
+                    x.FirstName,
+                    x.LastName,
+                    activity = x.Messages.Where(m => m.Date > dateNow).Sum(m => m.Text.Length) /
+                               (double)db.Messages.Where(m => m.Date > dateNow).Sum(m => m.Text.Length)
+                })
+                .ToList();
 
-                    if (user.activity == 0)
-                        continue;
+            var usersDescending = users.OrderByDescending(x => x.activity);
+            var msgString = "*Топ 10 по активности за сегодня:*\n";
+            for (int i = 0; i < 10 && i < users.Count; i++)
+            {
+                var user = usersDescending.ElementAt(i);
 
-                    //var user = users.ElementAt(i);
-                    string first_name = user.FirstName?.Replace('[', '<').Replace(']', '>');
-                    string last_name = user.LastName?.Replace('[', '<').Replace(']', '>');
-                    //string full_name = string.Format("[{0} {1}](tg://user?id={2})", first_name, last_name, user.Id);
-                    string full_name = string.Format("`{0} {1}`", first_name, last_name);
+                if (user.activity == 0)
+                    continue;
 
-                    msg_string += string.Format("{0}. {1} -- {2:F2}%\n", i + 1, full_name, user.activity * 100);
-                }
+                var firstName = user.FirstName?.Replace('[', '<').Replace(']', '>');
+                var lastName = user.LastName?.Replace('[', '<').Replace(']', '>');
+                var fullName = $"`{firstName} {lastName}`";
 
-                stopwatch.Stop();
-
-                await bot.SendTextMessageAsync(
-                                chatId: message.Chat.Id,
-                                text: $"{msg_string}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
-                                parseMode: ParseMode.Markdown);
+                msgString += $"{i + 1}. {fullName} -- {user.activity * 100:F2}%\n";
             }
+
+            stopwatch.Stop();
+
+            await bot.SendTextMessageAsync(
+                chatId: message.Chat.Id,
+                text: $"{msgString}\n`{stopwatch.ElapsedMilliseconds / 1000.0}сек`",
+                parseMode: ParseMode.Markdown);
         }
     }
 }

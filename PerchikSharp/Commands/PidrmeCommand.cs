@@ -10,7 +10,8 @@ namespace PerchikSharp.Commands
 {
     class PidrmeCommand : INativeCommand
     {
-        public string Command { get { return "pidrme"; } }
+        public string Command => "pidrme";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             try
@@ -20,18 +21,15 @@ namespace PerchikSharp.Commands
                 var user = msg.From;
                 var chat = msg.Chat;
 
-                using (var db = PerchikDB.GetContext())
-                {
-                    int number = db.Pidrs
-                        .AsNoTracking()
-                        .Where(p => p.UserId == user.Id && p.ChatId == chat.Id)
-                        .Count();
+                await using var db = PerchikDB.GetContext();
+                var number = db.Pidrs
+                    .AsNoTracking()
+                    .Count(p => p.UserId == user.Id && p.ChatId == chat.Id);
 
-                    await bot.SendTextMessageAsync(
-                           chatId: msg.Chat.Id,
-                           text: string.Format(Program.strManager["PIDR_DAY"], user.FirstName, user.Id, number),
-                           parseMode: ParseMode.Markdown);
-                }
+                await bot.SendTextMessageAsync(
+                    chatId: msg.Chat.Id,
+                    text: string.Format(Program.strManager["PIDR_DAY"], user.FirstName, user.Id, number),
+                    parseMode: ParseMode.Markdown);
             }
             catch (Exception ex)
             {

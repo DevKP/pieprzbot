@@ -13,18 +13,16 @@ namespace PerchikSharp.Commands
 {
     class WeatherForecastCommand : IRegExCommand
     {
-        public string RegEx { get { return @"прогноз\s([\w\s-]+)"; } }
+        public string RegEx => @"прогноз\s([\w\s-]+)";
+
         public async void OnExecution(object sender, RegExArgs command)
         {
             var bot = sender as Pieprz;
-            Message message = command.Message;
-            Match weather_match = command.Match;
+            var message = command.Message;
+            var weatherMatch = command.Match;
 
             string search_url = Uri.EscapeUriString(
-                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={Program.tokens["ACCUWEATHER"]}&q={weather_match.Groups[1].Value}&language=ru-ru");
-            int location_code = 0;
-            dynamic location_json;
-            dynamic weather_json;
+                $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={Program.tokens["ACCUWEATHER"]}&q={weatherMatch.Groups[1].Value}&language=ru-ru");
             try
             {
                 string respone_str = Pieprz.HttpRequestAsync(search_url).Result;
@@ -38,22 +36,22 @@ namespace PerchikSharp.Commands
                     return;
                 }
 
-                location_json = JsonConvert.DeserializeObject(respone_str);
-                location_code = location_json[0].Key;
+                dynamic locationJson = JsonConvert.DeserializeObject(respone_str);
+                int locationCode = locationJson[0].Key;
 
-                string current_url = $"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_code}?apikey={Program.tokens["ACCUWEATHER"]}&language=ru-ru&metric=true&details=true";
-                respone_str = Pieprz.HttpRequestAsync(current_url).Result;
+                var currentUrl = $"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{locationCode}?apikey={Program.tokens["ACCUWEATHER"]}&language=ru-ru&metric=true&details=true";
+                respone_str = Pieprz.HttpRequestAsync(currentUrl).Result;
 
-                weather_json = JsonConvert.DeserializeObject(respone_str);
+                dynamic weatherJson = JsonConvert.DeserializeObject(respone_str);
 
                 await bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
                           text:
                           string.Format(Program.strManager["WEATHER_FORECAST_MESSAGE"],
-                          location_json[0].LocalizedName, location_json[0].Country.LocalizedName, weather_json.DailyForecasts[0].Day.LongPhrase,
-                          weather_json.DailyForecasts[0].Temperature.Minimum.Value, weather_json.DailyForecasts[0].Temperature.Maximum.Value,
-                          weather_json.DailyForecasts[0].Day.RainProbability, weather_json.DailyForecasts[0].Day.Wind.Speed.Value,
-                          weather_json.DailyForecasts[0].Day.Wind.Direction.Localized),
+                          locationJson[0].LocalizedName, locationJson[0].Country.LocalizedName, weatherJson.DailyForecasts[0].Day.LongPhrase,
+                          weatherJson.DailyForecasts[0].Temperature.Minimum.Value, weatherJson.DailyForecasts[0].Temperature.Maximum.Value,
+                          weatherJson.DailyForecasts[0].Day.RainProbability, weatherJson.DailyForecasts[0].Day.Wind.Speed.Value,
+                          weatherJson.DailyForecasts[0].Day.Wind.Direction.Localized),
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
             }
@@ -63,7 +61,7 @@ namespace PerchikSharp.Commands
 
                 await bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
-                          text: $"*Нет такого .. {weather_match.Groups[1].Value.ToUpper()}!!😠*",
+                          text: $"*Нет такого .. {weatherMatch.Groups[1].Value.ToUpper()}!!😠*",
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
             }
@@ -77,9 +75,9 @@ namespace PerchikSharp.Commands
 
                 if (w.Response != null)
                 {
-                    Stream resStream = w.Response.GetResponseStream();
-                    StreamReader reader = new StreamReader(resStream);
-                    if (reader.ReadToEnd().Contains("The allowed number of requests has been exceeded."))
+                    var resStream = w.Response.GetResponseStream();
+                    var reader = new StreamReader(resStream ?? throw new InvalidOperationException());
+                    if ((await reader.ReadToEndAsync()).Contains("The allowed number of requests has been exceeded."))
                     {
                         await bot.SendTextMessageAsync(
                                chatId: message.Chat.Id,

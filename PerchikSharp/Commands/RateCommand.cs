@@ -14,10 +14,10 @@ namespace PerchikSharp.Commands
 {
     class RateCommand : INativeCommand
     {
-        public string Command { get { return "rate"; } }
+        public string Command => "rate";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
-            CallbackQuery cq;
             var bot = sender as Pieprz;
             try
             {
@@ -26,10 +26,12 @@ namespace PerchikSharp.Commands
                               text: "*Обновление...*",
                               parseMode: ParseMode.Markdown);
 
-                cq = new CallbackQuery();
-                cq.Message = msg;
-                cq.InlineMessageId = msg.MessageId.ToString();
-                cq.From = msg.From;
+                var cq = new CallbackQuery
+                {
+                    Message = msg,
+                    InlineMessageId = msg.MessageId.ToString(),
+                    From = msg.From
+                };
 
                 onRateUpdate(sender, new CallbackQueryArgs(cq));
                 (sender as Pieprz).CallbackQuery("update_rate", this.onRateUpdate);
@@ -45,60 +47,57 @@ namespace PerchikSharp.Commands
         {
             try
             {
-                string url = "https://min-api.cryptocompare.com/data/pricemultifull";
+                var url = "https://min-api.cryptocompare.com/data/pricemultifull";
 
-                using (HttpClient client = new HttpClient())
+                using var client = new HttpClient { BaseAddress = new Uri(url) };
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var uriBuilder = new UriBuilder(url);
+                var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+
+                query["fsyms"] = "BTC,ETH,ETC,ZEC,LTC,BCH";
+                query["tsyms"] = "USD";
+
+                uriBuilder.Query = query.ToString() ?? string.Empty;
+                url = uriBuilder.ToString();
+
+
+                var responseMessage = client.GetAsync(url).Result;
+                var responseJson = responseMessage.Content.ReadAsStringAsync().Result;
+
+                var jsonObject = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>(responseJson);
+
+                var templateStr = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
+                var formatedStr = "";
+
+                foreach (var (CURRENCY_SYMBOL, _) in jsonObject["RAW"])
                 {
-                    client.BaseAddress = new Uri(url);
-                    client.DefaultRequestHeaders.Accept.Clear();
-                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                    var uriBuilder = new UriBuilder(url);
-                    var query = HttpUtility.ParseQueryString(uriBuilder.Query);
-
-                    query["fsyms"] = "BTC,ETH,ETC,ZEC,LTC,BCH";
-                    query["tsyms"] = "USD";
-
-                    uriBuilder.Query = query.ToString();
-                    url = uriBuilder.ToString();
+                    float CHANGEPCT24HOUR = jsonObject["RAW"][CURRENCY_SYMBOL]["USD"]["CHANGEPCT24HOUR"];
+                    float PRICE = jsonObject["RAW"][CURRENCY_SYMBOL]["USD"]["PRICE"];
 
 
-                    HttpResponseMessage responseMessage = client.GetAsync(url).Result;
-                    var responseJson = responseMessage.Content.ReadAsStringAsync().Result;
+                    string symbol = "💹";
+                    if (CHANGEPCT24HOUR < 0)
+                        symbol = "🔻";
 
-                    var json_object = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
-                    json_object = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>(responseJson);
-
-                    string template_str = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
-                    string formated_str = "";
-
-                    foreach (var curr in json_object["RAW"])
-                    {
-                        string CURRENCY_SYMBOL = curr.Key;
-                        float CHANGEPCT24HOUR = json_object["RAW"][curr.Key]["USD"]["CHANGEPCT24HOUR"];
-                        float PRICE = json_object["RAW"][curr.Key]["USD"]["PRICE"];
-
-
-                        string symbol = "💹";
-                        if (CHANGEPCT24HOUR < 0)
-                            symbol = "🔻";
-
-                        formated_str += String.Format(template_str, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
-                    }
-                    formated_str += $"\nОбновлено {DbConverter.DateTimeUTC2.ToShortTimeString()}";
-
-
-                    var button = new InlineKeyboardButton();
-                    button.CallbackData = "update_rate";
-                    button.Text = Program.strManager.GetSingle("RATE_UPDATE_BTN");
-                    var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
-
-                    await Program.bot.EditMessageTextAsync(
-                         chatId: e.Callback.Message.Chat.Id,
-                         messageId: e.Callback.Message.MessageId,
-                         replyMarkup: inlineKeyboard,
-                         text: formated_str);
+                    formatedStr += String.Format(templateStr, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
                 }
+                formatedStr += $"\nОбновлено {DbConverter.DateTimeUtc2.ToShortTimeString()}";
+
+
+                var button = new InlineKeyboardButton
+                {
+                    CallbackData = "update_rate", 
+                    Text = Program.strManager.GetSingle("RATE_UPDATE_BTN")
+                };
+                var inlineKeyboard = new InlineKeyboardMarkup(new[] { new[] { button } });
+
+                await Program.bot.EditMessageTextAsync(
+                    chatId: e.Callback.Message.Chat.Id,
+                    messageId: e.Callback.Message.MessageId,
+                    replyMarkup: inlineKeyboard,
+                    text: formatedStr);
             }
             catch (Exception exp)
             {

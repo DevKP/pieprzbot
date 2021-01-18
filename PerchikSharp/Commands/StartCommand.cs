@@ -6,11 +6,12 @@ namespace PerchikSharp.Commands
 {
     class StartCommand : INativeCommand
     {
-        public string Command { get { return "start"; } }
+        public string Command => "start";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             var bot = sender as Pieprz;
-            Message message = command.Message;
+            var message = command.Message;
 
             await bot.SendTextMessageAsync(
                        chatId: message.Chat.Id,

@@ -12,57 +12,56 @@ namespace PerchikSharp.Commands
 {
     class EveryoneCommand : INativeCommand
     {
-        public string Command { get { return "everyone"; } }
+        public string Command => "everyone";
+
         public void OnExecution(object sender, CommandEventArgs command)
         {
             try
             {
                 var bot = sender as Pieprz;
-                Message message = command.Message;
+                var message = command.Message;
 
                 if (message.Chat.Type == ChatType.Private)
                     return;
 
-                int[] users_whitelist = { 204678400
+                int[] usersWhitelist = { 204678400
                                          /*тут огурец*/ };
                 if (!bot.IsUserAdmin(message.Chat.Id, message.From.Id) &&
-                    users_whitelist.All(id => id != message.From.Id))
+                    usersWhitelist.All(id => id != message.From.Id))
                     return;
 
 
-                using (var db = PerchikDB.GetContext())
+                using var db = PerchikDB.GetContext();
+                var users = db.Users.ToList();
+                var messageStr = string.Empty;
+
+                const int maxUsersInMessage = 10;
+                var sendedMessages = new List<Message>();
+
+                int i = 0;
+                foreach (var user in users)
                 {
-                    var users = db.Users.ToList();
-                    var messageStr = string.Empty;
-
-                    const int maxUsersInMessage = 10;
-                    var sendedMessages = new List<Message>();
-
-                    int i = 0;
-                    foreach (var user in users)
+                    var firstname = user.FirstName.Replace('[', '<').Replace(']', '>');
+                    messageStr += $"[{firstname}](tg://user?id={user.Id})\n";
+                    if (i % maxUsersInMessage == 0 || i == users.Count() - 1)
                     {
-                        string firstname = user.FirstName.Replace('[', '<').Replace(']', '>');
-                        messageStr += $"[{firstname}](tg://user?id={user.Id})\n";
-                        if (i % maxUsersInMessage == 0 || i == users.Count() - 1)
-                        {
-                            var msg = bot.SendTextMessageAsync(
-                                chatId: message.Chat.Id,
-                                text: messageStr,
-                                parseMode: ParseMode.Markdown).Result;
-                            sendedMessages.Add(msg);
-                            messageStr = string.Empty;
-                        }
-
-                        i++;
+                        var msg = bot.SendTextMessageAsync(
+                            chatId: message.Chat.Id,
+                            text: messageStr,
+                            parseMode: ParseMode.Markdown).Result;
+                        sendedMessages.Add(msg);
+                        messageStr = string.Empty;
                     }
 
-                    Thread.Sleep(5000);
-                    foreach (var m in sendedMessages)
-                    {
-                        bot.DeleteMessageAsync(
-                               chatId: message.Chat.Id,
-                               messageId: m.MessageId);
-                    }
+                    i++;
+                }
+
+                Thread.Sleep(5000);
+                foreach (var m in sendedMessages)
+                {
+                    bot.DeleteMessageAsync(
+                        chatId: message.Chat.Id,
+                        messageId: m.MessageId);
                 }
             }
             catch (Exception ex)

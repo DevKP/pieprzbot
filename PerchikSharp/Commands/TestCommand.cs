@@ -6,7 +6,8 @@ namespace PerchikSharp.Commands
 {
     class TestCommand : INativeCommand
     {
-        public string Command { get { return "test"; } }
+        public string Command => "test";
+
         public void OnExecution(object sender, CommandEventArgs command)
         {
         }

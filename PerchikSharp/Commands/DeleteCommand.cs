@@ -6,8 +6,9 @@ namespace PerchikSharp.Commands
 {
     class DeleteCommand : INativeCommand
     {
-        const int via_tcp_Id = 204678400;
-        public string Command { get { return "delete"; } }
+        const int ViaTcpId = 204678400;
+        public string Command => "delete";
+
         public async void OnExecution(object sender, CommandEventArgs command)
         {
             var bot = sender as Pieprz;
@@ -16,12 +17,14 @@ namespace PerchikSharp.Commands
             if (msg.ReplyToMessage == null)
                 return;
 
-            if(bot.IsUserAdmin(command.Message.Chat.Id, command.Message.From.Id) ||
-                command.Message.From.Id == via_tcp_Id)
-            {
-                await bot.DeleteMessageAsync(msg.Chat.Id, msg.MessageId);
-                await bot.DeleteMessageAsync(msg.Chat.Id, msg.ReplyToMessage.MessageId);
-            }
+            //
+            if (!bot.IsUserAdmin(command.Message.Chat.Id, command.Message.From.Id) &&
+                command.Message.From.Id != ViaTcpId)
+                return;
+            //
+
+            await bot.DeleteMessageAsync(msg.Chat.Id, msg.MessageId);
+            await bot.DeleteMessageAsync(msg.Chat.Id, msg.ReplyToMessage.MessageId);
         }
     }
 }
