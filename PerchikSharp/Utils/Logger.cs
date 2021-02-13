@@ -22,7 +22,7 @@ namespace PerchikSharp
     internal class Logger
     {
         private static Logger _instance;
-        private static log4net.ILog _log;
+        private static ILog _log;
 
         public static Logger Inst()
         {
@@ -42,12 +42,12 @@ namespace PerchikSharp
                     }
                     
 
-                    ILoggerRepository repo = log4net.LogManager.CreateRepository(
+                    var repo = LogManager.CreateRepository(
                     Assembly.GetEntryAssembly(), typeof(log4net.Repository.Hierarchy.Hierarchy));
 
                     log4net.Config.XmlConfigurator.Configure(repo, log4NetConfig["log4net"]);
 
-                    _log = log4net.LogManager.GetLogger(repo.Name, "CHAT");
+                    _log = LogManager.GetLogger(repo.Name, "CHAT");
                 }catch(Exception e)
                 {
                     Console.WriteLine(e.Message);

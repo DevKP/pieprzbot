@@ -2,9 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using Telegram.Bot;
+using PerchikSharp.Events;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 

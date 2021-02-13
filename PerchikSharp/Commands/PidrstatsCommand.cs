@@ -1,8 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PerchikSharp.Db;
 using System.Linq;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands
@@ -13,7 +12,6 @@ namespace PerchikSharp.Commands
 
         public async void OnExecution(object sender, CommandEventArgs command)
         {
-            var msg = command.Message;
             var bot = sender as Pieprz;
 
             await using var db = PerchikDB.GetContext();

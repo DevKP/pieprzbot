@@ -1,13 +1,4 @@
-﻿using Clarifai.API;
-using Clarifai.API.Requests.Models;
-using Clarifai.DTOs.Inputs;
-using Clarifai.DTOs.Predictions;
-using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using PerchikSharp.Commands;
-using PerchikSharp.Db;
-using PersikSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,8 +6,18 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Clarifai.API;
+using Clarifai.DTOs.Inputs;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using PerchikSharp.Commands;
+using PerchikSharp.Db;
+using PerchikSharp.Events;
+using PersikSharp;
+using Telegram.Bot.Args;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using File = System.IO.File;
 
 namespace PerchikSharp
 {
@@ -38,14 +39,12 @@ namespace PerchikSharp
 
         private static async Task Main(string[] args)
         {
-
             Logger.Log(LogType.Info, $"Bot version: {Pieprz.botVersion}");
 
             Console.OutputEncoding = Encoding.UTF8;
             LoadDictionary();
 
-            var file = new FileInfo("./Data/");
-            file.Directory?.Create();
+            Directory.CreateDirectory("./Data/"); //if doesn't exist
 
             database = new PerschikDB("./Data/database.db");
             database.Create();
@@ -53,7 +52,7 @@ namespace PerchikSharp
 
             _commands = new RegExHelper();
 
-            Init();
+            Initialize();
 
             //Update Message to group and me
             if (args.Length > 0)
@@ -68,11 +67,8 @@ namespace PerchikSharp
                             try
                             {
                                 changelog = $"\n\n*Изменения:*\n{StringManager.FromFile("changelog.txt")}";
-                                System.IO.File.Delete("changelog.txt");
-                            }catch(FileNotFoundException)
-                            {
-                                
-                            }
+                                File.Delete("changelog.txt");
+                            }catch(FileNotFoundException) { }
 
                             var text = $"*Перчик жив! 🌶*\nВерсия: {version}{changelog}";
                             _ = bot.SendTextMessageAsync(ViaTcpId,
@@ -108,7 +104,7 @@ namespace PerchikSharp
         }
 
 
-        private static void Init()
+        private static void Initialize()
         {
             try
             {
@@ -175,18 +171,7 @@ namespace PerchikSharp
             bot.NativeCommand(new GoogleCommand());
             bot.NativeCommand(new TestCommand());
 
-
-
-
             bot.onTextMessage += (_, a) => _commands.CheckMessage(a.Message);
-            _commands.AddRegEx("(420|трав(к)?а|шишки|марихуана)", ((_, e) =>
-            {
-                bot.SendStickerAsync(e.Message.Chat.Id, "CAADAgAD0wMAApzW5wrXuBCHqOjyPQI",
-                    replyToMessageId: e.Message.MessageId);
-            }));
-
-
-
 
             bot.NativeCommand("fox", (_, e) => bot.SendTextMessageAsync(e.Message.Chat.Id, "🦊"));
         }
@@ -218,12 +203,12 @@ namespace PerchikSharp
             }
         }
 
-        private static void Bot_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
+        private static void Bot_OnMessage(object sender, MessageEventArgs e)
         {
            Task.Run(() => AddMsgToDatabase(sender, e.Message));
         }
 
-        private static async Task StartDatabaseCheckAsync(int timeOut, CancellationToken token = default(CancellationToken))
+        private static async Task StartDatabaseCheckAsync(int timeOut, CancellationToken token = default)
         {
             while (!ExitToken.IsCancellationRequested)
             {
@@ -277,11 +262,11 @@ namespace PerchikSharp
         //=====Persik Commands======
         private static async void PerchikCommand(object s, RegExArgs e)
         {
-            Message message = e.Message;
+            var message = e.Message;
             if (message.ReplyToMessage?.Type == MessageType.Photo)
             {
                 Logger.Log(LogType.Info,
-                    $"[{message.Chat.Type.ToString()}:{message.Type.ToString()}]({message.From.FirstName}:{message.From.Id}) Predict IID: {message.ReplyToMessage.Photo[0].FileId}");
+                    $"[{message.Chat.Type}:{message.Type}]({message.From.FirstName}:{message.From.Id}) Predict IID: {message.ReplyToMessage.Photo[0].FileId}");
 
                 var names = await PredictImage(message.ReplyToMessage.Photo[^1]);
 
@@ -292,8 +277,6 @@ namespace PerchikSharp
                         replyToMessageId: message.MessageId);
 
                 Logger.Log(LogType.Info, $"Result: {names[0]}:{names[1]}:{names[2]}. IID: {message.ReplyToMessage.Photo[0].FileId}");
-
-                return;
             }
             else
             {
@@ -306,7 +289,7 @@ namespace PerchikSharp
             }
         }
 
-        private static async Task<List<string>> PredictImage(PhotoSize ps)
+        private static async Task<List<string>> PredictImage(FileBase ps)
         {
             var file = await bot.GetFileAsync(ps.FileId);
             var photo = new MemoryStream();
@@ -337,10 +320,10 @@ namespace PerchikSharp
                 var photo = new MemoryStream();
                 await bot.DownloadFileAsync(file.FilePath, photo);
 
-                var file_image = new ClarifaiFileImage(photo.GetBuffer());
-                var request = _clarifai.PublicModels.NsfwModel.Predict(file_image, language: "en");
+                var fileImage = new ClarifaiFileImage(photo.GetBuffer());
+                var request = _clarifai.PublicModels.NsfwModel.Predict(fileImage, language: "en");
                 var result = await request.ExecuteAsync();
-                var nsfwVal = result.Get().Data.Find(x => x.Name == "nsfw").Value;
+                var nsfwVal = result.Get().Data.Find(x => x.Name == "nsfw")?.Value;
 
                 if (nsfwVal != null && (float)nsfwVal > 0.7)
                 {
@@ -398,16 +381,15 @@ namespace PerchikSharp
 
         private static async void TextMessage(object sender, MessageArgs message_args)
         {
-            var m = message_args.Message;
+            var message = message_args.Message;
 
-            if (m.Chat.Type != ChatType.Private ||
-                m.Text[0] != '!') 
+            if (message.Chat.Type != ChatType.Private || message.Text[0] != '!') 
                 return;
 
-            var msg = m.Text.Substring(1, m.Text.Length - 1);
+            var msg = message.Text.Substring(1, message.Text.Length - 1);
             await bot.SendTextMessageAsync(OfftopiaId, $"*{msg}*", ParseMode.Markdown);
 
-            Logger.Log(LogType.Info, $"({m.From.FirstName}:{m.From.Id})(DM): {msg}");
+            Logger.Log(LogType.Info, $"({message.From.FirstName}:{message.From.Id})(DM): {msg}");
         }
 
         private static async void AddMsgToDatabase(object s, Message msg)
@@ -418,7 +400,7 @@ namespace PerchikSharp
 
                 db.UpsertChat(DbConverter.GenChat(msg.Chat));
 
-                var user = db.GetUserbyId(msg.From.Id);
+                var user = db.GetUserById(msg.From.Id);
                 await db.UpsertUser(DbConverter.GenUser(msg.From, user?.Description), msg.Chat.Id);
 
                 db.AddMessage(DbConverter.GenMessage(msg));
@@ -451,24 +433,16 @@ namespace PerchikSharp
 
                 var message = message_args.Message;
 
-                string username;
-                if (message.From.Username != null)
-                {
-                    username = $"@{message.From.Username}";
-                }
-                else { username = bot.MakeUserLink(message.From); }
+                var username = message.From.Username ?? $"@{message.From.Username}";
 
                 var msgString = string.Format(strManager["NEW_MEMBERS"], username);
                 await bot.SendTextMessageAsync(message.Chat.Id, msgString, ParseMode.Html);
-
 
                 if(message.From.Id == ViaTcpId)
                 {
                     Thread.Sleep(2000);
                     await bot.PromoteChatMemberAsync(message.Chat.Id, ViaTcpId, true, false, false, true, true, true, true, true);
                 }
-
-
             }
             catch (Exception ex)
             {

@@ -1,10 +1,7 @@
 using System;
-using Telegram.Bot.Args;
-using Telegram.Bot;
 using Telegram.Bot.Types;
-using PerchikSharp;
 
-namespace PerchikSharp
+namespace PerchikSharp.Events
 {
     public class BotEventHandlerUnit
     {
@@ -23,9 +20,7 @@ namespace PerchikSharp
             this.fromAnyUser = fromAnyUser;
         }
 
-        public void InvokeCallback(Message message)
-        {
+        public void InvokeCallback(Message message) =>
             onCallback?.Invoke(this, new NextstepArgs(message, arg));
-        }
     }
 }

@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using System.IO;
 using System.Net;
 using Newtonsoft.Json;
-using Telegram.Bot.Types;
-using System.Text.RegularExpressions;
+using PerchikSharp.Events;
 
 namespace PerchikSharp.Commands
 {
@@ -21,12 +17,12 @@ namespace PerchikSharp.Commands
             var message = command.Message;
             var weatherMatch = command.Match;
 
-            string search_url = Uri.EscapeUriString(
+            var search_url = Uri.EscapeUriString(
                 $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={Program.tokens["ACCUWEATHER"]}&q={weatherMatch.Groups[1].Value}&language=ru-ru");
             try
             {
-                string respone_str = Pieprz.HttpRequestAsync(search_url).Result;
-                if (respone_str.Contains("The allowed number of requests has been exceeded."))
+                var responeStr = Pieprz.HttpRequestAsync(search_url).Result;
+                if (responeStr.Contains("The allowed number of requests has been exceeded."))
                 {
                     await bot.SendTextMessageAsync(
                          chatId: message.Chat.Id,
@@ -36,13 +32,13 @@ namespace PerchikSharp.Commands
                     return;
                 }
 
-                dynamic locationJson = JsonConvert.DeserializeObject(respone_str);
+                dynamic locationJson = JsonConvert.DeserializeObject(responeStr);
                 int locationCode = locationJson[0].Key;
 
                 var currentUrl = $"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{locationCode}?apikey={Program.tokens["ACCUWEATHER"]}&language=ru-ru&metric=true&details=true";
-                respone_str = Pieprz.HttpRequestAsync(currentUrl).Result;
+                responeStr = Pieprz.HttpRequestAsync(currentUrl).Result;
 
-                dynamic weatherJson = JsonConvert.DeserializeObject(respone_str);
+                dynamic weatherJson = JsonConvert.DeserializeObject(responeStr);
 
                 await bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,

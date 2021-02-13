@@ -14,7 +14,7 @@ namespace PerchikSharp.Db
             {
                 UserId = message.From.Id,
                 ChatId = message.Chat.Id,
-                Date = DbConverter.DateTimeUtc2
+                Date = DateTimeUtc2
             };
 
         }
@@ -77,7 +77,9 @@ namespace PerchikSharp.Db
         public static long ToEpochTime(DateTime dateTime)
         {
             var date = dateTime.ToUniversalTime();
-            var ticks = date.Ticks - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).Ticks;
+            var ticks = date.Ticks - new DateTime(year: 1970, month: 1, day: 1,
+                hour: 0, minute: 0, second: 0, millisecond: 0, kind: DateTimeKind.Utc).Ticks;
+
             var ts = ticks / TimeSpan.TicksPerSecond;
             return ts;
         }
@@ -88,7 +90,9 @@ namespace PerchikSharp.Db
         public static long ToEpochTime(DateTimeOffset dateTime)
         {
             var date = dateTime.ToUniversalTime();
-            var ticks = date.Ticks - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero).Ticks;
+            var ticks = date.Ticks - new DateTimeOffset(year: 1970, month: 1, day: 1,
+                hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero).Ticks;
+
             var ts = ticks / TimeSpan.TicksPerSecond;
             return ts;
         }
@@ -99,7 +103,8 @@ namespace PerchikSharp.Db
         public static DateTime ToDateTimeFromEpoch(long intDate)
         {
             var timeInTicks = intDate * TimeSpan.TicksPerSecond;
-            return new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddTicks(timeInTicks);
+            return new DateTime(1970, month: 1, day: 1,
+                hour: 0, minute: 0, second: 0, millisecond: 0, kind: DateTimeKind.Utc).AddTicks(timeInTicks);
         }
 
         /// <summary>
@@ -108,7 +113,8 @@ namespace PerchikSharp.Db
         public static DateTimeOffset ToDateTimeOffsetFromEpoch(long intDate)
         {
             var timeInTicks = intDate * TimeSpan.TicksPerSecond;
-            return new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero).AddTicks(timeInTicks);
+            return new DateTimeOffset(year: 1970, month: 1, day: 1,
+                hour: 0, minute: 0, second: 0, offset: TimeSpan.Zero).AddTicks(timeInTicks);
         }
 
         public static DateTime DateTimeUtc2 => DateTime.UtcNow.AddHours(2);

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using PerchikSharp.Events;
 
 namespace PerchikSharp.Commands
 {
@@ -13,7 +11,9 @@ namespace PerchikSharp.Commands
             var bot = sender as Pieprz;
             var msg = command.Message;
 
-            await bot.SendStickerAsync(msg.Chat.Id, "CAACAgIAAxkBAAIFEF5W9R46FVtcyEJaS_9i54K3LLW3AALsAgACtXHaBvbV2g1oKhUwGAQ");
+            if (bot != null)
+                await bot.SendStickerAsync(msg.Chat.Id,
+                    "CAACAgIAAxkBAAIFEF5W9R46FVtcyEJaS_9i54K3LLW3AALsAgACtXHaBvbV2g1oKhUwGAQ");
         }
     }
 }

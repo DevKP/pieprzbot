@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace PerchikSharp
+﻿namespace PerchikSharp.Events
 {
     class InlineButton
     {

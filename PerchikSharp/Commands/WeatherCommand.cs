@@ -1,12 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands
@@ -21,13 +17,11 @@ namespace PerchikSharp.Commands
             var message = command.Message;
             var weatherMatch = command.Match;
 
-            string search_url = Uri.EscapeUriString(
+            var searchUrl = Uri.EscapeUriString(
                 $"http://dataservice.accuweather.com/locations/v1/cities/autocomplete?apikey={Program.tokens["ACCUWEATHER"]}&q={weatherMatch.Groups[1].Value}&language=ru-ru");
-            dynamic location_json;
-            dynamic weather_json;
             try
             {
-                var request = (HttpWebRequest)WebRequest.Create(search_url);
+                var request = (HttpWebRequest)WebRequest.Create(searchUrl);
                 var response = (HttpWebResponse)request.GetResponse();
                 var resStream = response.GetResponseStream();
 
@@ -44,9 +38,9 @@ namespace PerchikSharp.Commands
                     return;
                 }
 
-                location_json = JsonConvert.DeserializeObject(responseStr);
+                dynamic locationJson = JsonConvert.DeserializeObject(responseStr);
 
-                int locationCode = location_json[0].Key;
+                int locationCode = locationJson[0].Key;
 
                 var currentUrl = $"http://dataservice.accuweather.com/currentconditions/v1/{locationCode}?apikey={Program.tokens["ACCUWEATHER"]}&language=ru-ru&details=true";
 
@@ -54,16 +48,16 @@ namespace PerchikSharp.Commands
                 response = (HttpWebResponse)request.GetResponse();
                 resStream = response.GetResponseStream();
 
-                reader = new StreamReader(resStream);
+                reader = new StreamReader(resStream ?? throw new NullReferenceException());
                 responseStr = await reader.ReadToEndAsync();
 
-                weather_json = JsonConvert.DeserializeObject(responseStr);
+                dynamic weather_json = JsonConvert.DeserializeObject(responseStr);
 
                 await bot.SendTextMessageAsync(
                           chatId: message.Chat.Id,
                           text:
                           string.Format(Program.strManager["WEATHER_MESSAGE"],
-                          location_json[0].LocalizedName, location_json[0].Country.LocalizedName, weather_json[0].WeatherText, weather_json[0].Temperature.Metric.Value,
+                          locationJson[0].LocalizedName, locationJson[0].Country.LocalizedName, weather_json[0].WeatherText, weather_json[0].Temperature.Metric.Value,
                           weather_json[0].RealFeelTemperature.Metric.Value, weather_json[0].RelativeHumidity, weather_json[0].Wind.Direction.Localized, weather_json[0].Wind.Speed.Metric.Value),
                           parseMode: ParseMode.Markdown,
                           replyToMessageId: message.MessageId);
@@ -89,7 +83,7 @@ namespace PerchikSharp.Commands
                 if (w.Response != null)
                 {
                     var resStream = w.Response.GetResponseStream();
-                    var reader = new StreamReader(resStream ?? throw new InvalidOperationException());
+                    var reader = new StreamReader(resStream ?? throw new NullReferenceException());
                     if ((await reader.ReadToEndAsync()).Contains("The allowed number of requests has been exceeded."))
                     {
                         await bot.SendTextMessageAsync(

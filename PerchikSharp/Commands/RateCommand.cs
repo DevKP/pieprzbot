@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Web;
-using Telegram.Bot;
+using PerchikSharp.Events;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -68,8 +68,8 @@ namespace PerchikSharp.Commands
 
                 var jsonObject = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>(responseJson);
 
-                var templateStr = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
-                var formatedStr = "";
+                const string templateStr = "1 {0} = {1}$ ({2:f2}% / 24h){3}\n";
+                var formatedStr = string.Empty;
 
                 foreach (var (CURRENCY_SYMBOL, _) in jsonObject["RAW"])
                 {
@@ -77,11 +77,11 @@ namespace PerchikSharp.Commands
                     float PRICE = jsonObject["RAW"][CURRENCY_SYMBOL]["USD"]["PRICE"];
 
 
-                    string symbol = "💹";
+                    var symbol = "💹";
                     if (CHANGEPCT24HOUR < 0)
                         symbol = "🔻";
 
-                    formatedStr += String.Format(templateStr, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
+                    formatedStr += string.Format(templateStr, CURRENCY_SYMBOL, PRICE, CHANGEPCT24HOUR, symbol);
                 }
                 formatedStr += $"\nОбновлено {DbConverter.DateTimeUtc2.ToShortTimeString()}";
 

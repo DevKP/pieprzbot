@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using PerchikSharp.Events;
 using Telegram.Bot;
 
 namespace PerchikSharp.Commands

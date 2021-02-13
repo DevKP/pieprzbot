@@ -1,13 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PerchikSharp.Db;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -26,20 +22,9 @@ namespace PerchikSharp.Commands
                 var name = command.Match.Groups["name"]?.Value;
                 if (string.IsNullOrEmpty(name))
                 {
-                    if (message.ReplyToMessage == null)
-                    {
-                        name = message.From.Username ?? name;//Can be null
-
-                        name = message.From.FirstName ?? name;//But FirstName can't
-                    }
-                    else
-                    {
-                        name = message.ReplyToMessage.From.Username ?? name;//Can be null
-
-                        name = message.ReplyToMessage.From.FirstName ?? name;//But FirstName can't
-                    }
-
-                }                                         // Last name isn't required, this will be unreachable code
+                    var targetMessage = message.ReplyToMessage ?? message;
+                    name = targetMessage.From.Username ?? targetMessage.From.FirstName;
+                }
 
                 var updateButton = new InlineKeyboardButton
                 {

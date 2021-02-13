@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Telegram.Bot.Types;
 
-namespace PerchikSharp
+namespace PerchikSharp.Events
 {
     public class CallbackQueryArgs : EventArgs
     {
@@ -11,8 +9,7 @@ namespace PerchikSharp
             (Callback, UserId, this.Obj) = (m, userid, obj);
         public CallbackQueryArgs(Message m, int userid = 0, object obj = null)
         {
-            Callback = new CallbackQuery();
-            Callback.Message = m;
+            Callback = new CallbackQuery { Message = m };
             UserId = userid;
             this.Obj = obj;
         }

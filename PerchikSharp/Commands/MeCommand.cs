@@ -1,6 +1,5 @@
 ﻿using System;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands
@@ -11,7 +10,7 @@ namespace PerchikSharp.Commands
 
         public async void OnExecution(object sender, CommandEventArgs command)
         {
-            if (command.Text == "")
+            if (command.Text == string.Empty)
                 return;
 
             var bot = sender as Pieprz;

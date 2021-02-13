@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Telegram.Bot.Types;
 
-namespace PerchikSharp
+namespace PerchikSharp.Events
 {
     public class MessageArgs : EventArgs
     {

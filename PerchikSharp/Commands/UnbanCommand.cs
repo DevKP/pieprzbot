@@ -1,10 +1,7 @@
 ﻿using PerchikSharp.Db;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands
@@ -30,19 +27,18 @@ namespace PerchikSharp.Commands
                 var until = DbConverter.DateTimeUtc2.AddSeconds(1);
                 await bot.RestrictUserAsync(message.Chat.Id, message.ReplyToMessage.From.Id, until, true);
 
-                await using (var db = PerchikDB.GetContext())
+                await using var db = PerchikDB.GetContext();
+
+                var existingUser = db.Users
+                    .FirstOrDefault(x => x.Id == message.ReplyToMessage.From.Id);
+
+                if (existingUser != null)
                 {
-                    var existingUser = db.Users
-                        .FirstOrDefault(x => x.Id == message.ReplyToMessage.From.Id);
-
-                    if (existingUser != null)
-                    {
-                        existingUser.Restricted = false;
-                        await db.SaveChangesAsync();
-                    }
-
+                    existingUser.Restricted = false;
+                    await db.SaveChangesAsync();
                 }
 
+                
                 await bot.SendTextMessageAsync(
                         chatId: message.Chat.Id,
                         text: string.Format(Program.strManager.GetRandom("UNBANNED"), bot.MakeUserLink(message.ReplyToMessage.From)),

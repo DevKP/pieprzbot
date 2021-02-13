@@ -1,6 +1,4 @@
-﻿using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
+﻿using PerchikSharp.Events;
 
 namespace PerchikSharp.Commands
 {

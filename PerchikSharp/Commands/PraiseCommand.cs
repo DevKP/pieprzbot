@@ -1,9 +1,4 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+﻿using PerchikSharp.Events;
 
 namespace PerchikSharp.Commands
 {

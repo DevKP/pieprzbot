@@ -3,8 +3,7 @@ using PerchikSharp.Db;
 using System;
 using System.Diagnostics;
 using System.Linq;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands
@@ -40,11 +39,11 @@ namespace PerchikSharp.Commands
 
             var usersDescending = users.OrderByDescending(x => x.activity);
             var msgString = "*Топ 10 по активности за сегодня:*\n";
-            for (int i = 0; i < 10 && i < users.Count; i++)
+            for (var i = 0; i < 10 && i < users.Count; i++)
             {
-                var user = usersDescending.ElementAt(i);
+                var user = usersDescending?.ElementAt(i);
 
-                if (user.activity == 0)
+                if (Math.Abs(user.activity) < 0.01)
                     continue;
 
                 var firstName = user.FirstName?.Replace('[', '<').Replace(']', '>');

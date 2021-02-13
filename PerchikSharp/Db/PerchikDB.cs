@@ -1,10 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,7 +18,7 @@ namespace PerchikSharp.Db
 
         public PerchikDB()
         {
-            //Database.EnsureCreated();
+            Database.EnsureCreated();
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,28 +43,15 @@ namespace PerchikSharp.Db
                 .ValueGeneratedOnAdd();
         }
 
-        static PerchikDB()
-        {
-            _contextPool = new SemaphoreSlim(1);
-        }
+        static PerchikDB() => _contextPool = new SemaphoreSlim(1);
 
 
         private static SemaphoreSlim _contextPool;
-        public static PerchikDB GetContext()
-        {
+        public static PerchikDB GetContext() =>
+            new PerchikDB();
 
-            //contextPool.Wait();
-            var context = new PerchikDB();
-            //context.onDisposed += (_, x) => contextPool.Release(1);
-            //context.GetService<ILoggerFactory>().AddProvider(new DbLoggerProvider());
-            return context;
-        }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => 
             optionsBuilder.UseMySql(ConnectionString);
-           // optionsBuilder.EnableSensitiveDataLogging();
-        }
 
         public void UpdateUser(Tables.User user)
         {
@@ -84,22 +66,20 @@ namespace PerchikSharp.Db
 
         }
 
-        public Tables.User GetUserbyId(int userId)
-        {
-            return this.Users.FirstOrDefault(x => x.Id == userId);
-        }
+        public Tables.User GetUserById(int userId) => 
+            this.Users.FirstOrDefault(x => x.Id == userId);
 
         public void AddMessage(Tables.Message msg)
         {
             this.Messages.Add(msg);
             this.SaveChanges();
         }
-        public void AddRestriction(Tables.Restriction restr)
+        public void AddRestriction(Tables.Restriction restriction)
         {
-            var existingUser = Users.FirstOrDefault(x => x.Id == restr.UserId);
+            var existingUser = Users.FirstOrDefault(x => x.Id == restriction.UserId);
             if (existingUser != null)
             {
-                Restrictions.Add(restr);
+                Restrictions.Add(restriction);
                 SaveChanges();
                 existingUser.Restricted = true;
                 SaveChanges();

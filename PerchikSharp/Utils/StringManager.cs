@@ -10,10 +10,10 @@ namespace PerchikSharp
     class StringManager
     {
         private readonly Random _rand = new Random(Guid.NewGuid().GetHashCode());
-        private Dictionary<string, List<string>> _dict = null;
+        private Dictionary<string, List<string>> _dict;
 
         /// <summary>
-        /// Analogue of method <see cref="GetRandom">.
+        /// Analogue of method </see cref="GetRandom">.
         /// </summary>
         /// <returns>
         /// String from dictionary.
@@ -25,7 +25,7 @@ namespace PerchikSharp
         {
             try
             {
-                return this._dict[key];
+                return _dict[key];
             }
             catch (KeyNotFoundException)
             {
@@ -52,21 +52,16 @@ namespace PerchikSharp
             return readContents;
         }
 
-        public StringManager()
-        {
-        }
+        public StringManager() { }
 
-        public StringManager(string json_path)
+        public StringManager(string jsonPath)
         {
-            _ = json_path ?? throw new ArgumentNullException(nameof(json_path));
+            _ = jsonPath ?? throw new ArgumentNullException(nameof(jsonPath));
 
             try
             {
-                string readContents;
-                using (StreamReader streamReader = new StreamReader(json_path, Encoding.UTF8))
-                {
-                    readContents = streamReader.ReadToEnd();
-                }
+                using var streamReader = new StreamReader(jsonPath, Encoding.UTF8);
+                var readContents = streamReader.ReadToEnd();
 
                 _dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
             }
@@ -81,34 +76,25 @@ namespace PerchikSharp
         {
             _ = file ?? throw new ArgumentNullException(nameof(file));
 
-            string readContents;
-            using (var reader = new StreamReader(file))
-            {
-                readContents = reader.ReadToEnd();
-            }
-
+            using var reader = new StreamReader(file);
+            var readContents = reader.ReadToEnd();
+            
             _dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
         }
 
         /// <summary>
         /// Parse json file with a dictionary.
         /// </summary>
-        /// <param name="json_path">File path</param>
-        public void Open(string json_path)
+        /// <param name="jsonPath">File path</param>
+        public void Open(string jsonPath)
         {
-            string readContents;
-            using (var streamReader = new StreamReader(json_path, Encoding.UTF8))
-            {
-                readContents = streamReader.ReadToEnd();
-            }
+            using var streamReader = new StreamReader(jsonPath, Encoding.UTF8);
+            var readContents = streamReader.ReadToEnd();
 
             _dict = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(readContents);
         }
 
-        public static StringManager Create(string json_path)
-        {
-            return new StringManager(json_path);
-        }
+        public static StringManager Create(string jsonPath) => new StringManager(jsonPath);
 
         /// <summary>
         /// Returns all strings of the specified key.
@@ -140,8 +126,8 @@ namespace PerchikSharp
             var strings = this._get_value(key);
             if (strings.Count > 1)
                 return strings[_rand.Next(0, strings.Count)];
-            else
-                return strings.First();
+
+            return strings.First();
         }
 
         /// <summary>

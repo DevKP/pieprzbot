@@ -1,6 +1,6 @@
 ﻿using PerchikSharp.Db;
 using System;
-using Telegram.Bot;
+using PerchikSharp.Events;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 

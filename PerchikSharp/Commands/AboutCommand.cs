@@ -1,10 +1,6 @@
 ﻿using PerchikSharp.Db;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands
@@ -29,10 +25,9 @@ namespace PerchikSharp.Commands
                 }
 
                 var msg = command.Message;
-                await using(var db = PerchikDB.GetContext())
-                {
-                    await db.UpsertUser(DbConverter.GenUser(msg.From, command.Text), msg.Chat.Id);
-                }
+                await using var db = PerchikDB.GetContext();
+                await db.UpsertUser(DbConverter.GenUser(msg.From, command.Text), msg.Chat.Id);
+                
 
                 if (bot != null)
                     await bot.SendTextMessageAsync(

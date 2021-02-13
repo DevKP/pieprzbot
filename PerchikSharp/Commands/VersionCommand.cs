@@ -1,8 +1,5 @@
-﻿using PerchikSharp;
-using PerchikSharp.Commands;
-using System;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+﻿using System;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands

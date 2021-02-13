@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Telegram.Bot;
+using PerchikSharp.Events;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -91,27 +91,27 @@ namespace PerchikSharp.Commands
                         return;
 
                     recentPoll = p.Poll;
-                    var pollanswer = p.PollAnswer;
-                    var existingUser = db.Users.FirstOrDefault(x => x.Id == pollanswer.User.Id);
+                    var pollAnswer = p.PollAnswer;
+                    var existingUser = db.Users.FirstOrDefault(x => x.Id == pollAnswer.User.Id);
                     if (existingUser != null)
                     {
-                        if (pollanswer.OptionIds.Length > 0)
+                        if (pollAnswer.OptionIds.Length > 0)
                         {
-                            answers.Add(pollanswer);
+                            answers.Add(pollAnswer);
                             Logger.Log(LogType.Info,
-                                $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} voted {pollanswer.OptionIds[0]}");
+                                $"<{chat.Title}>: Voteban {pollAnswer?.User.FirstName}:{pollAnswer?.User.Id} voted {pollAnswer.OptionIds[0]}");
                         }
                         else
                         {
-                            answers.RemoveAll(a => a.User.Id == pollanswer.User.Id);
+                            answers.RemoveAll(a => a.User.Id == pollAnswer.User.Id);
                             Logger.Log(LogType.Info,
-                                $"<{chat.Title}>: Voteban {pollanswer?.User.FirstName}:{pollanswer?.User.Id} retracted vote");
+                                $"<{chat.Title}>: Voteban {pollAnswer?.User.FirstName}:{pollAnswer?.User.Id} retracted vote");
                         }
                     }
                     else
                     {
                         Logger.Log(LogType.Info,
-                            $"<{chat.Title}>: Voteban ignored user from another chat {pollanswer?.User.FirstName}:{pollanswer?.User.Id}");
+                            $"<{chat.Title}>: Voteban ignored user from another chat {pollAnswer?.User.FirstName}:{pollAnswer?.User.Id}");
                     }
                 });
 
@@ -166,7 +166,7 @@ namespace PerchikSharp.Commands
                     return;
                 }
 
-                double ratio = (double)forban / (double)legitvotes;
+                var ratio = (double)forban / (double)legitvotes;
                 if (ratio < vote_ratio)
                 {
                     await bot.SendTextMessageAsync(

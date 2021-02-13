@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using PerchikSharp.Commands;
+using PerchikSharp.Events;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types;
@@ -59,7 +60,7 @@ namespace PerchikSharp
             regExCommands = new Dictionary<IRegExCommand, EventHandler<RegExArgs>>();
 
 
-            OnUpdate += PollRecieve;
+            OnUpdate += PollReceive;
             OnMessageEdited += Bot_OnMessageEdited;
             OnCallbackQuery += Bot_OnCallbackQuery;
             
@@ -84,7 +85,7 @@ namespace PerchikSharp
             }
         }
 
-        private void PollRecieve(object sender, UpdateEventArgs e)
+        private void PollReceive(object sender, UpdateEventArgs e)
         {
             try
             {
@@ -128,10 +129,8 @@ namespace PerchikSharp
         /// </summary>
         /// <param name="command">Command without slash.</param>
         /// <param name="c">Method to be called.</param>
-        public void NativeCommand(string command, EventHandler<CommandEventArgs> c)
-        {
+        public void NativeCommand(string command, EventHandler<CommandEventArgs> c) => 
             commandHandlers.Add(command, c);
-        }
 
         public void NativeCommand(INativeCommand command)
         {
@@ -144,10 +143,8 @@ namespace PerchikSharp
         /// </summary>
         /// <param name="pattern">Regular expression.</param>
         /// <param name="c">Method to be called.</param>
-        public void AddRegEx(string pattern, EventHandler<RegExArgs> c)
-        {
+        public void AddRegEx(string pattern, EventHandler<RegExArgs> c) =>
             regexHandlers.Add(pattern, c);
-        }
 
         public void RegExCommand(IRegExCommand command)
         {
@@ -160,10 +157,8 @@ namespace PerchikSharp
         /// </summary>
         /// <param name="data">Callback data, see. Telegram API</param>
         /// <param name="c">Method to be called.</param>
-        public void CallbackQuery(string data, EventHandler<CallbackQueryArgs> c)
-        {
+        public void CallbackQuery(string data, EventHandler<CallbackQueryArgs> c) =>
             queryHandlers.Add(new InlineButton(data), c);
-        }
 
         /// <summary>
         /// Registers a сallback query for chat event. Pressing the button, etc.
@@ -172,10 +167,8 @@ namespace PerchikSharp
         /// <param name="arg">TODO</param>
         /// <param name="c">Method to be called.</param>
         /// <param name="userid">User Id</param>
-        public void RegisterCallbackQuery(string data, int userid, object arg, EventHandler<CallbackQueryArgs> c)
-        {
+        public void RegisterCallbackQuery(string data, int userid, object arg, EventHandler<CallbackQueryArgs> c) =>
             queryHandlers.Add(new InlineButton(data, userid, arg), c);
-        }
 
         /// <summary>
         /// Removes a сallback query for chat event. Pressing the button, etc.
@@ -215,10 +208,7 @@ namespace PerchikSharp
             var waitingMessages = nextstepHandlers.Where(unit =>
                                    (unit.userId, unit.chatId) == (message.From.Id, message.Chat.Id)).ToList();
             if (waitingMessages.Any())
-            {
-                var waitingMessage = waitingMessages.First();
-                nextstepHandlers.Remove(waitingMessage);
-            }
+                nextstepHandlers.Remove(waitingMessages.First());
         }
 
         private void Bot_OnCallbackQuery(object sender, CallbackQueryEventArgs a)
@@ -227,16 +217,16 @@ namespace PerchikSharp
             {
                 Logger.Log(LogType.Info, $"<{GetType().Name}> InlineCallback \"{a.CallbackQuery.Data}\" from user ({a.CallbackQuery.From.FirstName}:{a.CallbackQuery.From.Id}).");
 
-                var buttonEventPair = queryHandlers.First(o => o.Key.Data == a.CallbackQuery.Data);
+                var (inlineButton, eventHandler) = queryHandlers.First(o => o.Key.Data == a.CallbackQuery.Data);
 
-                if (buttonEventPair.Key.UserId != 0)
+                if (inlineButton.UserId != 0)
                 {
-                    if (buttonEventPair.Key.UserId == a.CallbackQuery.From.Id)
-                        buttonEventPair.Value.Invoke(this, new CallbackQueryArgs(a.CallbackQuery, obj: buttonEventPair.Key.Arg));
+                    if (inlineButton.UserId == a.CallbackQuery.From.Id)
+                        eventHandler.Invoke(this, new CallbackQueryArgs(a.CallbackQuery, obj: inlineButton.Arg));
                 }
                 else
                 {
-                    buttonEventPair.Value.Invoke(this, new CallbackQueryArgs(a.CallbackQuery, obj: buttonEventPair.Key.Arg));
+                    eventHandler.Invoke(this, new CallbackQueryArgs(a.CallbackQuery, obj: inlineButton.Arg));
                 }
 
             }
@@ -285,7 +275,7 @@ namespace PerchikSharp
                 }
 
                 var messageTypeStr =
-                    $"[{message.Chat.Type.ToString()}:{e.Message.Type.ToString()}]({message.From.FirstName}:{message.From.Id})";
+                    $"[{message.Chat.Type}:{e.Message.Type}]({message.From.FirstName}:{message.From.Id})";
                 var messageStr = "";
                 switch (e.Message.Type)
                 {
@@ -340,21 +330,19 @@ namespace PerchikSharp
             {
                 foreach(var (key, value) in regexHandlers)
                 {
-                    string pattern = key;
-                    Match match = Regex.Match(message.Text, pattern, RegexOptions.IgnoreCase);
+                    var pattern = key;
+                    var match = Regex.Match(message.Text, pattern, RegexOptions.IgnoreCase);
                     if (match.Success)
                     {
                         Logger.Log(LogType.Info, $"<{GetType().Name}:RegEx>({message.From.FirstName}:{message.From.Id}) -> {pattern}");
 
-                        RegExArgs rgxArgs = new RegExArgs(message, match, pattern);
-                        //_ = Task.Run(() => regex.Value?.Invoke(this, rgxArgs)); 
-                        value?.Invoke(this, rgxArgs);
+                        value?.Invoke(this, new RegExArgs(message, match, pattern));
                     }
                 }
 
                 if (RegexName != null)
                 {
-                    Match m = Regex.Match(message.Text, RegexName, RegexOptions.IgnoreCase);
+                    var m = Regex.Match(message.Text, RegexName, RegexOptions.IgnoreCase);
                     if (m.Success)
                     {
                         message.Text = Regex.Replace(message.Text, RegexName, "", RegexOptions.IgnoreCase);
@@ -395,7 +383,6 @@ namespace PerchikSharp
             try
             {
                 if (!match.Success) return;
-
 
                 Logger.Log(LogType.Info, $"<{GetType().Name}> User ({message.From.FirstName}:{message.From.Id}) called \"{match.Groups[0].Value}\" command.");
 
@@ -493,26 +480,28 @@ namespace PerchikSharp
         /// <summary>
         /// Resctrict user.
         /// </summary>
-        /// <param name="chatid">Chat id.</param>
+        /// <param name="chatId">Chat id.</param>
         /// <param name="userid">User id.</param>
         /// <param name="until">Rescrict until.</param>
         /// <param name="canWriteMessages">Can write messages or not.</param>
-        public Task RestrictUserAsync(long chatid, int userid, DateTime until, bool canWriteMessages = false)
+        public Task RestrictUserAsync(long chatId, int userid, DateTime until, bool canWriteMessages = false)
         {
-            var permissions = new ChatPermissions();
             try
             {
-                permissions.CanAddWebPagePreviews = canWriteMessages;
-                permissions.CanChangeInfo = canWriteMessages;
-                permissions.CanInviteUsers = canWriteMessages;
-                permissions.CanPinMessages = canWriteMessages;
-                permissions.CanSendMediaMessages = canWriteMessages;
-                permissions.CanSendMessages = canWriteMessages;
-                permissions.CanSendOtherMessages = canWriteMessages;
-                permissions.CanSendPolls = canWriteMessages;
+                var permissions = new ChatPermissions
+                {
+                    CanAddWebPagePreviews = canWriteMessages,
+                    CanChangeInfo = canWriteMessages,
+                    CanInviteUsers = canWriteMessages,
+                    CanPinMessages = canWriteMessages,
+                    CanSendMediaMessages = canWriteMessages,
+                    CanSendMessages = canWriteMessages,
+                    CanSendOtherMessages = canWriteMessages,
+                    CanSendPolls = canWriteMessages
+                };
 
                 return RestrictChatMemberAsync(
-                    chatId: chatid,
+                    chatId: chatId,
                     userId: userid,
                     untilDate: until,
                     permissions: permissions);
@@ -520,16 +509,16 @@ namespace PerchikSharp
             catch (Exception exp)
             {
                 Logger.Log(LogType.Error, $"Exception: {exp.Message}\nTrace: {exp.StackTrace}");
-                return null;
+                return default;
             }
         }
 
-        public Task SaveFileAsync(string fileId, string folder, string fileName = null)
+        public Task SaveFileAsync(string fileId, string folder, string fileName = default)
         {
             return Task.Run(() => SaveFile(fileId, folder, fileName));
         }
 
-        private async void SaveFile(string fileId, string folder, string fileName = null)
+        private async void SaveFile(string fileId, string folder, string fileName = default)
         {
             try
             {
@@ -554,15 +543,15 @@ namespace PerchikSharp
                 var fileExt = file.FilePath.Split('.')[1];
                 fileName ??= $"{fileId}.{fileExt}";
 
-                if (!Directory.Exists($"./{folder}/"))
-                    Directory.CreateDirectory($"./{folder}/");
-                await using (var fileStream = new FileStream($"./{folder}/{fileName}", 
-                    FileMode.Create, FileAccess.Write))
-                {
-                    stream.WriteTo(fileStream);
-                    fileStream.Flush();
-                    fileStream.Close();
-                }
+                Directory.CreateDirectory($"./{folder}/");
+
+                await using var fileStream =
+                        new FileStream($"./{folder}/{fileName}", FileMode.Create, FileAccess.Write);
+
+                stream.WriteTo(fileStream);
+                fileStream.Flush();
+                fileStream.Close();
+                
                 Logger.Log(LogType.Info, $"<Downloader>: Filename: {fileName} saved.");
             }
             catch (Exception e)

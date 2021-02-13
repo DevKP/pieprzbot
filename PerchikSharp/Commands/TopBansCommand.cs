@@ -1,8 +1,7 @@
 ﻿using PerchikSharp.Db;
 using System.Diagnostics;
 using System.Linq;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+using PerchikSharp.Events;
 using Telegram.Bot.Types.Enums;
 
 namespace PerchikSharp.Commands
@@ -35,7 +34,7 @@ namespace PerchikSharp.Commands
                 .ToList();
 
             var msgString = "*Топ 10 по банам:*\n";
-            int i = 1;
+            var i = 1;
             foreach (var user in users)
             {
                 var firstName = user.FirstName?.Replace('[', '<').Replace(']', '>');
